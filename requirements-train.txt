@@ -1,0 +1,4 @@
+rdkit==2026.3.3
+webdataset==1.0.2
+Pillow==12.3.0
+numpy>=2.0

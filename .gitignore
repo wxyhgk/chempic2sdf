@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# Virtual environments
+.venv/
+.venv-*/
+venv/
+
+# Training artifacts
+outputs/
+checkpoints/
+*.pt
+*.pth
+*.ckpt
+
+# Large datasets and generated packages
+Data/sdf/raw/*
+!Data/sdf/raw/.gitkeep
+Data/sdf/extracted/
+Data/sdf/prepared/
+Data/sdf/preview_images/
+Data/sdf/parallel_render_benchmark/
+Data/sdf/webdataset_sample_1k/
+Data/sdf/webdataset_full_v0/
+*.tar
+*.tar.gz
+*.sdf
+*.sdf.gz
+
+# Papers and upstream reference source
+paper/
+third_party/star-vector/
+
+# Editor and operating-system files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

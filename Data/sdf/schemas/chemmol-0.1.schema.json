@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://chempic2sdf.local/schemas/chemmol-0.1.schema.json",
+  "title": "ChemMol 0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "molecule_id",
+    "structure_ref",
+    "canonical_isomeric_smiles",
+    "inchikey",
+    "atoms",
+    "bonds"
+  ],
+  "properties": {
+    "schema_version": {"const": "chemmol-0.1"},
+    "molecule_id": {"type": "string", "minLength": 1},
+    "structure_ref": {"type": "string", "minLength": 1},
+    "canonical_isomeric_smiles": {"type": "string", "minLength": 1},
+    "inchikey": {"type": "string", "minLength": 1},
+    "atoms": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id", "source_atom_index", "element", "atomic_number",
+          "formal_charge", "isotope", "aromatic", "chiral_tag",
+          "cip_code", "explicit_h_count", "implicit_h_count",
+          "no_implicit", "radical_electrons"
+        ],
+        "properties": {
+          "id": {"type": "integer", "minimum": 0},
+          "source_atom_index": {"type": "integer", "minimum": 0},
+          "element": {"type": "string", "minLength": 1},
+          "atomic_number": {"type": "integer", "minimum": 1},
+          "formal_charge": {"type": "integer"},
+          "isotope": {"type": "integer", "minimum": 0},
+          "aromatic": {"type": "boolean"},
+          "chiral_tag": {"type": "string"},
+          "cip_code": {"type": ["string", "null"]},
+          "explicit_h_count": {"type": "integer", "minimum": 0},
+          "implicit_h_count": {"type": "integer", "minimum": 0},
+          "no_implicit": {"type": "boolean"},
+          "radical_electrons": {"type": "integer", "minimum": 0}
+        }
+      }
+    },
+    "bonds": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id", "begin_atom", "end_atom", "type", "aromatic",
+          "conjugated", "stereo", "stereo_atoms", "ez"
+        ],
+        "properties": {
+          "id": {"type": "integer", "minimum": 0},
+          "begin_atom": {"type": "integer", "minimum": 0},
+          "end_atom": {"type": "integer", "minimum": 0},
+          "type": {"type": "string"},
+          "aromatic": {"type": "boolean"},
+          "conjugated": {"type": "boolean"},
+          "stereo": {"type": "string"},
+          "stereo_atoms": {
+            "type": "array",
+            "items": {"type": "integer", "minimum": 0},
+            "minItems": 0,
+            "maxItems": 2
+          },
+          "ez": {"type": ["string", "null"]}
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,5 @@
+rdkit==2026.3.3
+fastjsonschema==2.21.2
+jsonschema==4.26.0
+opencv-python-headless==5.0.0.93
+webdataset==1.0.2

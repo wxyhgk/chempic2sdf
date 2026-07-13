@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://chempic2sdf.local/schemas/render-0.1.schema.json",
+  "title": "ChemMol Render 0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "molecule_id", "variant", "width", "height",
+    "atoms", "bonds", "render_parameters"
+  ],
+  "properties": {
+    "schema_version": {"const": "render-0.1"},
+    "molecule_id": {"type": "string", "minLength": 1},
+    "variant": {"enum": ["original", "rdkit", "coordgen", "stress"]},
+    "width": {"type": "integer", "minimum": 1},
+    "height": {"type": "integer", "minimum": 1},
+    "atoms": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "atom_id", "molecule_x", "molecule_y", "image_x", "image_y",
+          "quantized_x", "quantized_y"
+        ],
+        "properties": {
+          "atom_id": {"type": "integer", "minimum": 0},
+          "molecule_x": {"type": "number"},
+          "molecule_y": {"type": "number"},
+          "image_x": {"type": "number"},
+          "image_y": {"type": "number"},
+          "quantized_x": {"type": "integer", "minimum": 0, "maximum": 1023},
+          "quantized_y": {"type": "integer", "minimum": 0, "maximum": 1023}
+        }
+      }
+    },
+    "bonds": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "bond_id", "begin_image_x", "begin_image_y", "end_image_x",
+          "end_image_y", "display_type", "direction"
+        ],
+        "properties": {
+          "bond_id": {"type": "integer", "minimum": 0},
+          "begin_image_x": {"type": "number"},
+          "begin_image_y": {"type": "number"},
+          "end_image_x": {"type": "number"},
+          "end_image_y": {"type": "number"},
+          "display_type": {"type": "string"},
+          "direction": {"type": "string"}
+        }
+      }
+    },
+    "render_parameters": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "layout", "rotation_degrees", "bond_line_width", "font_size",
+        "padding", "multiple_bond_offset", "color_mode", "kekulize",
+        "stress_operation"
+      ],
+      "properties": {
+        "layout": {"type": "string"},
+        "rotation_degrees": {"type": "number"},
+        "bond_line_width": {"type": "number"},
+        "font_size": {"type": "integer"},
+        "padding": {"type": "number"},
+        "multiple_bond_offset": {"type": "number"},
+        "color_mode": {"enum": ["black_white", "scan_grayscale", "limited_color"]},
+        "kekulize": {"type": "boolean"},
+        "stress_operation": {"type": ["string", "null"]}
+      }
+    }
+  }
+}
