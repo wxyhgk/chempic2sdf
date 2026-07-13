@@ -216,6 +216,7 @@ def main() -> None:
     parser.add_argument("--image-size", type=int, default=768)
     parser.add_argument("--workers", type=int, default=0)
     parser.add_argument("--output-dir", default="outputs/chemvector-evaluation")
+    parser.add_argument("--reject-keys-file")
     args = parser.parse_args()
 
     if not torch.cuda.is_available():
@@ -225,6 +226,13 @@ def main() -> None:
     device = torch.device("cuda")
     model, tokenizer = load_model(Path(args.checkpoint), device)
     shards = expand_shards(args.shards)
+    reject_keys = set()
+    if args.reject_keys_file:
+        reject_keys = {
+            line.strip()
+            for line in Path(args.reject_keys_file).read_text(encoding="utf-8").splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
+        }
     teacher_loader = make_loader(
         shards,
         tokenizer,
@@ -233,6 +241,7 @@ def main() -> None:
         image_size=args.image_size,
         workers=args.workers,
         shuffle=False,
+        reject_keys=reject_keys,
     )
     teacher_metrics = evaluate_teacher_forcing(
         model,
@@ -257,6 +266,7 @@ def main() -> None:
             image_size=args.image_size,
             workers=args.workers,
             shuffle=False,
+            reject_keys=reject_keys,
         )
         generation_metrics = evaluate_generation(
             model,
