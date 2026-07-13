@@ -1,5 +1,9 @@
 # SDF 原始数据
 
+当前同时保留 ChemMolSeq v0.2 与空间顺序 ChemMolSeq v0.3。v0.3 协议见
+[`CHEMMOLSEQ_V0_3.md`](CHEMMOLSEQ_V0_3.md)，训练加载器可直接从现有 JSON 动态
+生成，不需要重建 75GB WebDataset。
+
 请将原始分子结构文件放入 `raw/` 目录。
 
 支持以下源文件格式：

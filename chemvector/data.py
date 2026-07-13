@@ -9,7 +9,6 @@ import torch
 from PIL import Image
 from torch.utils.data import IterableDataset
 
-from Data.sdf.chemmol_tokenizer import ChemMolTokenizer
 from Data.sdf.chemmol_webdataset import ChemMolWebDataset
 
 
@@ -20,11 +19,15 @@ class ChemVectorIterableDataset(IterableDataset):
         *,
         shardshuffle: bool = False,
         sample_shuffle_buffer: int = 0,
+        sequence_version: str = "0.2",
+        reject_keys: set[str] | None = None,
     ) -> None:
         super().__init__()
         self.shards = shards
         self.shardshuffle = shardshuffle
         self.sample_shuffle_buffer = sample_shuffle_buffer
+        self.sequence_version = sequence_version
+        self.reject_keys = reject_keys or set()
 
     def __iter__(self) -> Iterator[dict]:
         yield from ChemMolWebDataset(
@@ -32,6 +35,8 @@ class ChemVectorIterableDataset(IterableDataset):
             validate_legacy_hash=False,
             shardshuffle=self.shardshuffle,
             sample_shuffle_buffer=self.sample_shuffle_buffer,
+            sequence_version=self.sequence_version,
+            reject_keys=self.reject_keys,
         )
 
 
@@ -41,7 +46,7 @@ class ChemVectorCollator:
 
     def __init__(
         self,
-        tokenizer: ChemMolTokenizer,
+        tokenizer,
         *,
         image_size: int = 768,
         max_length: int = 3072,

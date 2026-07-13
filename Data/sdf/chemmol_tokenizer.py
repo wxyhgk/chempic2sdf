@@ -59,6 +59,7 @@ class ChemMolTokenizer:
     ELEMENTS = ("B", "Br", "C", "Cl", "F", "I", "N", "O", "P", "S", "Se", "Si")
     INTEGER_MIN = -16
     INTEGER_MAX = 2047
+    sequence_schema_version = "chemmolseq-0.2"
 
     def __init__(self, vocabulary: list[str] | None = None) -> None:
         self.vocabulary = vocabulary or self.build_vocabulary()

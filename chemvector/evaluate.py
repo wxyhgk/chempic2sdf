@@ -13,24 +13,31 @@ import torch
 from rdkit import Chem
 
 from Data.sdf.chemmol_sequence import mol_from_chemmolseq
+from Data.sdf.chemmol_sequence_v3 import mol_from_chemmolseq_v3
 from Data.sdf.chemmol_tokenizer import ChemMolTokenizer
+from Data.sdf.chemmol_tokenizer_v3 import ChemMolTokenizerV3
 from chemvector.generation import generate_chemmolseq, write_sdf
+from chemvector.generation_v3 import generate_chemmolseq_v3, write_sdf_v3
 from chemvector.model import ChemVectorConfig, ChemVectorModel
 from chemvector.train import expand_shards, make_loader, slice_batch
 
 
-def load_model(checkpoint_path: Path, device: torch.device) -> tuple[ChemVectorModel, ChemMolTokenizer]:
+def load_model(checkpoint_path: Path, device: torch.device) -> tuple[ChemVectorModel, object]:
     checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
     valid_config_keys = {item.name for item in fields(ChemVectorConfig)}
     config = ChemVectorConfig(
         **{key: value for key, value in checkpoint["config"].items() if key in valid_config_keys}
     )
     tokenizer_path = checkpoint_path.parent / "tokenizer.json"
-    tokenizer = (
-        ChemMolTokenizer.load(tokenizer_path)
-        if tokenizer_path.is_file()
-        else ChemMolTokenizer()
-    )
+    if tokenizer_path.is_file():
+        tokenizer_payload = json.loads(tokenizer_path.read_text(encoding="utf-8"))
+        tokenizer = (
+            ChemMolTokenizerV3.load(tokenizer_path)
+            if tokenizer_payload.get("sequence_schema_version") == "chemmolseq-0.3"
+            else ChemMolTokenizer.load(tokenizer_path)
+        )
+    else:
+        tokenizer = ChemMolTokenizer()
     if tokenizer.vocab_size != config.vocab_size:
         raise ValueError("Checkpoint config and tokenizer vocabulary sizes differ")
     model = ChemVectorModel(config).to(device)
@@ -105,6 +112,7 @@ def evaluate_generation(
     output_dir: Path,
 ) -> dict:
     output_dir.mkdir(parents=True, exist_ok=True)
+    is_v3 = isinstance(tokenizer, ChemMolTokenizerV3)
     records = []
     started = time.perf_counter()
     for batch in loader:
@@ -114,10 +122,9 @@ def evaluate_generation(
         expected_sequence = batch["target_sequences"][0]
         expected_smiles = batch["expected_smiles"][0]
         expected_inchikey = batch["expected_inchikeys"][0]
-        result = generate_chemmolseq(
-            model,
-            batch["pixel_values"].to(device, non_blocking=True),
-            tokenizer,
+        generator = generate_chemmolseq_v3 if is_v3 else generate_chemmolseq
+        result = generator(
+            model, batch["pixel_values"].to(device, non_blocking=True), tokenizer
         )
         record = {
             "key": key,
@@ -154,7 +161,11 @@ def evaluate_generation(
                     expected_ids[divergence]
                 ]
             try:
-                mol = mol_from_chemmolseq(result.sequence)
+                mol = (
+                    mol_from_chemmolseq_v3(result.sequence)
+                    if is_v3
+                    else mol_from_chemmolseq(result.sequence)
+                )
                 actual_smiles = normalized_smiles(mol)
                 actual_inchikey = Chem.MolToInchiKey(mol)
                 expected_mol = Chem.MolFromSmiles(expected_smiles)
@@ -169,7 +180,8 @@ def evaluate_generation(
                         ),
                     }
                 )
-                write_sdf(result.sequence, output_dir / f"{key}.sdf")
+                sdf_writer = write_sdf_v3 if is_v3 else write_sdf
+                sdf_writer(result.sequence, output_dir / f"{key}.sdf")
             except Exception as error:
                 record["error"] = str(error)
         records.append(record)

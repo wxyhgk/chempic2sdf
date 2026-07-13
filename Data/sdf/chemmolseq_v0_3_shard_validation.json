@@ -1,0 +1,41 @@
+{
+  "shard": "Data/sdf/webdataset_full_v0/shards/train-000000.tar",
+  "samples": 4992,
+  "chemical_roundtrip_pass": 4992,
+  "depiction_stereo_failures": 13,
+  "depiction_failure_keys": [
+    "train_000678_stress",
+    "train_000550_coordgen",
+    "train_000005_stress",
+    "train_000008_stress",
+    "train_000306_stress",
+    "train_001104_coordgen",
+    "train_000167_coordgen",
+    "train_000448_stress",
+    "train_000438_stress",
+    "train_000318_coordgen",
+    "train_001118_coordgen",
+    "train_000034_stress",
+    "train_000976_stress"
+  ],
+  "variants": {
+    "original": 1248,
+    "rdkit": 1248,
+    "coordgen": 1248,
+    "stress": 1248
+  },
+  "v02": {
+    "mean": 767.1730769230769,
+    "p95": 1289,
+    "p99": 2006,
+    "max": 2481
+  },
+  "v03": {
+    "mean": 638.9487179487179,
+    "p95": 1078,
+    "p99": 1658,
+    "max": 2062
+  },
+  "mean_reduction_ratio": 0.16713876285731,
+  "seconds": 46.246705268044025
+}

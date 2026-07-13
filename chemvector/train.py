@@ -16,6 +16,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from Data.sdf.chemmol_tokenizer import ChemMolTokenizer
+from Data.sdf.chemmol_tokenizer_v3 import ChemMolTokenizerV3
 from chemvector.data import ChemVectorCollator, ChemVectorIterableDataset
 from chemvector.model import ChemVectorConfig, ChemVectorModel
 
@@ -34,7 +35,7 @@ def expand_shards(patterns: list[str]) -> list[str]:
     return unique
 
 
-def build_config(tokenizer: ChemMolTokenizer, tiny: bool) -> ChemVectorConfig:
+def build_config(tokenizer, tiny: bool) -> ChemVectorConfig:
     common = {
         "vocab_size": tokenizer.vocab_size,
         "pad_token_id": tokenizer.pad_token_id,
@@ -54,18 +55,21 @@ def build_config(tokenizer: ChemMolTokenizer, tiny: bool) -> ChemVectorConfig:
 
 def make_loader(
     shards: list[str],
-    tokenizer: ChemMolTokenizer,
+    tokenizer,
     config: ChemVectorConfig,
     *,
     batch_size: int,
     image_size: int,
     workers: int,
     shuffle: bool,
+    reject_keys: set[str] | None = None,
 ) -> DataLoader:
     dataset = ChemVectorIterableDataset(
         shards,
         shardshuffle=shuffle,
         sample_shuffle_buffer=1000 if shuffle else 0,
+        sequence_version=tokenizer.sequence_schema_version.removeprefix("chemmolseq-"),
+        reject_keys=reject_keys,
     )
     collator = ChemVectorCollator(
         tokenizer,
@@ -187,6 +191,8 @@ def main() -> None:
     )
     parser.add_argument("--validation-shards", nargs="+")
     parser.add_argument("--output-dir", default="outputs/chemvector")
+    parser.add_argument("--sequence-version", choices=("0.2", "0.3"), default="0.2")
+    parser.add_argument("--reject-keys-file")
     parser.add_argument("--epochs", type=int, default=1)
     parser.add_argument("--max-steps", type=int)
     parser.add_argument("--train-samples-per-epoch", type=int)
@@ -233,7 +239,11 @@ def main() -> None:
     torch.cuda.manual_seed_all(args.seed)
     torch.set_float32_matmul_precision("high")
 
-    tokenizer = ChemMolTokenizer()
+    tokenizer = (
+        ChemMolTokenizerV3()
+        if args.sequence_version == "0.3"
+        else ChemMolTokenizer()
+    )
     config = build_config(tokenizer, args.tiny)
     device = torch.device("cuda")
     model = ChemVectorModel(config).to(device)
@@ -278,6 +288,14 @@ def main() -> None:
     print(f"parameters={model.parameter_count():,}")
     print(f"train_shards={len(train_shards)}")
     print(f"validation_shards={len(validation_shards)}")
+    reject_keys = set()
+    if args.reject_keys_file:
+        reject_keys = {
+            line.strip()
+            for line in Path(args.reject_keys_file).read_text(encoding="utf-8").splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
+        }
+    print(f"reject_keys={len(reject_keys)}")
     if resume_samples_in_epoch:
         if not args.no_shuffle:
             raise ValueError(
@@ -299,6 +317,7 @@ def main() -> None:
             image_size=args.image_size,
             workers=args.workers,
             shuffle=False,
+            reject_keys=reject_keys,
         )
 
     model.train()
@@ -313,6 +332,7 @@ def main() -> None:
             image_size=args.image_size,
             workers=args.workers,
             shuffle=not args.no_shuffle,
+            reject_keys=reject_keys,
         )
         epoch_samples = resume_samples_in_epoch
         running_loss = 0.0

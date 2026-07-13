@@ -92,6 +92,61 @@ outputs/chemvector-grounded-final-100-eval-20/generated/generation_metrics.json
 的泛化准确率。下一步应将相同课程扩大到固定 1,000 样本，再使用独立 scaffold
 validation 检查泛化。
 
+## ChemMolSeq v0.3
+
+开发中的 v0.3 使用图片空间原子顺序，去除显式 record ID 和渲染专用键字段，
+并把坐标移动到化学图之后。现有数据无需重建：
+
+```bash
+.venv-train/bin/python -m chemvector.train \
+  --sequence-version 0.3 \
+  --reject-keys-file Data/sdf/chemmolseq_v0_3_depiction_reject_keys.txt \
+  --train-shards Data/sdf/webdataset_full_v0/shards/train-000000.tar \
+  --no-shuffle --workers 0 \
+  --batch-size 4 --gradient-accumulation 1 \
+  --train-samples-per-epoch 1000 \
+  --epochs 10 \
+  --token-corruption-probability 0.5 \
+  --visual-aux-weight 5.0 \
+  --output-dir outputs/chemvector-v3-grounded-1k
+```
+
+第二阶段从第 10 个 epoch 继续到第 20 个 epoch：
+
+```bash
+.venv-train/bin/python -m chemvector.train \
+  --sequence-version 0.3 \
+  --train-shards Data/sdf/webdataset_full_v0/shards/train-000000.tar \
+  --reject-keys-file Data/sdf/chemmolseq_v0_3_depiction_reject_keys.txt \
+  --no-shuffle --workers 0 \
+  --batch-size 4 --gradient-accumulation 1 \
+  --train-samples-per-epoch 1000 --epochs 20 \
+  --token-corruption-probability 0.1 --visual-aux-weight 1.0 \
+  --resume outputs/chemvector-v3-grounded-1k/last.pt \
+  --resume-learning-rate 3e-5 \
+  --output-dir outputs/chemvector-v3-finetune-1k
+```
+
+第三阶段从第 20 个 epoch 继续到第 25 个 epoch：
+
+```bash
+.venv-train/bin/python -m chemvector.train \
+  --sequence-version 0.3 \
+  --train-shards Data/sdf/webdataset_full_v0/shards/train-000000.tar \
+  --reject-keys-file Data/sdf/chemmolseq_v0_3_depiction_reject_keys.txt \
+  --no-shuffle --workers 0 \
+  --batch-size 4 --gradient-accumulation 1 \
+  --train-samples-per-epoch 1000 --epochs 25 \
+  --token-corruption-probability 0 --visual-aux-weight 1.0 \
+  --resume outputs/chemvector-v3-finetune-1k/last.pt \
+  --resume-learning-rate 1e-5 \
+  --output-dir outputs/chemvector-v3-final-1k
+```
+
+首 shard 的 4,992 张图片已全部通过 v0.3 化学往返，平均序列缩短 16.71%。
+同时检测到 13 张增强图片的二维 E/Z 几何与化学标签冲突；正式全量训练前需要
+扫描并替换这类样本。
+
 ## checkpoint 评估与 SDF 导出
 
 评估命令先在指定样本上计算 teacher-forcing 指标，再对少量样本执行真正的

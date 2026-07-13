@@ -1,0 +1,14 @@
+# 首个训练 shard 中 Render 坐标与 E/Z 化学标签冲突的图片
+train_000678_stress
+train_000550_coordgen
+train_000005_stress
+train_000008_stress
+train_000306_stress
+train_001104_coordgen
+train_000167_coordgen
+train_000448_stress
+train_000438_stress
+train_000318_coordgen
+train_001118_coordgen
+train_000034_stress
+train_000976_stress

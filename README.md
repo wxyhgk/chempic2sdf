@@ -11,6 +11,8 @@ ChemPic2SDF 是面向化学结构图片识别的视觉到结构生成项目。�
 - 已实现约 5,000 万参数的 ChemVector 单卡模型。
 - 已实现二维视觉位置编码、原子/键线 patch 密集监督和三阶段训练课程。
 - 已实现语法约束自回归生成、RDKit sanitize、SMILES/InChIKey 比对和 SDF 导出。
+- 正在开发空间原子顺序的 ChemMolSeq v0.3，以降低不可见 canonical rank 对
+  未见分子泛化的影响。
 - 100 样本实验达到 100% exact sequence；前 5 个分子的 20 张四布局图片全部
   自回归生成正确并通过化学一致性验证。
 
