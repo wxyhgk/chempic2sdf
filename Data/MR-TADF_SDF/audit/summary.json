@@ -1,0 +1,21 @@
+{
+  "schema_version": "mr-tadf-audit-0.1",
+  "input_dir": "Data/MR-TADF_SDF",
+  "training_manifest": "Data/sdf/webdataset_full_v0/molecules.csv",
+  "candidate_files": 1120,
+  "approved_unique_structures": 1100,
+  "rejected_files": 20,
+  "rejection_reasons": {
+    "duplicate_inchikey": 11,
+    "not_strictly_2d": 5,
+    "sanitize_failed": 3,
+    "zero_atoms": 1
+  },
+  "training_structure_overlaps": 0,
+  "training_scaffold_overlaps": 0,
+  "nested_sdf_files_ignored": 3,
+  "approved_long_bond_ratio_at_least_1_75": 405,
+  "candidate_filename_sha256": "1f6803244eed0f07fbc032d536887c3327e8cf0c2331596bf672f529111ded13",
+  "rendering_policy": "Only rows in approved.csv may be rendered.",
+  "png_files_generated": 0
+}

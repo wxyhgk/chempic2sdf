@@ -1,0 +1,21 @@
+molecule_id,sdf_file,reason,detail,inchikey
+GDG1004,GDG1004.sdf,not_strictly_2d,"max_abs_z=0.7747,x_span=27.9006,y_span=16.2994",
+GDG1032,GDG1032.sdf,not_strictly_2d,"max_abs_z=0.7747,x_span=27.9006,y_span=16.6542",
+GDG1097,GDG1097.sdf,not_strictly_2d,"max_abs_z=0.7747,x_span=21.1332,y_span=21.511",
+GDG1098,GDG1098.sdf,not_strictly_2d,"max_abs_z=0.7747,x_span=19.9502,y_span=16.736",
+GDG1219,GDG1219.sdf,duplicate_inchikey,kept=GDG1217.sdf,JGQHSUSJLZLXKR-UHFFFAOYSA-N
+GDG1333,GDG1333.sdf,duplicate_inchikey,kept=GDG1279.sdf,OPEUBHRXWHHIFA-UHFFFAOYSA-N
+GDG1515,GDG1515.sdf,duplicate_inchikey,kept=GDG1028.sdf,HFVNUAQTSVEVSS-UHFFFAOYSA-N
+GDG372,GDG372.sdf,duplicate_inchikey,kept=GDG359.sdf,UOPRWUCHNCNMIW-UHFFFAOYSA-N
+GDG397,GDG397.sdf,duplicate_inchikey,kept=GDG359.sdf,UOPRWUCHNCNMIW-UHFFFAOYSA-N
+GDG476,GDG476.sdf,zero_atoms,,
+GDG601,GDG601.sdf,duplicate_inchikey,kept=GDG598.sdf,LXZMGALKJWDOST-UHFFFAOYSA-N
+GDG636,GDG636.sdf,duplicate_inchikey,kept=GDG448.sdf,UTNHKXPPTCFCFZ-UHFFFAOYSA-N
+GDG647,GDG647.sdf,duplicate_inchikey,kept=GDG607.sdf,ZWQSCVSBBASTKK-UHFFFAOYSA-N
+GDG696,GDG696.sdf,duplicate_inchikey,kept=GDG529.sdf,MJXUWEJHEASSLV-UHFFFAOYSA-N
+GDG855,GDG855.sdf,duplicate_inchikey,kept=GDG840.sdf,SDSWKKQFTCTQPJ-UHFFFAOYSA-N
+GDG939,GDG939.sdf,sanitize_failed,"Explicit valence for atom # 35 B, 4, is greater than permitted",
+GDG948,GDG948.sdf,sanitize_failed,"Explicit valence for atom # 48 B, 4, is greater than permitted",
+GDG969,GDG969.sdf,sanitize_failed,"Explicit valence for atom # 87 C, 6, is greater than permitted",
+GDG970,GDG970.sdf,not_strictly_2d,"max_abs_z=1.1214,x_span=18.4654,y_span=14.4662",
+GDG982,GDG982.sdf,duplicate_inchikey,kept=GDG1110.sdf,KFNFABFUTKVJPI-UHFFFAOYSA-N
