@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -448,6 +449,130 @@ class GenerationResultV4:
     error: str | None = None
 
 
+@dataclass
+class _BeamStateV4:
+    input_ids: tuple[int, ...]
+    grammar: ChemSVGGrammarV4
+    caches: list[torch.Tensor] | None
+    log_probability: float
+
+
+def _completed_result_v4(
+    input_ids: tuple[int, ...],
+    tokenizer: ChemSVGTokenizerV4,
+) -> GenerationResultV4:
+    sequence = tokenizer.decode(input_ids)
+    try:
+        mol_from_chemsvg_v4(sequence)
+    except ChemMolSequenceError as error:
+        return GenerationResultV4(input_ids, sequence, True, False, str(error))
+    return GenerationResultV4(input_ids, sequence, True, True)
+
+
+def _beam_rank(state: _BeamStateV4) -> float:
+    decision_length = max(len(state.input_ids) - 1, 1)
+    return state.log_probability / (decision_length**0.6)
+
+
+def _generate_beam_v4(
+    model: ChemVectorModel,
+    memory: torch.Tensor,
+    tokenizer: ChemSVGTokenizerV4,
+    *,
+    max_length: int,
+    beam_width: int,
+) -> GenerationResultV4:
+    grammar = ChemSVGGrammarV4(tokenizer)
+    grammar.consume(tokenizer.bos_token_id)
+    active = [
+        _BeamStateV4(
+            input_ids=(tokenizer.bos_token_id,),
+            grammar=grammar,
+            caches=None,
+            log_probability=0.0,
+        )
+    ]
+    completed: list[_BeamStateV4] = []
+    best_partial = active[0]
+    while active and len(active[0].input_ids) < max_length:
+        candidates: list[_BeamStateV4] = []
+        tokens = torch.tensor(
+            [[state.input_ids[-1]] for state in active],
+            device=memory.device,
+        )
+        batched_caches = None
+        if active[0].caches is not None:
+            batched_caches = [
+                torch.cat(
+                    [state.caches[layer_index] for state in active],
+                    dim=0,
+                )
+                for layer_index in range(len(active[0].caches))
+            ]
+        logits, next_batched_caches = model.decode_step(
+            tokens,
+            len(active[0].input_ids) - 1,
+            memory.expand(len(active), -1, -1),
+            batched_caches,
+        )
+        for state_index, state in enumerate(active):
+            allowed = state.grammar.allowed_token_ids()
+            if not allowed:
+                continue
+            next_caches = [
+                cache[state_index : state_index + 1]
+                for cache in next_batched_caches
+            ]
+            allowed_tensor = torch.tensor(allowed, device=logits.device)
+            allowed_logits = logits[state_index, 0].float().index_select(
+                0,
+                allowed_tensor,
+            )
+            log_probabilities = torch.log_softmax(allowed_logits, dim=0)
+            count = min(beam_width, len(allowed))
+            top_scores, top_indices = log_probabilities.topk(count)
+            for score, index in zip(top_scores.tolist(), top_indices.tolist()):
+                next_id = int(allowed_tensor[index])
+                next_grammar = copy.deepcopy(state.grammar)
+                next_grammar.consume(next_id)
+                child = _BeamStateV4(
+                    input_ids=(*state.input_ids, next_id),
+                    grammar=next_grammar,
+                    caches=next_caches,
+                    log_probability=state.log_probability + score,
+                )
+                if next_grammar.phase == "done":
+                    completed.append(child)
+                else:
+                    candidates.append(child)
+                if len(child.input_ids) > len(best_partial.input_ids) or (
+                    len(child.input_ids) == len(best_partial.input_ids)
+                    and _beam_rank(child) > _beam_rank(best_partial)
+                ):
+                    best_partial = child
+        if completed:
+            best_completed = max(completed, key=_beam_rank)
+            best_active = max(candidates, key=_beam_rank, default=None)
+            if best_active is None or _beam_rank(best_completed) >= _beam_rank(best_active):
+                return _completed_result_v4(best_completed.input_ids, tokenizer)
+        active = sorted(candidates, key=_beam_rank, reverse=True)[:beam_width]
+    if completed:
+        best_completed = max(completed, key=_beam_rank)
+        return _completed_result_v4(best_completed.input_ids, tokenizer)
+    error = (
+        "Beam generation exhausted all legal continuations"
+        if not active
+        else f"Beam generation did not finish within {max_length} tokens"
+    )
+    return GenerationResultV4(
+        best_partial.input_ids,
+        None,
+        False,
+        False,
+        error,
+    )
+
+
 @torch.inference_mode()
 def generate_chemsvg_v4(
     model: ChemVectorModel,
@@ -455,9 +580,12 @@ def generate_chemsvg_v4(
     tokenizer: ChemSVGTokenizerV4,
     *,
     max_length: int | None = None,
+    beam_width: int = 1,
 ) -> GenerationResultV4:
     if pixel_values.size(0) != 1:
         raise ValueError("Generation currently supports batch size 1")
+    if beam_width < 1:
+        raise ValueError("beam_width must be positive")
     model.eval()
     max_length = max_length or model.config.max_target_length
     with torch.autocast(
@@ -466,15 +594,25 @@ def generate_chemsvg_v4(
         enabled=pixel_values.device.type == "cuda",
     ):
         memory = model.encode_images(pixel_values)
+        if beam_width > 1:
+            return _generate_beam_v4(
+                model,
+                memory,
+                tokenizer,
+                max_length=max_length,
+                beam_width=beam_width,
+            )
         grammar = ChemSVGGrammarV4(tokenizer)
         generated = [tokenizer.bos_token_id]
         grammar.consume(generated[0])
         caches = None
+        exhausted = False
         while len(generated) < max_length:
             token = torch.tensor([[generated[-1]]], device=pixel_values.device)
             logits, caches = model.decode_step(token, len(generated) - 1, memory, caches)
             allowed = grammar.allowed_token_ids()
             if not allowed:
+                exhausted = True
                 break
             allowed_tensor = torch.tensor(allowed, device=logits.device)
             scores = logits[0, 0].index_select(0, allowed_tensor)
@@ -482,24 +620,18 @@ def generate_chemsvg_v4(
             generated.append(next_id)
             grammar.consume(next_id)
             if grammar.phase == "done":
-                sequence = tokenizer.decode(generated)
-                try:
-                    mol_from_chemsvg_v4(sequence)
-                except ChemMolSequenceError as error:
-                    return GenerationResultV4(
-                        tuple(generated),
-                        sequence,
-                        True,
-                        False,
-                        str(error),
-                    )
-                return GenerationResultV4(tuple(generated), sequence, True, True)
+                return _completed_result_v4(tuple(generated), tokenizer)
+    error = (
+        "Generation exhausted all legal continuations"
+        if exhausted
+        else f"Generation did not finish within {max_length} tokens"
+    )
     return GenerationResultV4(
         tuple(generated),
         None,
         False,
         False,
-        f"Generation did not finish within {max_length} tokens",
+        error,
     )
 
 

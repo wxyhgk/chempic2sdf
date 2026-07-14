@@ -132,7 +132,12 @@ def evaluate_generation(
         expected_inchikey = batch["expected_inchikeys"][0]
         pixel_values = batch["pixel_values"].to(device, non_blocking=True)
         if is_v4:
-            result = generate_chemsvg_v4(model, pixel_values, tokenizer)
+            result = generate_chemsvg_v4(
+                model,
+                pixel_values,
+                tokenizer,
+                beam_width=beam_width,
+            )
         elif is_v3:
             result = generate_chemmolseq_v3(
                 model,
@@ -253,8 +258,11 @@ def main() -> None:
         )
     device = torch.device("cuda")
     model, tokenizer = load_model(Path(args.checkpoint), device)
-    if args.beam_width > 1 and not isinstance(tokenizer, ChemMolTokenizerV3):
-        raise ValueError("Beam search is currently supported only for ChemMolSeq v0.3")
+    if args.beam_width > 1 and not isinstance(
+        tokenizer,
+        (ChemMolTokenizerV3, ChemSVGTokenizerV4),
+    ):
+        raise ValueError("Beam search requires ChemMolSeq v0.3 or ChemSVG v0.4")
     shards = expand_shards(args.shards)
     reject_keys = set()
     if args.reject_keys_file:

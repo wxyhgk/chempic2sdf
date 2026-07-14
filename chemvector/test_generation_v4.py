@@ -6,12 +6,17 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import torch
 from rdkit import Chem
 
 from Data.sdf.chemsvg_sequence_v4 import serialize_chemsvg_v4
 from Data.sdf.chemsvg_tokenizer_v4 import ChemSVGTokenizerV4
 from Data.sdf.test_chemmol_sequence import make_annotations
-from chemvector.generation_v4 import ChemSVGGrammarV4, write_sdf_v4
+from chemvector.generation_v4 import (
+    ChemSVGGrammarV4,
+    generate_chemsvg_v4,
+    write_sdf_v4,
+)
 
 
 class GenerationV4Tests(unittest.TestCase):
@@ -54,6 +59,15 @@ class GenerationV4Tests(unittest.TestCase):
             write_sdf_v4(sequence, path)
             mol = next(item for item in Chem.SDMolSupplier(str(path)) if item is not None)
             self.assertEqual(Chem.MolToInchiKey(mol), chemmol["inchikey"])
+
+    def test_beam_width_must_be_positive(self) -> None:
+        with self.assertRaisesRegex(ValueError, "beam_width must be positive"):
+            generate_chemsvg_v4(
+                None,
+                torch.zeros(1, 3, 32, 32),
+                ChemSVGTokenizerV4(),
+                beam_width=0,
+            )
 
 
 if __name__ == "__main__":
