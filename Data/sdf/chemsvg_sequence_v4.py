@@ -91,6 +91,35 @@ class ParsedChemSVGSequenceV4:
     schema_version: str = SCHEMA_VERSION
 
 
+def serialize_parsed_chemsvg_v4(parsed: ParsedChemSVGSequenceV4) -> str:
+    """Serialize already constructed visual records in canonical record order."""
+
+    lines = [START_TOKEN]
+    for vertex in parsed.vertices:
+        lines.append(
+            f"<v {vertex.x} {vertex.y} {vertex.element} {vertex.formal_charge} "
+            f"{vertex.isotope} {int(vertex.aromatic)} {vertex.explicit_h_count} "
+            f"{int(vertex.no_implicit)} {vertex.radical_electrons} "
+            f"{vertex.canonical_chiral_tag}>"
+        )
+    for stroke in sorted(parsed.strokes, key=_stroke_sort_key):
+        line = (
+            f"<s {stroke.begin_x} {stroke.begin_y} {stroke.end_x} {stroke.end_y} "
+            f"{stroke.display_type} {stroke.bond_type} {stroke.direction} "
+            f"{stroke.stereo}"
+        )
+        if stroke.stereo_atom_0 is not None:
+            line += (
+                f" {stroke.stereo_atom_0_x} {stroke.stereo_atom_0_y} "
+                f"{stroke.stereo_atom_1_x} {stroke.stereo_atom_1_y}"
+            )
+        lines.append(line + ">")
+    lines.append(END_TOKEN)
+    sequence = "\n".join(lines) + "\n"
+    parse_chemsvg_v4(sequence)
+    return sequence
+
+
 def _enum_member(enum_type: Any, name: str, field: str) -> Any:
     try:
         return getattr(enum_type, name)
@@ -348,6 +377,23 @@ def parse_chemsvg_v4(sequence: str) -> ParsedChemSVGSequenceV4:
         )
     if not vertices:
         raise ChemMolSequenceError("ChemSVG v0.4 contains no visual vertices")
+    adjacency: dict[tuple[int, int], set[tuple[int, int]]] = {
+        coordinate: set() for coordinate in coordinates
+    }
+    for stroke in strokes:
+        adjacency[stroke.begin].add(stroke.end)
+        adjacency[stroke.end].add(stroke.begin)
+    for stroke in strokes:
+        if stroke.stereo_atom_0 is None:
+            continue
+        if stroke.stereo_atom_0 not in adjacency[stroke.begin]:
+            raise ChemMolSequenceError(
+                "First stroke stereo reference is not connected to the begin vertex"
+            )
+        if stroke.stereo_atom_1 not in adjacency[stroke.end]:
+            raise ChemMolSequenceError(
+                "Second stroke stereo reference is not connected to the end vertex"
+            )
     return ParsedChemSVGSequenceV4(tuple(vertices), tuple(strokes))
 
 
@@ -417,10 +463,15 @@ def mol_from_parsed_chemsvg_v4(
     for record, begin_atom, end_atom in stroke_bonds:
         bond = mol.GetBondBetweenAtoms(begin_atom, end_atom)
         if record.stereo_atom_0 is not None:
-            bond.SetStereoAtoms(
-                coordinate_to_atom[record.stereo_atom_0],
-                coordinate_to_atom[record.stereo_atom_1],
-            )
+            try:
+                bond.SetStereoAtoms(
+                    coordinate_to_atom[record.stereo_atom_0],
+                    coordinate_to_atom[record.stereo_atom_1],
+                )
+            except RuntimeError as error:
+                raise ChemMolSequenceError(
+                    f"RDKit rejected stroke stereo references: {error}"
+                ) from error
         bond.SetStereo(_enum_member(Chem.BondStereo, record.stereo, "bond stereo"))
         if apply_display_directions:
             bond.SetBondDir(_enum_member(Chem.BondDir, record.direction, "bond direction"))

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import copy
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 import torch
@@ -17,6 +17,9 @@ from Data.sdf.chemsvg_sequence_v4 import (
 )
 from Data.sdf.chemsvg_tokenizer_v4 import ChemSVGTokenizerV4
 from chemvector.model import ChemVectorModel
+from chemvector.ocr import OCRTextCodec, parse_atom_display_text
+from chemvector.stroke import all_pair_indices
+from chemvector.vertex import decode_vertices
 
 
 Coordinate = tuple[int, int]
@@ -25,6 +28,8 @@ Coordinate = tuple[int, int]
 @dataclass
 class ChemSVGGrammarV4:
     tokenizer: ChemSVGTokenizerV4
+    visual_first: bool = False
+    allowed_stroke_pairs: set[tuple[Coordinate, Coordinate]] | None = None
     phase: str = "bos"
     record_type: str | None = None
     field_index: int = 0
@@ -146,11 +151,6 @@ class ChemSVGGrammarV4:
         end: Coordinate,
         display_type: str | None = None,
     ) -> tuple[int, ...]:
-        coordinate_to_atom = self.coordinate_to_atom
-        begin_atom = coordinate_to_atom[begin]
-        end_atom = coordinate_to_atom[end]
-        begin_aromatic = self.vertices[begin_atom].aromatic
-        end_aromatic = self.vertices[end_atom].aromatic
         allowed = []
         for name in ("SINGLE", "DOUBLE", "TRIPLE", "AROMATIC"):
             if display_type in {"TRIPLE", "AROMATIC"} and name != display_type:
@@ -160,6 +160,14 @@ class ChemSVGGrammarV4:
                 "AROMATIC",
             }:
                 continue
+            if self.visual_first:
+                allowed.append(self._id(f"bt:{name}"))
+                continue
+            coordinate_to_atom = self.coordinate_to_atom
+            begin_atom = coordinate_to_atom[begin]
+            end_atom = coordinate_to_atom[end]
+            begin_aromatic = self.vertices[begin_atom].aromatic
+            end_aromatic = self.vertices[end_atom].aromatic
             if name == "AROMATIC" and not (begin_aromatic and end_aromatic):
                 continue
             rw_mol = Chem.RWMol(self._partial_mol())
@@ -177,6 +185,8 @@ class ChemSVGGrammarV4:
     def _can_finish_molecule(self) -> bool:
         if not self.vertices:
             return False
+        if self.visual_first:
+            return bool(self.strokes)
         try:
             mol = Chem.Mol(self._partial_mol())
             with rdBase.BlockLogs():
@@ -206,7 +216,9 @@ class ChemSVGGrammarV4:
         )
 
     def _begin_coordinates(self) -> tuple[Coordinate, ...]:
-        open_coordinates = set(self._open_coordinates())
+        open_coordinates = set(
+            self.coordinate_to_atom if self.visual_first else self._open_coordinates()
+        )
         return tuple(
             begin
             for begin in open_coordinates
@@ -214,6 +226,10 @@ class ChemSVGGrammarV4:
                 end != begin
                 and end in open_coordinates
                 and self._pair(begin, end) not in self.existing_strokes
+                and (
+                    self.allowed_stroke_pairs is None
+                    or self._pair(begin, end) in self.allowed_stroke_pairs
+                )
                 for end in self.coordinate_to_atom
             )
         )
@@ -233,11 +249,18 @@ class ChemSVGGrammarV4:
     def _end_coordinates(self) -> tuple[Coordinate, ...]:
         if self.current_begin is None:
             return ()
+        coordinates = (
+            self.coordinate_to_atom if self.visual_first else self._open_coordinates()
+        )
         return tuple(
             end
-            for end in self._open_coordinates()
+            for end in coordinates
             if end != self.current_begin
             and self._pair(self.current_begin, end) not in self.existing_strokes
+            and (
+                self.allowed_stroke_pairs is None
+                or self._pair(self.current_begin, end) in self.allowed_stroke_pairs
+            )
             and self._valid_bond_type_ids(self.current_begin, end)
         )
 
@@ -449,6 +472,242 @@ class GenerationResultV4:
     error: str | None = None
 
 
+def _recognize_vertex_labels(
+    model: ChemVectorModel,
+    ocr_features: torch.Tensor,
+    vertices: list[VertexRecordV4],
+    pixel_size: tuple[int, int],
+    cache: dict[tuple[Coordinate, ...], tuple[str, ...]],
+) -> tuple[str, ...]:
+    coordinates = tuple((vertex.x, vertex.y) for vertex in vertices)
+    if coordinates in cache:
+        return cache[coordinates]
+    if model.ocr_head is None:
+        raise ValueError("OCR vertex fusion requires an OCR-enabled model")
+    points = torch.tensor(
+        [[[x / 1023.0, y / 1023.0] for x, y in coordinates]],
+        device=ocr_features.device,
+        dtype=torch.float32,
+    )
+    mask = torch.ones((1, len(vertices)), device=ocr_features.device, dtype=torch.bool)
+    token_ids = model.ocr_head.generate(
+        ocr_features,
+        points,
+        mask,
+        pixel_size,
+    )
+    codec = OCRTextCodec(max_length=model.config.ocr_max_length)
+    labels = tuple(codec.decode(row.tolist()) for row in token_ids.cpu())
+    cache[coordinates] = labels
+    return labels
+
+
+def _fuse_ocr_vertex_prefix(
+    input_ids: tuple[int, ...],
+    grammar: ChemSVGGrammarV4,
+    labels: tuple[str, ...],
+    tokenizer: ChemSVGTokenizerV4,
+) -> tuple[int, ...]:
+    if len(labels) != len(grammar.vertices):
+        raise ValueError("OCR label count does not match generated vertices")
+    fused_vertices = []
+    for vertex, label in zip(grammar.vertices, labels):
+        parsed = parse_atom_display_text(label)
+        if parsed is None or parsed["element"] == "C":
+            fused_vertices.append(vertex)
+            continue
+        explicit_h_count = parsed["explicit_h_count"]
+        fused_vertices.append(
+            replace(
+                vertex,
+                element=parsed["element"],
+                formal_charge=parsed["formal_charge"],
+                isotope=parsed["isotope"],
+                explicit_h_count=explicit_h_count,
+                no_implicit=True if explicit_h_count else vertex.no_implicit,
+                radical_electrons=parsed["radical_electrons"],
+            )
+        )
+    grammar.vertices = fused_vertices
+    grammar._invalidate_chemical_cache()
+
+    fused_ids = list(input_ids)
+    vertex_index = 0
+    for index, token_id in enumerate(fused_ids):
+        if tokenizer.id_to_token[token_id] != tokenizer.VERTEX:
+            continue
+        vertex = fused_vertices[vertex_index]
+        fused_ids[index + 3] = tokenizer.token_to_id[f"el:{vertex.element}"]
+        fused_ids[index + 4] = tokenizer.token_to_id[f"n:{vertex.formal_charge}"]
+        fused_ids[index + 5] = tokenizer.token_to_id[f"n:{vertex.isotope}"]
+        fused_ids[index + 7] = tokenizer.token_to_id[f"n:{vertex.explicit_h_count}"]
+        fused_ids[index + 8] = tokenizer.token_to_id[f"n:{int(vertex.no_implicit)}"]
+        fused_ids[index + 9] = tokenizer.token_to_id[f"n:{vertex.radical_electrons}"]
+        vertex_index += 1
+    return tuple(fused_ids)
+
+
+def _score_vertex_pairs(
+    model: ChemVectorModel,
+    stroke_features: torch.Tensor,
+    vertices: list[VertexRecordV4],
+    pixel_size: tuple[int, int],
+    threshold: float,
+    cache: dict[tuple[Coordinate, ...], set[tuple[Coordinate, Coordinate]]],
+) -> set[tuple[Coordinate, Coordinate]]:
+    coordinates = tuple((vertex.x, vertex.y) for vertex in vertices)
+    if coordinates in cache:
+        return cache[coordinates]
+    if model.stroke_head is None:
+        raise ValueError("Stroke scoring requires a stroke-enabled model")
+    index_pairs = all_pair_indices(len(vertices))
+    anchors = torch.tensor(
+        [[[x / 1023.0, y / 1023.0] for x, y in coordinates]],
+        device=stroke_features.device,
+        dtype=torch.float32,
+    )
+    pair_indices = torch.tensor(
+        [index_pairs],
+        device=stroke_features.device,
+        dtype=torch.long,
+    )
+    pair_mask = torch.ones(
+        (1, len(index_pairs)),
+        device=stroke_features.device,
+        dtype=torch.bool,
+    )
+    logits = model.stroke_head(
+        stroke_features,
+        anchors,
+        pair_indices,
+        pair_mask,
+        pixel_size,
+    )
+    edge_scores = 1.0 - logits.float().softmax(dim=-1)[:, 0]
+    allowed = {
+        tuple(sorted((coordinates[left], coordinates[right])))
+        for (left, right), score in zip(index_pairs, edge_scores.tolist())
+        if score >= threshold
+    }
+    cache[coordinates] = allowed
+    return allowed
+
+
+def _rebuild_prefix_caches(
+    model: ChemVectorModel,
+    input_ids: tuple[int, ...],
+    memory: torch.Tensor,
+) -> list[torch.Tensor]:
+    caches = None
+    for position, token_id in enumerate(input_ids):
+        token = torch.tensor([[token_id]], device=memory.device)
+        _, caches = model.decode_step(token, position, memory, caches)
+    return caches
+
+
+def _vertex_prefix_ids(
+    tokenizer: ChemSVGTokenizerV4,
+    vertices: list[VertexRecordV4],
+) -> tuple[int, ...]:
+    tokens = [tokenizer.BOS, tokenizer.MOL]
+    for vertex in vertices:
+        tokens.extend(
+            (
+                tokenizer.VERTEX,
+                f"n:{vertex.x}",
+                f"n:{vertex.y}",
+                f"el:{vertex.element}",
+                f"n:{vertex.formal_charge}",
+                f"n:{vertex.isotope}",
+                f"n:{int(vertex.aromatic)}",
+                f"n:{vertex.explicit_h_count}",
+                f"n:{int(vertex.no_implicit)}",
+                f"n:{vertex.radical_electrons}",
+                f"chi:{vertex.canonical_chiral_tag}",
+                tokenizer.END_RECORD,
+            )
+        )
+    return tuple(tokenizer.token_to_id[token] for token in tokens)
+
+
+def _detect_vertex_records(
+    model: ChemVectorModel,
+    pixel_values: torch.Tensor,
+    *,
+    threshold: float,
+    maximum_vertices: int,
+    ocr_roi_radius: float,
+) -> tuple[list[VertexRecordV4], torch.Tensor]:
+    if model.vertex_head is None or model.ocr_head is None:
+        raise ValueError("Detected vertex generation requires vertex and OCR heads")
+    stroke_features = model.vision_encoder.forward_stroke_resolution(pixel_values)
+    vertex_output = model.vertex_head(stroke_features)
+    detected = decode_vertices(
+        vertex_output,
+        threshold=threshold,
+        maximum_vertices=maximum_vertices,
+    )[0]
+    unique: dict[Coordinate, dict[str, float | bool]] = {}
+    for item in detected:
+        coordinate = (
+            max(0, min(1023, round(float(item["x"]) * 1023))),
+            max(0, min(1023, round(float(item["y"]) * 1023))),
+        )
+        if coordinate not in unique or float(item["score"]) > float(
+            unique[coordinate]["score"]
+        ):
+            unique[coordinate] = item
+    ordered = sorted(unique.items(), key=lambda item: (item[0][1], item[0][0]))
+    points = torch.tensor(
+        [[
+            [coordinate[0] / 1023.0, coordinate[1] / 1023.0]
+            for coordinate, _ in ordered
+        ]],
+        device=pixel_values.device,
+        dtype=torch.float32,
+    )
+    mask = torch.ones((1, len(ordered)), device=pixel_values.device, dtype=torch.bool)
+    ocr_features = model.vision_encoder.forward_high_resolution_from_stroke(
+        stroke_features
+    )
+    ocr_ids = model.ocr_head.generate(
+        ocr_features,
+        points,
+        mask,
+        pixel_values.shape[-2:],
+        roi_radius=ocr_roi_radius,
+    )
+    codec = OCRTextCodec(max_length=model.config.ocr_max_length)
+    labels = [codec.decode(row.tolist()) for row in ocr_ids.cpu()]
+    vertices = []
+    for (coordinate, detection), label in zip(ordered, labels):
+        parsed = parse_atom_display_text(label)
+        if parsed is None or parsed["element"] == "C":
+            parsed = {
+                "element": "C",
+                "formal_charge": 0,
+                "isotope": 0,
+                "explicit_h_count": 0,
+                "radical_electrons": 0,
+            }
+        explicit_h_count = parsed["explicit_h_count"]
+        vertices.append(
+            VertexRecordV4(
+                x=coordinate[0],
+                y=coordinate[1],
+                element=parsed["element"],
+                formal_charge=parsed["formal_charge"],
+                isotope=parsed["isotope"],
+                aromatic=bool(detection["aromatic"]),
+                explicit_h_count=explicit_h_count,
+                no_implicit=bool(explicit_h_count),
+                radical_electrons=parsed["radical_electrons"],
+                canonical_chiral_tag="CHI_UNSPECIFIED",
+            )
+        )
+    return vertices, stroke_features
+
+
 @dataclass
 class _BeamStateV4:
     input_ids: tuple[int, ...]
@@ -461,8 +720,9 @@ def _completed_result_v4(
     input_ids: tuple[int, ...],
     tokenizer: ChemSVGTokenizerV4,
 ) -> GenerationResultV4:
-    sequence = tokenizer.decode(input_ids)
+    sequence = None
     try:
+        sequence = tokenizer.decode(input_ids)
         mol_from_chemsvg_v4(sequence)
     except ChemMolSequenceError as error:
         return GenerationResultV4(input_ids, sequence, True, False, str(error))
@@ -481,8 +741,13 @@ def _generate_beam_v4(
     *,
     max_length: int,
     beam_width: int,
+    visual_first: bool = False,
+    ocr_features: torch.Tensor | None = None,
+    stroke_features: torch.Tensor | None = None,
+    pixel_size: tuple[int, int] | None = None,
+    stroke_threshold: float = 0.5,
 ) -> GenerationResultV4:
-    grammar = ChemSVGGrammarV4(tokenizer)
+    grammar = ChemSVGGrammarV4(tokenizer, visual_first=visual_first)
     grammar.consume(tokenizer.bos_token_id)
     active = [
         _BeamStateV4(
@@ -494,6 +759,11 @@ def _generate_beam_v4(
     ]
     completed: list[_BeamStateV4] = []
     best_partial = active[0]
+    ocr_cache: dict[tuple[Coordinate, ...], tuple[str, ...]] = {}
+    stroke_cache: dict[
+        tuple[Coordinate, ...], set[tuple[Coordinate, Coordinate]]
+    ] = {}
+    stroke_token_id = tokenizer.token_to_id[tokenizer.STROKE]
     while active and len(active[0].input_ids) < max_length:
         candidates: list[_BeamStateV4] = []
         tokens = torch.tensor(
@@ -534,11 +804,51 @@ def _generate_beam_v4(
             for score, index in zip(top_scores.tolist(), top_indices.tolist()):
                 next_id = int(allowed_tensor[index])
                 next_grammar = copy.deepcopy(state.grammar)
+                child_input_ids = state.input_ids
+                child_caches = next_caches
+                if (
+                    ocr_features is not None
+                    and next_id == stroke_token_id
+                    and not state.grammar.stroke_started
+                ):
+                    labels = _recognize_vertex_labels(
+                        model,
+                        ocr_features,
+                        next_grammar.vertices,
+                        pixel_size,
+                        ocr_cache,
+                    )
+                    child_input_ids = _fuse_ocr_vertex_prefix(
+                        state.input_ids,
+                        next_grammar,
+                        labels,
+                        tokenizer,
+                    )
+                    child_caches = _rebuild_prefix_caches(
+                        model,
+                        child_input_ids,
+                        memory,
+                    )
+                if (
+                    stroke_features is not None
+                    and next_id == stroke_token_id
+                    and not state.grammar.stroke_started
+                ):
+                    next_grammar.allowed_stroke_pairs = _score_vertex_pairs(
+                        model,
+                        stroke_features,
+                        next_grammar.vertices,
+                        pixel_size,
+                        stroke_threshold,
+                        stroke_cache,
+                    )
+                    if not next_grammar.allowed_stroke_pairs:
+                        continue
                 next_grammar.consume(next_id)
                 child = _BeamStateV4(
-                    input_ids=(*state.input_ids, next_id),
+                    input_ids=(*child_input_ids, next_id),
                     grammar=next_grammar,
-                    caches=next_caches,
+                    caches=child_caches,
                     log_probability=state.log_probability + score,
                 )
                 if next_grammar.phase == "done":
@@ -581,11 +891,21 @@ def generate_chemsvg_v4(
     *,
     max_length: int | None = None,
     beam_width: int = 1,
+    visual_first: bool = False,
+    ocr_fusion: bool = False,
+    stroke_scoring: bool = False,
+    stroke_threshold: float = 0.5,
 ) -> GenerationResultV4:
     if pixel_values.size(0) != 1:
         raise ValueError("Generation currently supports batch size 1")
     if beam_width < 1:
         raise ValueError("beam_width must be positive")
+    if ocr_fusion and model.ocr_head is None:
+        raise ValueError("OCR fusion requires an OCR-enabled model")
+    if stroke_scoring and model.stroke_head is None:
+        raise ValueError("Stroke scoring requires a stroke-enabled model")
+    if not 0.0 <= stroke_threshold <= 1.0:
+        raise ValueError("stroke_threshold must be in [0, 1]")
     model.eval()
     max_length = max_length or model.config.max_target_length
     with torch.autocast(
@@ -593,7 +913,16 @@ def generate_chemsvg_v4(
         dtype=torch.bfloat16,
         enabled=pixel_values.device.type == "cuda",
     ):
-        memory = model.encode_images(pixel_values)
+        ocr_features = None
+        if ocr_fusion:
+            memory, ocr_features = model.encode_images_with_ocr_features(pixel_values)
+        else:
+            memory = model.encode_images(pixel_values)
+        stroke_features = (
+            model.vision_encoder.forward_stroke_resolution(pixel_values)
+            if stroke_scoring
+            else None
+        )
         if beam_width > 1:
             return _generate_beam_v4(
                 model,
@@ -601,12 +930,22 @@ def generate_chemsvg_v4(
                 tokenizer,
                 max_length=max_length,
                 beam_width=beam_width,
+                visual_first=visual_first,
+                ocr_features=ocr_features,
+                stroke_features=stroke_features,
+                pixel_size=pixel_values.shape[-2:],
+                stroke_threshold=stroke_threshold,
             )
-        grammar = ChemSVGGrammarV4(tokenizer)
+        grammar = ChemSVGGrammarV4(tokenizer, visual_first=visual_first)
         generated = [tokenizer.bos_token_id]
         grammar.consume(generated[0])
         caches = None
         exhausted = False
+        ocr_cache: dict[tuple[Coordinate, ...], tuple[str, ...]] = {}
+        stroke_cache: dict[
+            tuple[Coordinate, ...], set[tuple[Coordinate, Coordinate]]
+        ] = {}
+        stroke_token_id = tokenizer.token_to_id[tokenizer.STROKE]
         while len(generated) < max_length:
             token = torch.tensor([[generated[-1]]], device=pixel_values.device)
             logits, caches = model.decode_step(token, len(generated) - 1, memory, caches)
@@ -617,6 +956,42 @@ def generate_chemsvg_v4(
             allowed_tensor = torch.tensor(allowed, device=logits.device)
             scores = logits[0, 0].index_select(0, allowed_tensor)
             next_id = int(allowed_tensor[scores.argmax()])
+            if (
+                ocr_features is not None
+                and next_id == stroke_token_id
+                and not grammar.stroke_started
+            ):
+                labels = _recognize_vertex_labels(
+                    model,
+                    ocr_features,
+                    grammar.vertices,
+                    pixel_values.shape[-2:],
+                    ocr_cache,
+                )
+                fused_ids = _fuse_ocr_vertex_prefix(
+                    tuple(generated),
+                    grammar,
+                    labels,
+                    tokenizer,
+                )
+                generated = list(fused_ids)
+                caches = _rebuild_prefix_caches(model, fused_ids, memory)
+            if (
+                stroke_features is not None
+                and next_id == stroke_token_id
+                and not grammar.stroke_started
+            ):
+                grammar.allowed_stroke_pairs = _score_vertex_pairs(
+                    model,
+                    stroke_features,
+                    grammar.vertices,
+                    pixel_values.shape[-2:],
+                    stroke_threshold,
+                    stroke_cache,
+                )
+                if not grammar.allowed_stroke_pairs:
+                    exhausted = True
+                    break
             generated.append(next_id)
             grammar.consume(next_id)
             if grammar.phase == "done":
@@ -633,6 +1008,97 @@ def generate_chemsvg_v4(
         False,
         error,
     )
+
+
+@torch.inference_mode()
+def generate_detected_chemsvg_v4(
+    model: ChemVectorModel,
+    pixel_values: torch.Tensor,
+    tokenizer: ChemSVGTokenizerV4,
+    *,
+    vertex_threshold: float = 0.3,
+    maximum_vertices: int = 128,
+    stroke_threshold: float = 0.5,
+    ocr_roi_radius: float = 20.0,
+    max_length: int | None = None,
+) -> GenerationResultV4:
+    """Detect a fixed visual vertex prefix, then autoregress only over strokes."""
+
+    if pixel_values.size(0) != 1:
+        raise ValueError("Detected generation currently supports batch size 1")
+    if not 0.0 <= vertex_threshold <= 1.0 or not 0.0 <= stroke_threshold <= 1.0:
+        raise ValueError("Detection thresholds must be in [0, 1]")
+    if ocr_roi_radius <= 0:
+        raise ValueError("ocr_roi_radius must be positive")
+    if model.vertex_head is None or model.stroke_head is None or model.ocr_head is None:
+        raise ValueError("Detected generation requires vertex, stroke, and OCR heads")
+    model.eval()
+    max_length = max_length or model.config.max_target_length
+    with torch.autocast(
+        device_type=pixel_values.device.type,
+        dtype=torch.bfloat16,
+        enabled=pixel_values.device.type == "cuda",
+    ):
+        vertices, stroke_features = _detect_vertex_records(
+            model,
+            pixel_values,
+            threshold=vertex_threshold,
+            maximum_vertices=maximum_vertices,
+            ocr_roi_radius=ocr_roi_radius,
+        )
+        memory = model.encode_images(pixel_values)
+        grammar = ChemSVGGrammarV4(tokenizer, visual_first=True)
+        prefix = _vertex_prefix_ids(tokenizer, vertices)
+        for token_id in prefix:
+            grammar.consume(token_id)
+        grammar.allowed_stroke_pairs = _score_vertex_pairs(
+            model,
+            stroke_features,
+            vertices,
+            pixel_values.shape[-2:],
+            stroke_threshold,
+            {},
+        )
+        if not grammar.allowed_stroke_pairs:
+            return GenerationResultV4(
+                prefix,
+                None,
+                False,
+                False,
+                "Stroke scorer found no visible vertex pairs",
+            )
+
+        generated = list(prefix)
+        caches = None
+        for position, token_id in enumerate(prefix[:-1]):
+            token = torch.tensor([[token_id]], device=pixel_values.device)
+            _, caches = model.decode_step(token, position, memory, caches)
+        exhausted = False
+        while len(generated) < max_length:
+            token = torch.tensor([[generated[-1]]], device=pixel_values.device)
+            logits, caches = model.decode_step(
+                token,
+                len(generated) - 1,
+                memory,
+                caches,
+            )
+            allowed = grammar.allowed_token_ids()
+            if not allowed:
+                exhausted = True
+                break
+            allowed_tensor = torch.tensor(allowed, device=logits.device)
+            scores = logits[0, 0].index_select(0, allowed_tensor)
+            next_id = int(allowed_tensor[scores.argmax()])
+            generated.append(next_id)
+            grammar.consume(next_id)
+            if grammar.phase == "done":
+                return _completed_result_v4(tuple(generated), tokenizer)
+    error = (
+        "Detected generation exhausted all legal continuations"
+        if exhausted
+        else f"Detected generation did not finish within {max_length} tokens"
+    )
+    return GenerationResultV4(tuple(generated), None, False, False, error)
 
 
 def write_sdf_v4(sequence: str, path: str | Path) -> None:

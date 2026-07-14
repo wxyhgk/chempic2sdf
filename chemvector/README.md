@@ -4,6 +4,9 @@ ChemVector 是面向化学结构图片识别的轻量视觉到结构序列模型
 路线是 ChemSVG v0.4：模型生成视觉顶点和 stroke，确定性编译器再生成 SDF。
 项目同时保留 ChemMolSeq v0.2/v0.3 作为直接 graph 生成基线。
 
+项目版本从 `v0.7` 重新开始，以后每次发布增加 `0.0.1`：`v0.7.1`、
+`v0.7.2`、`v0.7.3`。根目录 `VERSION` 是当前开发版本的唯一来源。
+
 ## 当前基线
 
 - 参数量：49,974,768
@@ -194,3 +197,177 @@ v0.4 不再输出 `<b atom_id atom_id>`。每条 stroke 直接携带可见起点
 
 从 checkpoint 继续训练时默认保留其中的 optimizer 学习率。如需进入低学习率
 精调阶段，应显式传入例如 `--resume-learning-rate 3e-5`。
+
+## ChemVector v0.5：几何与文字解耦
+
+v0.5 在共享视觉编码器上增加独立 OCR head。ChemSVG decoder 继续处理顶点、
+stroke 和键型；OCR head 根据顶点锚点读取局部文字。OCR 使用 UTF-8 byte 级
+输出，不把词表限制为固定元素，因此可以表示 `R1`、`Ph`、`Me`、查询符号和
+后续出现的其他文字。
+
+现有 72 万张完整分子图片只包含
+`B/Br/C/Cl/F/I/N/O/P/S/Se/Si`。对于主数据中不存在的缩写和字符，使用在线
+合成的 128×128 黑白局部图预训练。生成器会加入单键、双键、三键和斜键干扰，
+但第一阶段不加入模糊、透明背景或扫描噪声：
+
+```bash
+.venv-train/bin/python -m chemvector.synthetic_ocr \
+  --samples 64 \
+  --output-dir outputs/synthetic-ocr-preview
+```
+
+局部图预训练必须冻结共享视觉编码器，只更新 OCR head：
+
+```bash
+.venv-train/bin/python -m chemvector.pretrain_ocr \
+  --init-checkpoint outputs/chemvector-v4-replay-interp-010/model.pt \
+  --output-dir outputs/chemvector-v5-ocr-frozen \
+  --steps 10000 --batch-size 64 --workers 2 \
+  --ocr-learning-rate 1e-4 \
+  --vision-learning-rate 0
+```
+
+不要在纯局部图预训练中调高 `--vision-learning-rate`。实验证明，即使视觉层
+只使用很小学习率，局部图分布也会拉低原 ChemSVG 几何准确率。冻结后，原模型
+的 267 个基础 tensor 保持逐位相同。
+
+预训练完成后，再在完整分子图上联合训练。此时几何损失提供全局约束，才允许
+共享视觉层以低学习率适配 OCR：
+
+```bash
+.venv-train/bin/python -m chemvector.train \
+  --sequence-version 0.4 \
+  --init-checkpoint outputs/chemvector-v5-ocr-frozen/last.pt \
+  --train-shards Data/sdf/webdataset_full_v0/shards/train-000000.tar \
+  --validation-shards Data/sdf/webdataset_full_v0/shards/validation-000000.tar \
+  --no-shuffle --workers 0 \
+  --batch-size 4 --gradient-accumulation 1 \
+  --train-samples-per-epoch 1000 --epochs 1 \
+  --learning-rate 1e-6 \
+  --ocr-weight 1.0 --ocr-learning-rate-multiplier 10 \
+  --synthetic-ocr-replay-weight 0.5 \
+  --synthetic-ocr-replay-batch-size 64 \
+  --visual-aux-weight 1.0 \
+  --output-dir outputs/chemvector-v5-joint-1k
+```
+
+完整分子数据没有 `R1/Ph/Me` 等标签。若联合训练时不加入合成 replay，OCR head
+会快速遗忘预训练得到的开放字符。Replay 分支只更新 OCR head，其视觉特征在
+`no_grad` 下提取，因此不会再次用局部图改变共享视觉编码器。
+
+PaddleOCR v5 只用于真实论文图片和非标准文字的补充伪标签。合成分子图已经有
+ChemMol 元素真值和 Render 锚点，不需要再由 PaddleOCR 重复标注。
+
+### 视觉优先生成实验
+
+`--visual-first --ocr-fusion --stroke-scoring` 会在第一个 stroke 之前用 OCR
+改写非碳标准元素、重建 decoder cache，并让学习式线段 scorer 从全部顶点对中
+保留有视觉线条支持的候选：
+
+```bash
+.venv-train/bin/python -m chemvector.evaluate \
+  --checkpoint outputs/chemvector-v5-joint-replay-10k-stage1/last.pt \
+  --shards Data/sdf/webdataset_full_v0/shards/validation-000000.tar \
+  --samples 20 --generate-samples 5 --beam-width 4 \
+  --visual-first --ocr-fusion --stroke-scoring \
+  --stroke-threshold 0.5 \
+  --output-dir outputs/chemvector-v5-visual-first-eval
+```
+
+scorer 使用 stride-4 特征沿点对之间采样带状视觉区域，不设置键长上限。10k
+训练后的全点对验证在阈值 0.5 时得到 99.72% edge recall 和 84.82% precision。
+
+### 生成后按真实墨线修图
+
+固定顶点生成仍可能选中“两个端点之间经过了其他线条”的伪边。`repair_v4`
+直接检查每个顶点对之间是否存在连续墨线，不使用键长上限；若直线上存在中间
+顶点，则只保留相邻线段，避免把两条共线键合并成一条跨点长键。修复器还会
+合并同一文字内部产生的相邻重复峰，并根据小环中的芳香预测传播芳香键型。
+
+检测式推理使用 20px OCR 取样半径。它在 500 张验证图片、15,220 个原子锚点
+上的元素融合准确率为 97.12%，高于 checkpoint 原始 24px 半径的 96.98%，并
+消除了 GD906 中邻近 N 泄漏到上方碳顶点的问题。完整自动推理命令直接接受
+带透明边界的原始图片：
+
+```bash
+.venv-train/bin/python -m chemvector.infer_detected_v5 \
+  --checkpoint outputs/chemvector-v5-vertex-10k/last.pt \
+  --image Data/GD906.png \
+  --output-dir outputs/chemvector-v5-auto-gd906-raw
+```
+
+命令会依次完成透明背景白底合成、等比例画布准备、顶点检测、OCR、stroke
+生成、连续墨线修图、重复文字峰合并、SDF 写入和重绘预览。已经是 768×768
+训练画布的图片可加 `--image-is-prepared` 跳过外部图片准备。
+
+当前 GD906 输出为 84 个原子、104 条键、1 个连通分量，分子式
+`C80H44BFN2`，RDKit sanitize 通过。该结果不再需要手工元素覆盖，也没有针对
+键长或分子模板进行人工补边。
+
+### 500 张 scaffold 独立端到端盲测
+
+`evaluate_detected_v5` 会逐样本保存结果并支持断点续跑：
+
+```bash
+.venv-train/bin/python -m chemvector.evaluate_detected_v5 \
+  --checkpoint outputs/chemvector-v5-vertex-10k/last.pt \
+  --shards Data/sdf/webdataset_full_v0/shards/validation-000000.tar \
+  --samples 500 \
+  --reject-keys-file Data/sdf/chemmolseq_v0_3_depiction_reject_keys.txt \
+  --output-dir outputs/chemvector-v5-e2e-validation-500
+```
+
+这 500 张图片对应 125 个未见分子，每个分子四种布局。当前结果：
+
+- 生成完成率：100%。
+- 合法 SDF：48.6%。
+- 完整拓扑准确率：17.2%。
+- SMILES/InChIKey 完全一致率：12.4%。
+- 至少一种布局能生成合法 SDF 的分子比例：85.6%。
+- 至少一种布局完全化学一致的分子比例：31.2%。
+- 在修复成功的样本中，顶点 precision/recall 为 98.55%/98.67%。
+- 在修复成功的样本中，边 precision/recall 为 96.95%/97.24%。
+- 正确边上的键型准确率：96.27%。
+- 完整拓扑已经正确时，化学完全一致率为 65.12%，剩余差异主要是 stereo。
+
+四种布局的完全化学一致率分别为：RDKit 18.4%、CoordGen 15.2%、Original
+13.6%、Stress 2.4%。257 个修复失败中，120 个是墨线图断开，112 个是价态
+冲突，25 个是芳香 Kekulé 化失败。因此现阶段瓶颈已经从视觉定位转移到布局
+鲁棒的连线恢复、价态约束键型求解和立体化学恢复。详细结果见
+`outputs/chemvector-v5-e2e-validation-500/summary.json`。
+
+## ChemVector v0.6：无 decoder 并行 CPU 推理
+
+v0.5 的主要延迟不是视觉模型，而是自回归 decoder。GD906 的视觉编码只需要
+约 10ms，但 decoder 为 99 条边串行生成约 992 个 token，需要约 4.4 秒。
+v0.6 删除部署路径中的 decoder、token embedding 和序列投影，直接并行分类
+全部顶点对。实际参与部署推理的参数从 51.49M 降到 15.18M。
+
+CPU 推理命令：
+
+```bash
+.venv-train/bin/python -m chemvector.infer_parallel_v6 \
+  --checkpoint outputs/chemvector-v5-vertex-10k/last.pt \
+  --image Data/GD906.png \
+  --output-dir outputs/chemvector-v6-parallel-cpu-gd906 \
+  --device cpu --cpu-threads 16
+```
+
+在 Ryzen 9 9950X 上，GD906 的完整推理耗时为 0.735 秒，其中顶点与 OCR
+0.122 秒、全部 3,570 个点对分类 0.538 秒、墨线修复 0.075 秒。输出的分子式、
+SMILES 和 InChIKey 与 CUDA 版本一致。CUDA 并行版本耗时约 0.389 秒，不再有
+近千次串行 token 调度。
+
+同一批 500 张 scaffold 独立验证图片的 CPU 结果：
+
+- 平均推理时间：0.202 秒/张，比 v0.5 GPU 自回归的 1.324 秒快 6.6 倍。
+- 完整拓扑准确率：20.6%，v0.5 为 17.2%。
+- SMILES/InChIKey 完全一致率：13.2%，v0.5 为 12.4%。
+- 修复成功样本的顶点 precision/recall：99.01%/98.98%。
+- 修复成功样本的边 precision/recall：98.37%/98.19%。
+- 墨线图断开失败从 120 个降到 12 个。
+- 价态冲突从 112 个增加到 223 个，说明下一瓶颈是全局键型约束求解。
+
+详细结果见 `outputs/chemvector-v6-parallel-cpu-validation-500/summary.json`。
+当前命令加载完整训练 checkpoint 后再从内存移除 decoder；后续部署导出需要只
+保留 15.18M 前端参数，并进一步进行 ONNX/OpenVINO INT8 量化。

@@ -81,6 +81,42 @@ class ChemSVGSequenceV4Tests(unittest.TestCase):
         )
         self.assertIsNone(stroke.stereo_atom_0)
 
+    def test_stereo_reference_must_be_connected_to_bond_endpoint(self) -> None:
+        chemmol, render = make_annotations("CC/C=C/CC")
+        lines = serialize_chemsvg_v4(chemmol, render).splitlines()
+        parsed = parse_chemsvg_v4("\n".join(lines) + "\n")
+        stereo_stroke = next(
+            stroke for stroke in parsed.strokes if stroke.stereo_atom_0 is not None
+        )
+        coordinates = {(vertex.x, vertex.y) for vertex in parsed.vertices}
+        adjacency = {coordinate: set() for coordinate in coordinates}
+        for stroke in parsed.strokes:
+            adjacency[stroke.begin].add(stroke.end)
+            adjacency[stroke.end].add(stroke.begin)
+        invalid_reference = next(
+            coordinate
+            for coordinate in adjacency
+            if coordinate not in adjacency[stereo_stroke.begin]
+            and coordinate != stereo_stroke.begin
+        )
+        stroke_index = next(
+            index
+            for index, line in enumerate(lines)
+            if line.startswith(
+                f"<s {stereo_stroke.begin_x} {stereo_stroke.begin_y} "
+                f"{stereo_stroke.end_x} {stereo_stroke.end_y} "
+            )
+        )
+        fields = lines[stroke_index][1:-1].split()
+        fields[9] = str(invalid_reference[0])
+        fields[10] = str(invalid_reference[1])
+        lines[stroke_index] = "<" + " ".join(fields) + ">"
+        with self.assertRaisesRegex(
+            ChemMolSequenceError,
+            "not connected to the begin vertex",
+        ):
+            parse_chemsvg_v4("\n".join(lines) + "\n")
+
 
 if __name__ == "__main__":
     unittest.main()

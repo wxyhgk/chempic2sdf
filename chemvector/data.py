@@ -10,6 +10,7 @@ from PIL import Image
 from torch.utils.data import IterableDataset
 
 from Data.sdf.chemmol_webdataset import ChemMolWebDataset
+from chemvector.ocr import OCRTextCodec, atom_display_text
 
 
 class ChemVectorIterableDataset(IterableDataset):
@@ -51,11 +52,13 @@ class ChemVectorCollator:
         image_size: int = 768,
         max_length: int = 3072,
         pad_to_multiple_of: int = 8,
+        ocr_codec: OCRTextCodec | None = None,
     ) -> None:
         self.tokenizer = tokenizer
         self.image_size = image_size
         self.max_length = max_length
         self.pad_to_multiple_of = pad_to_multiple_of
+        self.ocr_codec = ocr_codec
 
     def _image_tensor(self, image: Image.Image) -> torch.Tensor:
         if image.size != (self.image_size, self.image_size):
@@ -100,13 +103,64 @@ class ChemVectorCollator:
                 targets[grid_y, grid_x, channel] = 1.0
         return torch.from_numpy(targets.reshape(-1, channels))
 
+    def _ocr_batch(self, samples: list[dict]) -> dict[str, torch.Tensor | list[list[str]]]:
+        if self.ocr_codec is None:
+            return {}
+        maximum_atoms = max(len(sample["render"]["atoms"]) for sample in samples)
+        encoded_samples = []
+        maximum_text_length = 2
+        for sample in samples:
+            positions = sorted(sample["render"]["atoms"], key=lambda item: item["atom_id"])
+            encoded_atoms = []
+            for position in positions:
+                atom = sample["chemmol"]["atoms"][position["atom_id"]]
+                text = atom_display_text(atom)
+                encoded = self.ocr_codec.encode(text)
+                maximum_text_length = max(maximum_text_length, len(encoded))
+                encoded_atoms.append((position, text, encoded))
+            encoded_samples.append(encoded_atoms)
+        anchors = torch.zeros((len(samples), maximum_atoms, 2), dtype=torch.float32)
+        anchor_mask = torch.zeros((len(samples), maximum_atoms), dtype=torch.bool)
+        token_ids = torch.full(
+            (len(samples), maximum_atoms, maximum_text_length),
+            self.ocr_codec.PAD_TOKEN_ID,
+            dtype=torch.long,
+        )
+        batch_texts: list[list[str]] = []
+        for sample_index, (sample, encoded_atoms) in enumerate(
+            zip(samples, encoded_samples)
+        ):
+            render = sample["render"]
+            texts = []
+            for anchor_index, (position, text, encoded) in enumerate(encoded_atoms):
+                anchors[sample_index, anchor_index] = torch.tensor(
+                    (
+                        position["image_x"] / render["width"],
+                        position["image_y"] / render["height"],
+                    ),
+                    dtype=torch.float32,
+                )
+                anchor_mask[sample_index, anchor_index] = True
+                token_ids[sample_index, anchor_index, : len(encoded)] = torch.tensor(
+                    encoded,
+                    dtype=torch.long,
+                )
+                texts.append(text)
+            batch_texts.append(texts)
+        return {
+            "ocr_anchor_points": anchors,
+            "ocr_anchor_mask": anchor_mask,
+            "ocr_token_ids": token_ids,
+            "ocr_texts": batch_texts,
+        }
+
     def __call__(self, samples: list[dict]) -> dict[str, torch.Tensor | list[str]]:
         encoded = self.tokenizer.encode_batch(
             (sample["target_sequence"] for sample in samples),
             max_length=self.max_length,
             pad_to_multiple_of=self.pad_to_multiple_of,
         )
-        return {
+        batch = {
             "pixel_values": torch.stack([self._image_tensor(sample["image"]) for sample in samples]),
             "input_ids": torch.tensor(encoded["input_ids"], dtype=torch.long),
             "attention_mask": torch.tensor(encoded["attention_mask"], dtype=torch.long),
@@ -120,3 +174,5 @@ class ChemVectorCollator:
                 [self._visual_targets(sample) for sample in samples]
             ),
         }
+        batch.update(self._ocr_batch(samples))
+        return batch

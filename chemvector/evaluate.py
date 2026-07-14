@@ -117,6 +117,10 @@ def evaluate_generation(
     output_dir: Path,
     *,
     beam_width: int = 1,
+    visual_first: bool = False,
+    ocr_fusion: bool = False,
+    stroke_scoring: bool = False,
+    stroke_threshold: float = 0.5,
 ) -> dict:
     output_dir.mkdir(parents=True, exist_ok=True)
     is_v3 = isinstance(tokenizer, ChemMolTokenizerV3)
@@ -137,6 +141,10 @@ def evaluate_generation(
                 pixel_values,
                 tokenizer,
                 beam_width=beam_width,
+                visual_first=visual_first,
+                ocr_fusion=ocr_fusion,
+                stroke_scoring=stroke_scoring,
+                stroke_threshold=stroke_threshold,
             )
         elif is_v3:
             result = generate_chemmolseq_v3(
@@ -221,6 +229,10 @@ def evaluate_generation(
     summary = {
         "samples": len(records),
         "beam_width": beam_width,
+        "visual_first": visual_first,
+        "ocr_fusion": ocr_fusion,
+        "stroke_scoring": stroke_scoring,
+        "stroke_threshold": stroke_threshold,
         "completed": sum(record["completed"] for record in records),
         "chemically_valid": sum(record["chemically_valid"] for record in records),
         "exact_sequences": sum(record["exact_sequence"] for record in records),
@@ -245,6 +257,10 @@ def main() -> None:
     parser.add_argument("--image-size", type=int, default=768)
     parser.add_argument("--workers", type=int, default=0)
     parser.add_argument("--beam-width", type=int, default=1)
+    parser.add_argument("--visual-first", action="store_true")
+    parser.add_argument("--ocr-fusion", action="store_true")
+    parser.add_argument("--stroke-scoring", action="store_true")
+    parser.add_argument("--stroke-threshold", type=float, default=0.5)
     parser.add_argument("--output-dir", default="outputs/chemvector-evaluation")
     parser.add_argument("--reject-keys-file")
     args = parser.parse_args()
@@ -263,6 +279,11 @@ def main() -> None:
         (ChemMolTokenizerV3, ChemSVGTokenizerV4),
     ):
         raise ValueError("Beam search requires ChemMolSeq v0.3 or ChemSVG v0.4")
+    if (args.visual_first or args.ocr_fusion or args.stroke_scoring) and not isinstance(
+        tokenizer,
+        ChemSVGTokenizerV4,
+    ):
+        raise ValueError("Visual-first and OCR fusion require ChemSVG v0.4")
     shards = expand_shards(args.shards)
     reject_keys = set()
     if args.reject_keys_file:
@@ -314,6 +335,10 @@ def main() -> None:
             args.generate_samples,
             output_dir / "generated",
             beam_width=args.beam_width,
+            visual_first=args.visual_first,
+            ocr_fusion=args.ocr_fusion,
+            stroke_scoring=args.stroke_scoring,
+            stroke_threshold=args.stroke_threshold,
         )
         print(
             "generation="
