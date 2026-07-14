@@ -28,8 +28,12 @@ MR-TADF 中的超长键不是异常，不按键长过滤。审计文件会记录
 - 原始候选：1,120 个；
 - 唯一且可用于渲染：1,100 个；
 - 拒绝：20 个；
-- 当前生成的 PNG：0 个；
+- 原始 SDF 目录中的 PNG：0 个；
 - 与现有训练集的结构和 scaffold 重叠：0。
 
 详细名单见 `audit/approved.csv`、`audit/rejected.csv` 和
 `audit/summary.json`。`.ipynb_checkpoints/` 等隐藏子目录永远不参与审计和渲染。
+
+正式 PNG 不写入本目录，而是由白名单构建到
+`Data/benchmarks/mr_tadf_v1/`。构建和评测协议见
+[`docs/benchmarks/MR_TADF_V1.md`](../../docs/benchmarks/MR_TADF_V1.md)。

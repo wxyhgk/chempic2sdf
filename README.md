@@ -63,4 +63,17 @@ MR-TADF 渲染前审计：
 .venv-train/bin/python -m Data.sdf.audit_mr_tadf
 ```
 
+构建并评测 MR-TADF v1 benchmark：
+
+```bash
+.venv-train/bin/python -m Data.sdf.build_mr_tadf_benchmark \
+  --output-dir Data/benchmarks/mr_tadf_v1
+
+.venv-train/bin/python -m chemvector.benchmark_mr_tadf \
+  --checkpoint outputs/checkpoints/chemvector-v5-vertex-10k/last.pt \
+  --benchmark-manifest Data/benchmarks/mr_tadf_v1/manifest.csv \
+  --output-dir outputs/evaluations/mr-tadf-v1-v071 \
+  --device cuda
+```
+
 完整文档入口见 [docs/README.md](docs/README.md)。

@@ -83,6 +83,17 @@ v0.2 协议和字段说明见 `CHEMMOLSEQ_V0_2.md`。它包含同位素、显式
   --validate-target-roundtrip
 ```
 
+MR-TADF 外部 benchmark 使用独立的审计和构建入口：
+
+```bash
+.venv-train/bin/python -m Data.sdf.audit_mr_tadf
+.venv-train/bin/python -m Data.sdf.build_mr_tadf_benchmark \
+  --output-dir Data/benchmarks/mr_tadf_v1
+```
+
+渲染器只读取 `Data/MR-TADF_SDF/audit/approved.csv`，不会为异常或重复 SDF
+生成 PNG。
+
 全量 ChemMolSeq v0.2 验收：
 
 ```bash

@@ -30,6 +30,7 @@ Data/sdf/preview_images/
 Data/sdf/parallel_render_benchmark/
 Data/sdf/webdataset_sample_1k/
 Data/sdf/webdataset_full_v0/
+Data/benchmarks/
 *.tar
 *.tar.gz
 *.sdf

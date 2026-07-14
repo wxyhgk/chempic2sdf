@@ -13,6 +13,10 @@
 - [ChemSVG v0.4](../Data/sdf/CHEMSVG_V0_4.md)
 - [MR-TADF 外部测试集](../Data/MR-TADF_SDF/README.md)
 
+## Benchmark
+
+- [MR-TADF v1 构建、评测协议与 v0.7.1 基线](benchmarks/MR_TADF_V1.md)
+
 ## 参考代码
 
 - [StarVector 上游版本说明](../third_party/README.md)
