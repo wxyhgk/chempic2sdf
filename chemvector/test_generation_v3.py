@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import unittest
 
+import torch
+
 from Data.sdf.chemmol_sequence_v3 import serialize_chemmolseq_v3
 from Data.sdf.chemmol_tokenizer_v3 import ChemMolTokenizerV3
 from Data.sdf.test_chemmol_sequence import make_annotations
-from chemvector.generation_v3 import ChemMolGrammarV3
+from chemvector.generation_v3 import ChemMolGrammarV3, generate_chemmolseq_v3
 
 
 class GenerationV3Tests(unittest.TestCase):
@@ -133,6 +135,15 @@ class GenerationV3Tests(unittest.TestCase):
             tokenizer.token_to_id[tokenizer.COORDS],
             grammar.allowed_token_ids(),
         )
+
+    def test_beam_width_must_be_positive(self) -> None:
+        with self.assertRaisesRegex(ValueError, "beam_width must be positive"):
+            generate_chemmolseq_v3(
+                None,
+                torch.zeros(1, 3, 32, 32),
+                ChemMolTokenizerV3(),
+                beam_width=0,
+            )
 
 
 if __name__ == "__main__":

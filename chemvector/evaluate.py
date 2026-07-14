@@ -110,6 +110,8 @@ def evaluate_generation(
     device: torch.device,
     sample_limit: int,
     output_dir: Path,
+    *,
+    beam_width: int = 1,
 ) -> dict:
     output_dir.mkdir(parents=True, exist_ok=True)
     is_v3 = isinstance(tokenizer, ChemMolTokenizerV3)
@@ -122,9 +124,16 @@ def evaluate_generation(
         expected_sequence = batch["target_sequences"][0]
         expected_smiles = batch["expected_smiles"][0]
         expected_inchikey = batch["expected_inchikeys"][0]
-        generator = generate_chemmolseq_v3 if is_v3 else generate_chemmolseq
-        result = generator(
-            model, batch["pixel_values"].to(device, non_blocking=True), tokenizer
+        pixel_values = batch["pixel_values"].to(device, non_blocking=True)
+        result = (
+            generate_chemmolseq_v3(
+                model,
+                pixel_values,
+                tokenizer,
+                beam_width=beam_width,
+            )
+            if is_v3
+            else generate_chemmolseq(model, pixel_values, tokenizer)
         )
         record = {
             "key": key,
@@ -192,6 +201,7 @@ def evaluate_generation(
     elapsed = time.perf_counter() - started
     summary = {
         "samples": len(records),
+        "beam_width": beam_width,
         "completed": sum(record["completed"] for record in records),
         "chemically_valid": sum(record["chemically_valid"] for record in records),
         "exact_sequences": sum(record["exact_sequence"] for record in records),
@@ -215,16 +225,22 @@ def main() -> None:
     parser.add_argument("--batch-size", type=int, default=4)
     parser.add_argument("--image-size", type=int, default=768)
     parser.add_argument("--workers", type=int, default=0)
+    parser.add_argument("--beam-width", type=int, default=1)
     parser.add_argument("--output-dir", default="outputs/chemvector-evaluation")
     parser.add_argument("--reject-keys-file")
     args = parser.parse_args()
 
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA is required for evaluation")
-    if args.samples < 1 or args.generate_samples < 0:
-        raise ValueError("Sample limits must be nonnegative and --samples must be positive")
+    if args.samples < 1 or args.generate_samples < 0 or args.beam_width < 1:
+        raise ValueError(
+            "--samples and --beam-width must be positive; "
+            "--generate-samples must be nonnegative"
+        )
     device = torch.device("cuda")
     model, tokenizer = load_model(Path(args.checkpoint), device)
+    if args.beam_width > 1 and not isinstance(tokenizer, ChemMolTokenizerV3):
+        raise ValueError("Beam search is currently supported only for ChemMolSeq v0.3")
     shards = expand_shards(args.shards)
     reject_keys = set()
     if args.reject_keys_file:
@@ -275,6 +291,7 @@ def main() -> None:
             device,
             args.generate_samples,
             output_dir / "generated",
+            beam_width=args.beam_width,
         )
         print(
             "generation="
