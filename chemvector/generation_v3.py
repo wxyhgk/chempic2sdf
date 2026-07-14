@@ -6,10 +6,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 import torch
-from rdkit import Chem
+from rdkit import Chem, rdBase
 
 from Data.sdf.chemmol_sequence import ChemMolSequenceError
-from Data.sdf.chemmol_sequence_v3 import mol_from_chemmolseq_v3
+from Data.sdf.chemmol_sequence_v3 import AtomRecordV3, mol_from_chemmolseq_v3
 from Data.sdf.chemmol_tokenizer_v3 import ChemMolTokenizerV3
 from chemvector.model import ChemVectorModel
 
@@ -21,11 +21,18 @@ class ChemMolGrammarV3:
     record_type: str | None = None
     field_index: int = 0
     atom_count: int = 0
+    atoms: list[AtomRecordV3] = field(default_factory=list)
+    bonds: list[tuple[int, int, str]] = field(default_factory=list)
     bond_started: bool = False
     current_begin_atom: int | None = None
+    current_end_atom: int | None = None
+    current_bond_type: str | None = None
     current_stereo_atom_0: int | None = None
     existing_bonds: set[tuple[int, int]] = field(default_factory=set)
+    current_atom_fields: list[str] = field(default_factory=list)
     coordinate_values: int = 0
+    _partial_mol_cache: Chem.Mol | None = field(default=None, init=False, repr=False)
+    _open_atom_cache: tuple[int, ...] | None = field(default=None, init=False, repr=False)
 
     def __post_init__(self) -> None:
         lookup = self.tokenizer.token_to_id
@@ -43,10 +50,6 @@ class ChemMolGrammarV3:
         )
         self._elements = self._prefix_ids("el:")
         self._chiral = self._prefix_ids("chi:")
-        self._bond_types = tuple(
-            self._id(f"bt:{name}")
-            for name in ("SINGLE", "DOUBLE", "TRIPLE", "AROMATIC")
-        )
         self._stereo = self._prefix_ids("st:")
 
     def _prefix_ids(self, prefix: str) -> tuple[int, ...]:
@@ -59,11 +62,88 @@ class ChemMolGrammarV3:
     def _id(self, token: str) -> int:
         return self.tokenizer.token_to_id[token]
 
+    def _invalidate_chemical_cache(self) -> None:
+        self._partial_mol_cache = None
+        self._open_atom_cache = None
+
+    def _partial_mol(self) -> Chem.Mol:
+        if self._partial_mol_cache is not None:
+            return self._partial_mol_cache
+        rw_mol = Chem.RWMol()
+        for record in self.atoms:
+            atom = Chem.Atom(record.element)
+            atom.SetFormalCharge(record.formal_charge)
+            atom.SetIsotope(record.isotope)
+            atom.SetIsAromatic(record.aromatic)
+            atom.SetNumExplicitHs(record.explicit_h_count)
+            atom.SetNoImplicit(record.no_implicit)
+            atom.SetNumRadicalElectrons(record.radical_electrons)
+            rw_mol.AddAtom(atom)
+        for begin_atom, end_atom, bond_type in self.bonds:
+            rw_mol.AddBond(begin_atom, end_atom, getattr(Chem.BondType, bond_type))
+            if bond_type == "AROMATIC":
+                rw_mol.GetBondBetweenAtoms(begin_atom, end_atom).SetIsAromatic(True)
+        rw_mol.UpdatePropertyCache(strict=True)
+        self._partial_mol_cache = rw_mol.GetMol()
+        return self._partial_mol_cache
+
+    def _atom_has_open_valence(self, atom_id: int) -> bool:
+        rw_mol = Chem.RWMol(self._partial_mol())
+        hydrogen_id = rw_mol.AddAtom(Chem.Atom("H"))
+        rw_mol.AddBond(atom_id, hydrogen_id, Chem.BondType.SINGLE)
+        try:
+            with rdBase.BlockLogs():
+                rw_mol.UpdatePropertyCache(strict=True)
+        except (RuntimeError, ValueError):
+            return False
+        return True
+
+    def _open_atom_ids(self) -> tuple[int, ...]:
+        if self._open_atom_cache is None:
+            self._open_atom_cache = tuple(
+                atom_id
+                for atom_id in range(self.atom_count)
+                if self._atom_has_open_valence(atom_id)
+            )
+        return self._open_atom_cache
+
+    def _valid_bond_type_ids(self, begin_atom: int, end_atom: int) -> tuple[int, ...]:
+        allowed = []
+        begin_aromatic = self.atoms[begin_atom].aromatic
+        end_aromatic = self.atoms[end_atom].aromatic
+        for name in ("SINGLE", "DOUBLE", "TRIPLE", "AROMATIC"):
+            if name == "AROMATIC" and not (begin_aromatic and end_aromatic):
+                continue
+            rw_mol = Chem.RWMol(self._partial_mol())
+            rw_mol.AddBond(begin_atom, end_atom, getattr(Chem.BondType, name))
+            if name == "AROMATIC":
+                rw_mol.GetBondBetweenAtoms(begin_atom, end_atom).SetIsAromatic(True)
+            try:
+                with rdBase.BlockLogs():
+                    rw_mol.UpdatePropertyCache(strict=True)
+            except (RuntimeError, ValueError):
+                continue
+            allowed.append(self._id(f"bt:{name}"))
+        return tuple(allowed)
+
+    def _can_finish_molecule(self) -> bool:
+        if not self.atoms:
+            return False
+        mol = Chem.Mol(self._partial_mol())
+        try:
+            with rdBase.BlockLogs():
+                Chem.SanitizeMol(mol)
+        except (RuntimeError, ValueError):
+            return False
+        return True
+
     def _begin_ids(self) -> tuple[int, ...]:
+        open_atoms = set(self._open_atom_ids())
         result = []
-        for begin in range(self.atom_count):
+        for begin in open_atoms:
             if any(
-                end != begin
+                end in open_atoms
+                and end != begin
                 and tuple(sorted((begin, end))) not in self.existing_bonds
                 for end in range(self.atom_count)
             ):
@@ -75,9 +155,10 @@ class ChemMolGrammarV3:
             return ()
         return tuple(
             self._numbers[end]
-            for end in range(self.atom_count)
+            for end in self._open_atom_ids()
             if end != self.current_begin_atom
             and tuple(sorted((self.current_begin_atom, end))) not in self.existing_bonds
+            and self._valid_bond_type_ids(self.current_begin_atom, end)
         )
 
     def _atom_reference_ids(self) -> tuple[int, ...]:
@@ -90,14 +171,16 @@ class ChemMolGrammarV3:
             return (self._id(self.tokenizer.MOL),)
         if self.phase == "record":
             if self.bond_started:
-                allowed = [self._id(self.tokenizer.COORDS)]
+                allowed = []
                 if self._begin_ids():
-                    allowed.insert(0, self._id(self.tokenizer.BOND))
+                    allowed.append(self._id(self.tokenizer.BOND))
+                if self._can_finish_molecule():
+                    allowed.append(self._id(self.tokenizer.COORDS))
                 return tuple(allowed)
             allowed = [self._id(self.tokenizer.ATOM)]
-            if self.atom_count:
+            if self._can_finish_molecule():
                 allowed.append(self._id(self.tokenizer.COORDS))
-            if self.atom_count >= 2:
+            if self.atom_count >= 2 and self._begin_ids():
                 allowed.append(self._id(self.tokenizer.BOND))
             return tuple(allowed)
         if self.phase == "coords":
@@ -132,7 +215,12 @@ class ChemMolGrammarV3:
         if self.field_index == 1:
             return self._end_ids()
         if self.field_index == 2:
-            return self._bond_types
+            if self.current_begin_atom is None or self.current_end_atom is None:
+                return ()
+            return self._valid_bond_type_ids(
+                self.current_begin_atom,
+                self.current_end_atom,
+            )
         if self.field_index == 3:
             return self._stereo
         if self.field_index == 4:
@@ -163,7 +251,10 @@ class ChemMolGrammarV3:
                 self.bond_started = self.bond_started or self.record_type == "bond"
                 self.field_index = 0
                 self.current_begin_atom = None
+                self.current_end_atom = None
+                self.current_bond_type = None
                 self.current_stereo_atom_0 = None
+                self.current_atom_fields = []
                 self.phase = "fields"
         elif self.phase == "coords":
             if token == self.tokenizer.COORDS_END:
@@ -176,19 +267,52 @@ class ChemMolGrammarV3:
             self.phase = "done"
         elif self.phase == "fields":
             value = int(token[2:]) if token.startswith("n:") else None
-            if self.record_type == "bond":
+            if self.record_type == "atom" and self.field_index < 8:
+                self.current_atom_fields.append(token)
+            elif self.record_type == "bond":
                 if self.field_index == 0:
                     self.current_begin_atom = value
                 elif self.field_index == 1:
                     assert self.current_begin_atom is not None and value is not None
+                    self.current_end_atom = value
                     self.existing_bonds.add(tuple(sorted((self.current_begin_atom, value))))
+                elif self.field_index == 2:
+                    self.current_bond_type = token.removeprefix("bt:")
                 elif self.field_index == 4:
                     self.current_stereo_atom_0 = value
             self.field_index += 1
             final_field = 9 if self.record_type == "atom" else 7
             if self.field_index == final_field:
                 if self.record_type == "atom":
+                    fields = self.current_atom_fields
+                    self.atoms.append(
+                        AtomRecordV3(
+                            element=fields[0].removeprefix("el:"),
+                            formal_charge=int(fields[1][2:]),
+                            isotope=int(fields[2][2:]),
+                            aromatic=bool(int(fields[3][2:])),
+                            explicit_h_count=int(fields[4][2:]),
+                            no_implicit=bool(int(fields[5][2:])),
+                            radical_electrons=int(fields[6][2:]),
+                            canonical_chiral_tag=fields[7].removeprefix("chi:"),
+                        )
+                    )
                     self.atom_count += 1
+                    self._invalidate_chemical_cache()
+                else:
+                    assert (
+                        self.current_begin_atom is not None
+                        and self.current_end_atom is not None
+                        and self.current_bond_type is not None
+                    )
+                    self.bonds.append(
+                        (
+                            self.current_begin_atom,
+                            self.current_end_atom,
+                            self.current_bond_type,
+                        )
+                    )
+                    self._invalidate_chemical_cache()
                 self.record_type = None
                 self.field_index = 0
                 self.phase = "record"
