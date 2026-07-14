@@ -16,8 +16,11 @@ from Data.sdf.chemmol_sequence import mol_from_chemmolseq
 from Data.sdf.chemmol_sequence_v3 import mol_from_chemmolseq_v3
 from Data.sdf.chemmol_tokenizer import ChemMolTokenizer
 from Data.sdf.chemmol_tokenizer_v3 import ChemMolTokenizerV3
+from Data.sdf.chemsvg_sequence_v4 import mol_from_chemsvg_v4
+from Data.sdf.chemsvg_tokenizer_v4 import ChemSVGTokenizerV4
 from chemvector.generation import generate_chemmolseq, write_sdf
 from chemvector.generation_v3 import generate_chemmolseq_v3, write_sdf_v3
+from chemvector.generation_v4 import generate_chemsvg_v4, write_sdf_v4
 from chemvector.model import ChemVectorConfig, ChemVectorModel
 from chemvector.train import expand_shards, make_loader, slice_batch
 
@@ -31,11 +34,13 @@ def load_model(checkpoint_path: Path, device: torch.device) -> tuple[ChemVectorM
     tokenizer_path = checkpoint_path.parent / "tokenizer.json"
     if tokenizer_path.is_file():
         tokenizer_payload = json.loads(tokenizer_path.read_text(encoding="utf-8"))
-        tokenizer = (
-            ChemMolTokenizerV3.load(tokenizer_path)
-            if tokenizer_payload.get("sequence_schema_version") == "chemmolseq-0.3"
-            else ChemMolTokenizer.load(tokenizer_path)
-        )
+        sequence_schema = tokenizer_payload.get("sequence_schema_version")
+        if sequence_schema == "chemsvg-0.4":
+            tokenizer = ChemSVGTokenizerV4.load(tokenizer_path)
+        elif sequence_schema == "chemmolseq-0.3":
+            tokenizer = ChemMolTokenizerV3.load(tokenizer_path)
+        else:
+            tokenizer = ChemMolTokenizer.load(tokenizer_path)
     else:
         tokenizer = ChemMolTokenizer()
     if tokenizer.vocab_size != config.vocab_size:
@@ -115,6 +120,7 @@ def evaluate_generation(
 ) -> dict:
     output_dir.mkdir(parents=True, exist_ok=True)
     is_v3 = isinstance(tokenizer, ChemMolTokenizerV3)
+    is_v4 = isinstance(tokenizer, ChemSVGTokenizerV4)
     records = []
     started = time.perf_counter()
     for batch in loader:
@@ -125,16 +131,17 @@ def evaluate_generation(
         expected_smiles = batch["expected_smiles"][0]
         expected_inchikey = batch["expected_inchikeys"][0]
         pixel_values = batch["pixel_values"].to(device, non_blocking=True)
-        result = (
-            generate_chemmolseq_v3(
+        if is_v4:
+            result = generate_chemsvg_v4(model, pixel_values, tokenizer)
+        elif is_v3:
+            result = generate_chemmolseq_v3(
                 model,
                 pixel_values,
                 tokenizer,
                 beam_width=beam_width,
             )
-            if is_v3
-            else generate_chemmolseq(model, pixel_values, tokenizer)
-        )
+        else:
+            result = generate_chemmolseq(model, pixel_values, tokenizer)
         record = {
             "key": key,
             "completed": result.completed,
@@ -145,7 +152,8 @@ def evaluate_generation(
             "error": result.error,
         }
         if result.sequence is not None:
-            (output_dir / f"{key}.chemmolseq.txt").write_text(
+            sequence_suffix = "chemsvg.txt" if is_v4 else "chemmolseq.txt"
+            (output_dir / f"{key}.{sequence_suffix}").write_text(
                 result.sequence,
                 encoding="utf-8",
             )
@@ -170,11 +178,12 @@ def evaluate_generation(
                     expected_ids[divergence]
                 ]
             try:
-                mol = (
-                    mol_from_chemmolseq_v3(result.sequence)
-                    if is_v3
-                    else mol_from_chemmolseq(result.sequence)
-                )
+                if is_v4:
+                    mol = mol_from_chemsvg_v4(result.sequence)
+                elif is_v3:
+                    mol = mol_from_chemmolseq_v3(result.sequence)
+                else:
+                    mol = mol_from_chemmolseq(result.sequence)
                 actual_smiles = normalized_smiles(mol)
                 actual_inchikey = Chem.MolToInchiKey(mol)
                 expected_mol = Chem.MolFromSmiles(expected_smiles)
@@ -189,7 +198,12 @@ def evaluate_generation(
                         ),
                     }
                 )
-                sdf_writer = write_sdf_v3 if is_v3 else write_sdf
+                if is_v4:
+                    sdf_writer = write_sdf_v4
+                elif is_v3:
+                    sdf_writer = write_sdf_v3
+                else:
+                    sdf_writer = write_sdf
                 sdf_writer(result.sequence, output_dir / f"{key}.sdf")
             except Exception as error:
                 record["error"] = str(error)

@@ -1,0 +1,525 @@
+"""Grammar-constrained generation for coordinate-grounded ChemSVG v0.4."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from pathlib import Path
+
+import torch
+from rdkit import Chem, rdBase
+
+from Data.sdf.chemmol_sequence import ChemMolSequenceError
+from Data.sdf.chemsvg_sequence_v4 import (
+    StrokeRecordV4,
+    VertexRecordV4,
+    mol_from_chemsvg_v4,
+)
+from Data.sdf.chemsvg_tokenizer_v4 import ChemSVGTokenizerV4
+from chemvector.model import ChemVectorModel
+
+
+Coordinate = tuple[int, int]
+
+
+@dataclass
+class ChemSVGGrammarV4:
+    tokenizer: ChemSVGTokenizerV4
+    phase: str = "bos"
+    record_type: str | None = None
+    field_index: int = 0
+    vertices: list[VertexRecordV4] = field(default_factory=list)
+    strokes: list[StrokeRecordV4] = field(default_factory=list)
+    stroke_started: bool = False
+    current_fields: list[str] = field(default_factory=list)
+    current_vertex_x: int | None = None
+    current_begin_x: int | None = None
+    current_begin: Coordinate | None = None
+    current_end_x: int | None = None
+    current_end: Coordinate | None = None
+    current_display_type: str | None = None
+    current_stereo: str | None = None
+    current_stereo_x: int | None = None
+    existing_strokes: set[tuple[Coordinate, Coordinate]] = field(default_factory=set)
+    _partial_mol_cache: Chem.Mol | None = field(default=None, init=False, repr=False)
+    _open_coordinate_cache: tuple[Coordinate, ...] | None = field(
+        default=None,
+        init=False,
+        repr=False,
+    )
+
+    def __post_init__(self) -> None:
+        lookup = self.tokenizer.token_to_id
+        self._numbers = {
+            int(token[2:]): token_id
+            for token, token_id in lookup.items()
+            if token.startswith("n:")
+        }
+        self._all_numbers = tuple(self._numbers.values())
+        self._nonnegative = tuple(
+            token_id for value, token_id in self._numbers.items() if value >= 0
+        )
+        self._coordinates = tuple(
+            token_id for value, token_id in self._numbers.items() if 0 <= value <= 1023
+        )
+        self._elements = self._prefix_ids("el:")
+        self._chiral = self._prefix_ids("chi:")
+        self._display_types = tuple(
+            self._id(f"vis:{name}")
+            for name in ("SINGLE", "DOUBLE", "TRIPLE", "AROMATIC")
+        )
+        self._directions = self._prefix_ids("dir:")
+        self._stereo = self._prefix_ids("st:")
+
+    def _prefix_ids(self, prefix: str) -> tuple[int, ...]:
+        return tuple(
+            token_id
+            for token, token_id in self.tokenizer.token_to_id.items()
+            if token.startswith(prefix)
+        )
+
+    def _id(self, token: str) -> int:
+        return self.tokenizer.token_to_id[token]
+
+    @property
+    def coordinate_to_atom(self) -> dict[Coordinate, int]:
+        return {(vertex.x, vertex.y): index for index, vertex in enumerate(self.vertices)}
+
+    def _invalidate_chemical_cache(self) -> None:
+        self._partial_mol_cache = None
+        self._open_coordinate_cache = None
+
+    def _partial_mol(self) -> Chem.Mol:
+        if self._partial_mol_cache is not None:
+            return self._partial_mol_cache
+        rw_mol = Chem.RWMol()
+        coordinate_to_atom = self.coordinate_to_atom
+        for record in self.vertices:
+            atom = Chem.Atom(record.element)
+            atom.SetFormalCharge(record.formal_charge)
+            atom.SetIsotope(record.isotope)
+            atom.SetIsAromatic(record.aromatic)
+            atom.SetNumExplicitHs(record.explicit_h_count)
+            atom.SetNoImplicit(record.no_implicit)
+            atom.SetNumRadicalElectrons(record.radical_electrons)
+            rw_mol.AddAtom(atom)
+        for record in self.strokes:
+            begin_atom = coordinate_to_atom[record.begin]
+            end_atom = coordinate_to_atom[record.end]
+            rw_mol.AddBond(begin_atom, end_atom, getattr(Chem.BondType, record.bond_type))
+            if record.bond_type == "AROMATIC":
+                rw_mol.GetBondBetweenAtoms(begin_atom, end_atom).SetIsAromatic(True)
+        rw_mol.UpdatePropertyCache(strict=True)
+        self._partial_mol_cache = rw_mol.GetMol()
+        return self._partial_mol_cache
+
+    def _coordinate_has_open_valence(self, coordinate: Coordinate) -> bool:
+        rw_mol = Chem.RWMol(self._partial_mol())
+        hydrogen_id = rw_mol.AddAtom(Chem.Atom("H"))
+        rw_mol.AddBond(
+            self.coordinate_to_atom[coordinate],
+            hydrogen_id,
+            Chem.BondType.SINGLE,
+        )
+        try:
+            with rdBase.BlockLogs():
+                rw_mol.UpdatePropertyCache(strict=True)
+        except (RuntimeError, ValueError):
+            return False
+        return True
+
+    def _open_coordinates(self) -> tuple[Coordinate, ...]:
+        if self._open_coordinate_cache is None:
+            self._open_coordinate_cache = tuple(
+                coordinate
+                for coordinate in self.coordinate_to_atom
+                if self._coordinate_has_open_valence(coordinate)
+            )
+        return self._open_coordinate_cache
+
+    def _pair(self, begin: Coordinate, end: Coordinate) -> tuple[Coordinate, Coordinate]:
+        return tuple(sorted((begin, end)))
+
+    def _valid_bond_type_ids(
+        self,
+        begin: Coordinate,
+        end: Coordinate,
+        display_type: str | None = None,
+    ) -> tuple[int, ...]:
+        coordinate_to_atom = self.coordinate_to_atom
+        begin_atom = coordinate_to_atom[begin]
+        end_atom = coordinate_to_atom[end]
+        begin_aromatic = self.vertices[begin_atom].aromatic
+        end_aromatic = self.vertices[end_atom].aromatic
+        allowed = []
+        for name in ("SINGLE", "DOUBLE", "TRIPLE", "AROMATIC"):
+            if display_type in {"TRIPLE", "AROMATIC"} and name != display_type:
+                continue
+            if display_type in {"SINGLE", "DOUBLE"} and name not in {
+                display_type,
+                "AROMATIC",
+            }:
+                continue
+            if name == "AROMATIC" and not (begin_aromatic and end_aromatic):
+                continue
+            rw_mol = Chem.RWMol(self._partial_mol())
+            rw_mol.AddBond(begin_atom, end_atom, getattr(Chem.BondType, name))
+            if name == "AROMATIC":
+                rw_mol.GetBondBetweenAtoms(begin_atom, end_atom).SetIsAromatic(True)
+            try:
+                with rdBase.BlockLogs():
+                    rw_mol.UpdatePropertyCache(strict=True)
+            except (RuntimeError, ValueError):
+                continue
+            allowed.append(self._id(f"bt:{name}"))
+        return tuple(allowed)
+
+    def _can_finish_molecule(self) -> bool:
+        if not self.vertices:
+            return False
+        try:
+            mol = Chem.Mol(self._partial_mol())
+            with rdBase.BlockLogs():
+                Chem.SanitizeMol(mol)
+        except (RuntimeError, ValueError):
+            return False
+        return True
+
+    def _vertex_x_ids(self) -> tuple[int, ...]:
+        if not self.vertices or self.vertices[-1].y < 1023:
+            return self._coordinates
+        return tuple(
+            self._numbers[x]
+            for x in range(self.vertices[-1].x + 1, 1024)
+        )
+
+    def _vertex_y_ids(self) -> tuple[int, ...]:
+        if self.current_vertex_x is None:
+            return ()
+        used = self.coordinate_to_atom
+        last = (self.vertices[-1].y, self.vertices[-1].x) if self.vertices else None
+        return tuple(
+            self._numbers[y]
+            for y in range(1024)
+            if (self.current_vertex_x, y) not in used
+            and (last is None or (y, self.current_vertex_x) > last)
+        )
+
+    def _begin_coordinates(self) -> tuple[Coordinate, ...]:
+        open_coordinates = set(self._open_coordinates())
+        return tuple(
+            begin
+            for begin in open_coordinates
+            if any(
+                end != begin
+                and end in open_coordinates
+                and self._pair(begin, end) not in self.existing_strokes
+                for end in self.coordinate_to_atom
+            )
+        )
+
+    def _begin_x_ids(self) -> tuple[int, ...]:
+        return tuple(self._numbers[x] for x in sorted({x for x, _ in self._begin_coordinates()}))
+
+    def _begin_y_ids(self) -> tuple[int, ...]:
+        if self.current_begin_x is None:
+            return ()
+        return tuple(
+            self._numbers[y]
+            for x, y in self._begin_coordinates()
+            if x == self.current_begin_x
+        )
+
+    def _end_coordinates(self) -> tuple[Coordinate, ...]:
+        if self.current_begin is None:
+            return ()
+        return tuple(
+            end
+            for end in self._open_coordinates()
+            if end != self.current_begin
+            and self._pair(self.current_begin, end) not in self.existing_strokes
+            and self._valid_bond_type_ids(self.current_begin, end)
+        )
+
+    def _end_x_ids(self) -> tuple[int, ...]:
+        return tuple(self._numbers[x] for x in sorted({x for x, _ in self._end_coordinates()}))
+
+    def _end_y_ids(self) -> tuple[int, ...]:
+        if self.current_end_x is None:
+            return ()
+        return tuple(
+            self._numbers[y]
+            for x, y in self._end_coordinates()
+            if x == self.current_end_x
+        )
+
+    def _coordinate_x_ids(self) -> tuple[int, ...]:
+        return tuple(
+            self._numbers[x] for x in sorted({x for x, _ in self.coordinate_to_atom})
+        )
+
+    def _coordinate_y_ids(self, x: int | None) -> tuple[int, ...]:
+        if x is None:
+            return ()
+        return tuple(
+            self._numbers[y]
+            for coordinate_x, y in self.coordinate_to_atom
+            if coordinate_x == x
+        )
+
+    def allowed_token_ids(self) -> tuple[int, ...]:
+        if self.phase == "bos":
+            return (self.tokenizer.bos_token_id,)
+        if self.phase == "mol":
+            return (self._id(self.tokenizer.MOL),)
+        if self.phase == "record":
+            allowed = [] if self.stroke_started else [self._id(self.tokenizer.VERTEX)]
+            if len(self.vertices) >= 2 and self._begin_coordinates():
+                allowed.append(self._id(self.tokenizer.STROKE))
+            if self._can_finish_molecule():
+                allowed.append(self._id(self.tokenizer.MOL_END))
+            return tuple(allowed)
+        if self.phase == "eos":
+            return (self.tokenizer.eos_token_id,)
+        if self.phase == "done":
+            return ()
+        if self.phase != "fields" or self.record_type is None:
+            raise ChemMolSequenceError(f"Unknown v0.4 grammar phase: {self.phase}")
+
+        if self.record_type == "vertex":
+            fields = (
+                self._vertex_x_ids(),
+                self._vertex_y_ids(),
+                self._elements,
+                self._all_numbers,
+                self._nonnegative,
+                (self._numbers[0], self._numbers[1]),
+                self._nonnegative,
+                (self._numbers[0], self._numbers[1]),
+                self._nonnegative,
+                self._chiral,
+                (self._id(self.tokenizer.END_RECORD),),
+            )
+            return fields[self.field_index]
+
+        if self.field_index == 0:
+            return self._begin_x_ids()
+        if self.field_index == 1:
+            return self._begin_y_ids()
+        if self.field_index == 2:
+            return self._end_x_ids()
+        if self.field_index == 3:
+            return self._end_y_ids()
+        if self.field_index == 4:
+            return self._display_types
+        if self.field_index == 5:
+            if self.current_begin is None or self.current_end is None:
+                return ()
+            return self._valid_bond_type_ids(
+                self.current_begin,
+                self.current_end,
+                self.current_display_type,
+            )
+        if self.field_index == 6:
+            return self._directions
+        if self.field_index == 7:
+            return self._stereo
+        if self.current_stereo in {"STEREONONE", "STEREOANY"}:
+            return (self._id(self.tokenizer.END_RECORD),)
+        if self.field_index in {8, 10}:
+            return self._coordinate_x_ids()
+        if self.field_index in {9, 11}:
+            return self._coordinate_y_ids(self.current_stereo_x)
+        return (self._id(self.tokenizer.END_RECORD),)
+
+    def consume(self, token_id: int) -> None:
+        if token_id not in self.allowed_token_ids():
+            token = self.tokenizer.id_to_token[token_id]
+            raise ChemMolSequenceError(
+                f"Token {token!r} is invalid in v0.4 phase {self.phase} field {self.field_index}"
+            )
+        token = self.tokenizer.id_to_token[token_id]
+        if self.phase == "bos":
+            self.phase = "mol"
+            return
+        if self.phase == "mol":
+            self.phase = "record"
+            return
+        if self.phase == "record":
+            if token == self.tokenizer.MOL_END:
+                self.phase = "eos"
+                return
+            self.record_type = "vertex" if token == self.tokenizer.VERTEX else "stroke"
+            self.stroke_started = self.stroke_started or self.record_type == "stroke"
+            self.field_index = 0
+            self.current_fields = []
+            self.current_vertex_x = None
+            self.current_begin_x = None
+            self.current_begin = None
+            self.current_end_x = None
+            self.current_end = None
+            self.current_display_type = None
+            self.current_stereo = None
+            self.current_stereo_x = None
+            self.phase = "fields"
+            return
+        if self.phase == "eos":
+            self.phase = "done"
+            return
+
+        value = int(token[2:]) if token.startswith("n:") else None
+        self.current_fields.append(token)
+        if self.record_type == "vertex":
+            if self.field_index == 0:
+                self.current_vertex_x = value
+            self.field_index += 1
+            if self.field_index == 11:
+                fields = self.current_fields
+                self.vertices.append(
+                    VertexRecordV4(
+                        x=int(fields[0][2:]),
+                        y=int(fields[1][2:]),
+                        element=fields[2].removeprefix("el:"),
+                        formal_charge=int(fields[3][2:]),
+                        isotope=int(fields[4][2:]),
+                        aromatic=bool(int(fields[5][2:])),
+                        explicit_h_count=int(fields[6][2:]),
+                        no_implicit=bool(int(fields[7][2:])),
+                        radical_electrons=int(fields[8][2:]),
+                        canonical_chiral_tag=fields[9].removeprefix("chi:"),
+                    )
+                )
+                self._invalidate_chemical_cache()
+                self.record_type = None
+                self.phase = "record"
+            return
+
+        if self.field_index == 0:
+            self.current_begin_x = value
+        elif self.field_index == 1:
+            self.current_begin = (self.current_begin_x, value)
+        elif self.field_index == 2:
+            self.current_end_x = value
+        elif self.field_index == 3:
+            self.current_end = (self.current_end_x, value)
+            self.existing_strokes.add(self._pair(self.current_begin, self.current_end))
+        elif self.field_index == 4:
+            self.current_display_type = token.removeprefix("vis:")
+        elif self.field_index == 7:
+            self.current_stereo = token.removeprefix("st:")
+        elif self.field_index in {8, 10}:
+            self.current_stereo_x = value
+        self.field_index += 1
+        stereo_has_references = self.current_stereo not in {"STEREONONE", "STEREOANY"}
+        final_field = 13 if stereo_has_references else 9
+        if self.field_index == final_field:
+            fields = self.current_fields
+            stereo_values = (
+                tuple(int(item[2:]) for item in fields[8:12])
+                if stereo_has_references
+                else (-1, -1, -1, -1)
+            )
+            self.strokes.append(
+                StrokeRecordV4(
+                    begin_x=int(fields[0][2:]),
+                    begin_y=int(fields[1][2:]),
+                    end_x=int(fields[2][2:]),
+                    end_y=int(fields[3][2:]),
+                    display_type=fields[4].removeprefix("vis:"),
+                    bond_type=fields[5].removeprefix("bt:"),
+                    direction=fields[6].removeprefix("dir:"),
+                    stereo=fields[7].removeprefix("st:"),
+                    stereo_atom_0_x=stereo_values[0],
+                    stereo_atom_0_y=stereo_values[1],
+                    stereo_atom_1_x=stereo_values[2],
+                    stereo_atom_1_y=stereo_values[3],
+                )
+            )
+            self._invalidate_chemical_cache()
+            self.record_type = None
+            self.phase = "record"
+
+
+@dataclass(frozen=True)
+class GenerationResultV4:
+    input_ids: tuple[int, ...]
+    sequence: str | None
+    completed: bool
+    chemically_valid: bool
+    error: str | None = None
+
+
+@torch.inference_mode()
+def generate_chemsvg_v4(
+    model: ChemVectorModel,
+    pixel_values: torch.Tensor,
+    tokenizer: ChemSVGTokenizerV4,
+    *,
+    max_length: int | None = None,
+) -> GenerationResultV4:
+    if pixel_values.size(0) != 1:
+        raise ValueError("Generation currently supports batch size 1")
+    model.eval()
+    max_length = max_length or model.config.max_target_length
+    with torch.autocast(
+        device_type=pixel_values.device.type,
+        dtype=torch.bfloat16,
+        enabled=pixel_values.device.type == "cuda",
+    ):
+        memory = model.encode_images(pixel_values)
+        grammar = ChemSVGGrammarV4(tokenizer)
+        generated = [tokenizer.bos_token_id]
+        grammar.consume(generated[0])
+        caches = None
+        while len(generated) < max_length:
+            token = torch.tensor([[generated[-1]]], device=pixel_values.device)
+            logits, caches = model.decode_step(token, len(generated) - 1, memory, caches)
+            allowed = grammar.allowed_token_ids()
+            if not allowed:
+                break
+            allowed_tensor = torch.tensor(allowed, device=logits.device)
+            scores = logits[0, 0].index_select(0, allowed_tensor)
+            next_id = int(allowed_tensor[scores.argmax()])
+            generated.append(next_id)
+            grammar.consume(next_id)
+            if grammar.phase == "done":
+                sequence = tokenizer.decode(generated)
+                try:
+                    mol_from_chemsvg_v4(sequence)
+                except ChemMolSequenceError as error:
+                    return GenerationResultV4(
+                        tuple(generated),
+                        sequence,
+                        True,
+                        False,
+                        str(error),
+                    )
+                return GenerationResultV4(tuple(generated), sequence, True, True)
+    return GenerationResultV4(
+        tuple(generated),
+        None,
+        False,
+        False,
+        f"Generation did not finish within {max_length} tokens",
+    )
+
+
+def write_sdf_v4(sequence: str, path: str | Path) -> None:
+    mol = mol_from_chemsvg_v4(sequence, apply_display_directions=True)
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary_path = path.with_suffix(path.suffix + ".tmp")
+    writer = Chem.SDWriter(str(temporary_path))
+    try:
+        writer.write(mol)
+    finally:
+        writer.close()
+    supplier = Chem.SDMolSupplier(str(temporary_path), removeHs=False)
+    written_mol = next((item for item in supplier if item is not None), None)
+    expected_key = Chem.MolToInchiKey(mol)
+    actual_key = Chem.MolToInchiKey(written_mol) if written_mol is not None else None
+    if actual_key != expected_key:
+        temporary_path.unlink(missing_ok=True)
+        raise ChemMolSequenceError(
+            f"SDF ChemSVG stereo mismatch: expected {expected_key}, got {actual_key}"
+        )
+    temporary_path.replace(path)

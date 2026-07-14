@@ -1,8 +1,25 @@
 # SDF 原始数据
 
-当前同时保留 ChemMolSeq v0.2 与空间顺序 ChemMolSeq v0.3。v0.3 协议见
-[`CHEMMOLSEQ_V0_3.md`](CHEMMOLSEQ_V0_3.md)，训练加载器可直接从现有 JSON 动态
-生成，不需要重建 75GB WebDataset。
+当前保留 ChemMolSeq v0.2、空间顺序 ChemMolSeq v0.3，以及坐标图元路线
+ChemSVG v0.4。v0.4 协议见 [`CHEMSVG_V0_4.md`](CHEMSVG_V0_4.md)。训练加载器
+可直接从现有 JSON 动态生成三种标签，不需要重建 75GB WebDataset。
+
+## ChemSVG v0.4
+
+v0.4 不再用原子编号表达键连接。模型生成视觉顶点坐标和 stroke 起止坐标，
+确定性编译器根据端点创建 RDKit Bond。该路线没有按原子距离枚举候选边，也
+没有最大键长阈值。
+
+```bash
+.venv-train/bin/python -m Data.sdf.chemmol_webdataset \
+  Data/sdf/webdataset_full_v0/shards/train-000000.tar \
+  --sequence-version 0.4 \
+  --limit 100 \
+  --validate-target-roundtrip
+```
+
+首 shard 在排除 13 张已知 E/Z 描绘冲突图片后，有 4,956 张完成无损往返，
+另有 23 张因为视觉顶点完全重合而由 v0.4 加载器跳过。
 
 请将原始分子结构文件放入 `raw/` 目录。
 

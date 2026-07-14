@@ -1,0 +1,24 @@
+# ChemSVG v0.4 cannot represent these overlapping visual vertex coordinates.
+train_000569_rdkit
+train_000569_stress
+train_000725_rdkit
+train_000725_stress
+train_000354_original
+train_000806_rdkit
+train_000806_stress
+train_000033_rdkit
+train_000033_stress
+train_000441_rdkit
+train_000441_stress
+train_000134_coordgen
+train_001002_rdkit
+train_001002_stress
+train_001180_original
+train_001180_rdkit
+train_001180_stress
+train_000204_rdkit
+train_000204_stress
+train_001147_original
+train_001082_original
+train_001082_rdkit
+train_001217_rdkit

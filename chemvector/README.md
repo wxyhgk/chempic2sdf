@@ -1,8 +1,8 @@
 # ChemVector
 
-ChemVector 是面向化学结构图片识别的轻量视觉到结构序列模型。它借鉴
-StarVector 的“视觉输入生成结构化代码”范式，但使用专用 ChemMolSeq 语法、
-小型视觉编码器和自回归 Transformer decoder，不依赖通用 SVG 或 StarCoder。
+ChemVector 是面向化学结构图片识别的轻量视觉到结构序列模型。当前主开发
+路线是 ChemSVG v0.4：模型生成视觉顶点和 stroke，确定性编译器再生成 SDF。
+项目同时保留 ChemMolSeq v0.2/v0.3 作为直接 graph 生成基线。
 
 ## 当前基线
 
@@ -146,6 +146,33 @@ validation 检查泛化。
 首 shard 的 4,992 张图片已全部通过 v0.3 化学往返，平均序列缩短 16.71%。
 同时检测到 13 张增强图片的二维 E/Z 几何与化学标签冲突；正式全量训练前需要
 扫描并替换这类样本。
+
+## ChemSVG v0.4
+
+v0.4 不再输出 `<b atom_id atom_id>`。每条 stroke 直接携带可见起点和终点
+坐标，SDF 连接关系由端点确定性编译：
+
+```text
+<v 315 228 N 0 0 0 0 0 0 CHI_UNSPECIFIED>
+<v 507 411 C 0 0 0 0 0 0 CHI_UNSPECIFIED>
+<s 315 228 507 411 SINGLE SINGLE NONE STEREONONE>
+```
+
+现有 WebDataset 已包含所需 Render JSON，不需要重新生成图片：
+
+```bash
+.venv-train/bin/python -m chemvector.train \
+  --sequence-version 0.4 \
+  --reject-keys-file Data/sdf/chemmolseq_v0_3_depiction_reject_keys.txt \
+  --train-shards Data/sdf/webdataset_full_v0/shards/train-000000.tar \
+  --validation-shards Data/sdf/webdataset_full_v0/shards/validation-000000.tar \
+  --batch-size 4 --gradient-accumulation 1 \
+  --workers 0 --epochs 1 \
+  --output-dir outputs/chemvector-v4
+```
+
+协议细节见 `Data/sdf/CHEMSVG_V0_4.md`。完全重合的视觉顶点无法从图片唯一
+恢复，v0.4 加载器会跳过这类样本，而不是用隐藏 atom ID 掩盖歧义。
 
 ## checkpoint 评估与 SDF 导出
 

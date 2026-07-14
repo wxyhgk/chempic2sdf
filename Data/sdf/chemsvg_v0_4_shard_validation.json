@@ -1,0 +1,17 @@
+{
+  "schema_version": "chemsvg-validation-0.1",
+  "sequence_schema_version": "chemsvg-0.4",
+  "shard": "Data/sdf/webdataset_full_v0/shards/train-000000.tar",
+  "images_in_shard": 4992,
+  "depiction_reject_keys": 13,
+  "eligible_after_depiction_rejects": 4979,
+  "coordinate_collision_skips": 23,
+  "chemical_roundtrip_passed": 4956,
+  "grammar_roundtrip_passed": 4956,
+  "mean_tokens": 702.269,
+  "p99_tokens": 1784,
+  "max_tokens": 2274,
+  "vocabulary_size": 2153,
+  "max_target_length": 3072,
+  "status": "passed"
+}

@@ -23,6 +23,12 @@ try:
         serialize_chemmolseq_v3,
         validate_chemmolseq_v3_roundtrip,
     )
+    from .chemsvg_sequence_v4 import (
+        SCHEMA_VERSION as V4_SCHEMA_VERSION,
+        ChemSVGCoordinateCollisionError,
+        serialize_chemsvg_v4,
+        validate_chemsvg_v4_roundtrip,
+    )
 except ImportError:
     from chemmol_sequence import (
         SCHEMA_VERSION as V2_SCHEMA_VERSION,
@@ -33,6 +39,12 @@ except ImportError:
         SCHEMA_VERSION as V3_SCHEMA_VERSION,
         serialize_chemmolseq_v3,
         validate_chemmolseq_v3_roundtrip,
+    )
+    from chemsvg_sequence_v4 import (
+        SCHEMA_VERSION as V4_SCHEMA_VERSION,
+        ChemSVGCoordinateCollisionError,
+        serialize_chemsvg_v4,
+        validate_chemsvg_v4_roundtrip,
     )
 
 
@@ -53,7 +65,7 @@ class ChemMolWebDataset:
         self.validate_target_roundtrip = validate_target_roundtrip
         self.shardshuffle = shardshuffle
         self.sample_shuffle_buffer = sample_shuffle_buffer
-        if sequence_version not in {"0.2", "0.3"}:
+        if sequence_version not in {"0.2", "0.3", "0.4"}:
             raise ValueError(f"Unsupported ChemMolSeq version: {sequence_version}")
         self.sequence_version = sequence_version
         self.reject_keys = reject_keys or set()
@@ -84,18 +96,25 @@ class ChemMolWebDataset:
                 sequence_hash = hashlib.sha256(legacy_sequence.encode("utf-8")).hexdigest()
                 if sequence_hash != meta["chemmolseq_sha256"]:
                     raise ValueError(f"Legacy ChemMolSeq hash mismatch in {sample['__key__']}")
-            if self.sequence_version == "0.3":
+            if self.sequence_version == "0.4":
+                try:
+                    sequence = serialize_chemsvg_v4(chemmol, render)
+                except ChemSVGCoordinateCollisionError:
+                    continue
+                schema_version = V4_SCHEMA_VERSION
+            elif self.sequence_version == "0.3":
                 sequence = serialize_chemmolseq_v3(chemmol, render)
                 schema_version = V3_SCHEMA_VERSION
             else:
                 sequence = serialize_chemmolseq(chemmol, render)
                 schema_version = V2_SCHEMA_VERSION
             if self.validate_target_roundtrip:
-                validator = (
-                    validate_chemmolseq_v3_roundtrip
-                    if self.sequence_version == "0.3"
-                    else validate_chemmolseq_roundtrip
-                )
+                validators = {
+                    "0.2": validate_chemmolseq_roundtrip,
+                    "0.3": validate_chemmolseq_v3_roundtrip,
+                    "0.4": validate_chemsvg_v4_roundtrip,
+                }
+                validator = validators[self.sequence_version]
                 validator(sequence, chemmol["canonical_isomeric_smiles"], chemmol["inchikey"])
             image = Image.open(io.BytesIO(sample["png"])).convert("RGB")
             image.load()
@@ -115,7 +134,11 @@ def main() -> None:
     parser.add_argument("shard")
     parser.add_argument("--limit", type=int, default=10)
     parser.add_argument("--validate-target-roundtrip", action="store_true")
-    parser.add_argument("--sequence-version", choices=("0.2", "0.3"), default="0.2")
+    parser.add_argument(
+        "--sequence-version",
+        choices=("0.2", "0.3", "0.4"),
+        default="0.2",
+    )
     args = parser.parse_args()
     count = 0
     for sample in ChemMolWebDataset(

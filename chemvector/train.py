@@ -17,6 +17,7 @@ from torch.utils.data import DataLoader
 
 from Data.sdf.chemmol_tokenizer import ChemMolTokenizer
 from Data.sdf.chemmol_tokenizer_v3 import ChemMolTokenizerV3
+from Data.sdf.chemsvg_tokenizer_v4 import ChemSVGTokenizerV4
 from chemvector.data import ChemVectorCollator, ChemVectorIterableDataset
 from chemvector.model import ChemVectorConfig, ChemVectorModel
 
@@ -68,7 +69,11 @@ def make_loader(
         shards,
         shardshuffle=shuffle,
         sample_shuffle_buffer=1000 if shuffle else 0,
-        sequence_version=tokenizer.sequence_schema_version.removeprefix("chemmolseq-"),
+        sequence_version=(
+            tokenizer.sequence_schema_version.removeprefix("chemmolseq-").removeprefix(
+                "chemsvg-"
+            )
+        ),
         reject_keys=reject_keys,
     )
     collator = ChemVectorCollator(
@@ -191,7 +196,11 @@ def main() -> None:
     )
     parser.add_argument("--validation-shards", nargs="+")
     parser.add_argument("--output-dir", default="outputs/chemvector")
-    parser.add_argument("--sequence-version", choices=("0.2", "0.3"), default="0.2")
+    parser.add_argument(
+        "--sequence-version",
+        choices=("0.2", "0.3", "0.4"),
+        default="0.2",
+    )
     parser.add_argument("--reject-keys-file")
     parser.add_argument("--epochs", type=int, default=1)
     parser.add_argument("--max-steps", type=int)
@@ -239,11 +248,12 @@ def main() -> None:
     torch.cuda.manual_seed_all(args.seed)
     torch.set_float32_matmul_precision("high")
 
-    tokenizer = (
-        ChemMolTokenizerV3()
-        if args.sequence_version == "0.3"
-        else ChemMolTokenizer()
-    )
+    tokenizers = {
+        "0.2": ChemMolTokenizer,
+        "0.3": ChemMolTokenizerV3,
+        "0.4": ChemSVGTokenizerV4,
+    }
+    tokenizer = tokenizers[args.sequence_version]()
     config = build_config(tokenizer, args.tiny)
     device = torch.device("cuda")
     model = ChemVectorModel(config).to(device)
