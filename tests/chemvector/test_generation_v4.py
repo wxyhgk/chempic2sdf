@@ -13,7 +13,7 @@ from Data.sdf.chemmol_sequence import ChemMolSequenceError
 from Data.sdf.chemsvg_sequence_v4 import serialize_chemsvg_v4
 from Data.sdf.chemsvg_sequence_v4 import StrokeRecordV4, VertexRecordV4
 from Data.sdf.chemsvg_tokenizer_v4 import ChemSVGTokenizerV4
-from Data.sdf.test_chemmol_sequence import make_annotations
+from tests.data_sdf.test_chemmol_sequence import make_annotations
 from chemvector.generation_v4 import (
     ChemSVGGrammarV4,
     _completed_result_v4,

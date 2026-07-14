@@ -6,7 +6,7 @@ from dataclasses import replace
 import unittest
 
 from Data.sdf.chemsvg_sequence_v4 import parse_chemsvg_v4, serialize_chemsvg_v4
-from Data.sdf.test_chemmol_sequence import make_annotations
+from tests.data_sdf.test_chemmol_sequence import make_annotations
 from chemvector.evaluation_metrics import compare_graphs, summarize
 
 

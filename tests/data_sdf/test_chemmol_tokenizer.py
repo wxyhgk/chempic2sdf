@@ -7,14 +7,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-try:
-    from .chemmol_sequence import serialize_chemmolseq
-    from .chemmol_tokenizer import ChemMolTokenizer
-    from .test_chemmol_sequence import make_annotations
-except ImportError:
-    from chemmol_sequence import serialize_chemmolseq
-    from chemmol_tokenizer import ChemMolTokenizer
-    from test_chemmol_sequence import make_annotations
+from Data.sdf.chemmol_sequence import serialize_chemmolseq
+from Data.sdf.chemmol_tokenizer import ChemMolTokenizer
+from tests.data_sdf.test_chemmol_sequence import make_annotations
 
 
 class ChemMolTokenizerTests(unittest.TestCase):

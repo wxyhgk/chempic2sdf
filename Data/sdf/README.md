@@ -71,7 +71,7 @@ v0.2 协议和字段说明见 `CHEMMOLSEQ_V0_2.md`。它包含同位素、显式
 运行单元测试：
 
 ```bash
-.venv/bin/python -m unittest -v test_chemmol_sequence.py
+.venv-train/bin/python -m unittest -v tests.data_sdf.test_chemmol_sequence
 ```
 
 验证单个训练分片的加载和化学往返：

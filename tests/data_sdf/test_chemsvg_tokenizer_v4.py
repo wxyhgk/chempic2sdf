@@ -7,9 +7,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from .chemsvg_sequence_v4 import serialize_chemsvg_v4
-from .chemsvg_tokenizer_v4 import ChemSVGTokenizerV4
-from .test_chemmol_sequence import make_annotations
+from Data.sdf.chemsvg_sequence_v4 import serialize_chemsvg_v4
+from Data.sdf.chemsvg_tokenizer_v4 import ChemSVGTokenizerV4
+from tests.data_sdf.test_chemmol_sequence import make_annotations
 
 
 class ChemSVGTokenizerV4Tests(unittest.TestCase):

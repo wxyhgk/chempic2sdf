@@ -30,9 +30,9 @@ Render JSON 提供文字锚点，再对锚点周围的小图执行 PP-OCRv5 识�
 ```bash
 PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK=True \
   .venv-ocr/bin/python -m chemvector.ocr_teacher \
-  --image Data/GD906.png \
-  --anchors-json outputs/ocr-teacher/gd906-anchors.json \
-  --output outputs/ocr-teacher/gd906.json
+  --image Data/images/GD906.png \
+  --anchors-json outputs/diagnostics/ocr-teacher/gd906-anchors.json \
+  --output outputs/diagnostics/ocr-teacher/gd906.json
 ```
 
 输出保留 OCR 原始文字、置信度和锚点坐标。不要在教师输出阶段擅自删除 `+`、

@@ -7,15 +7,15 @@ import unittest
 
 from rdkit import Chem
 
-from .chemmol_sequence import ChemMolSequenceError
-from .chemsvg_sequence_v4 import (
+from Data.sdf.chemmol_sequence import ChemMolSequenceError
+from Data.sdf.chemsvg_sequence_v4 import (
     ChemSVGCoordinateCollisionError,
     mol_from_chemsvg_v4,
     parse_chemsvg_v4,
     serialize_chemsvg_v4,
     validate_chemsvg_v4_roundtrip,
 )
-from .test_chemmol_sequence import make_annotations
+from tests.data_sdf.test_chemmol_sequence import make_annotations
 
 
 class ChemSVGSequenceV4Tests(unittest.TestCase):

@@ -13,7 +13,9 @@ __pycache__/
 venv/
 
 # Training artifacts
-outputs/
+outputs/*
+!outputs/README.md
+!outputs/MANIFEST.csv
 checkpoints/
 *.pt
 *.pth
@@ -32,6 +34,7 @@ Data/sdf/webdataset_full_v0/
 *.tar.gz
 *.sdf
 *.sdf.gz
+Data/images/test1.png
 
 # Papers and upstream reference source
 paper/

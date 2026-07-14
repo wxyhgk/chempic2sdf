@@ -221,7 +221,10 @@ def save_checkpoint(
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--init-checkpoint", required=True)
-    parser.add_argument("--output-dir", default="outputs/chemvector-v5-ocr-pretrain")
+    parser.add_argument(
+        "--output-dir",
+        default="outputs/checkpoints/chemvector-v5-ocr-pretrain",
+    )
     parser.add_argument("--steps", type=int, default=1000)
     parser.add_argument("--batch-size", type=int, default=64)
     parser.add_argument("--workers", type=int, default=2)

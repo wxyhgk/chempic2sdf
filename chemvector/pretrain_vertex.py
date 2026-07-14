@@ -169,7 +169,7 @@ def main() -> None:
     parser.add_argument("--init-checkpoint", required=True)
     parser.add_argument("--train-shards", nargs="+", default=["Data/sdf/webdataset_full_v0/shards/train-*.tar"])
     parser.add_argument("--validation-shards", nargs="+", default=["Data/sdf/webdataset_full_v0/shards/validation-000000.tar"])
-    parser.add_argument("--output-dir", default="outputs/chemvector-v5-vertex-10k")
+    parser.add_argument("--output-dir", default="outputs/checkpoints/chemvector-v5-vertex-10k")
     parser.add_argument("--train-samples", type=int, default=10000)
     parser.add_argument("--batch-size", type=int, default=4)
     parser.add_argument("--workers", type=int, default=0)

@@ -5,8 +5,8 @@ from __future__ import annotations
 
 import unittest
 
-from .chemmol_sequence import ChemMolSequenceError
-from .chemmol_sequence_v3 import (
+from Data.sdf.chemmol_sequence import ChemMolSequenceError
+from Data.sdf.chemmol_sequence_v3 import (
     END_TOKEN,
     START_TOKEN,
     mol_from_chemmolseq_v3,
@@ -14,7 +14,7 @@ from .chemmol_sequence_v3 import (
     serialize_chemmolseq_v3,
     validate_chemmolseq_v3_roundtrip,
 )
-from .test_chemmol_sequence import make_annotations
+from tests.data_sdf.test_chemmol_sequence import make_annotations
 
 
 class ChemMolSequenceV3Tests(unittest.TestCase):

@@ -311,7 +311,10 @@ def collate_synthetic_ocr(
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--output-dir", default="outputs/synthetic-ocr-preview")
+    parser.add_argument(
+        "--output-dir",
+        default="outputs/diagnostics/synthetic-ocr-preview",
+    )
     parser.add_argument("--samples", type=int, default=64)
     parser.add_argument("--seed", type=int, default=20260714)
     args = parser.parse_args()

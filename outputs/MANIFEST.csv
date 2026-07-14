@@ -1,0 +1,104 @@
+name,category,old_path,new_path,size_bytes,reason
+GD906-v0.0.1-prediction,predictions,outputs/GD906-v0.0.1-prediction,outputs/predictions/GD906-v0.0.1-prediction,82223,single-image prediction artifacts
+chemvector-contrastive-tiny-check,checkpoints,outputs/chemvector-contrastive-tiny-check,outputs/checkpoints/chemvector-contrastive-tiny-check,60788278,contains last.pt
+chemvector-grounded-final-100,checkpoints,outputs/chemvector-grounded-final-100,outputs/checkpoints/chemvector-grounded-final-100,599996572,contains last.pt
+chemvector-grounded-final-100-eval,evaluations,outputs/chemvector-grounded-final-100-eval,outputs/evaluations/chemvector-grounded-final-100-eval,26469,evaluation or validation artifacts
+chemvector-grounded-final-100-eval-20,evaluations,outputs/chemvector-grounded-final-100-eval-20,outputs/evaluations/chemvector-grounded-final-100-eval-20,141736,evaluation or validation artifacts
+chemvector-grounded-finetune-100,checkpoints,outputs/chemvector-grounded-finetune-100,outputs/checkpoints/chemvector-grounded-finetune-100,599996572,contains last.pt
+chemvector-grounded-finetune-100-eval,evaluations,outputs/chemvector-grounded-finetune-100-eval,outputs/evaluations/chemvector-grounded-finetune-100-eval,15180,evaluation or validation artifacts
+chemvector-grounded-overfit-100,checkpoints,outputs/chemvector-grounded-overfit-100,outputs/checkpoints/chemvector-grounded-overfit-100,599996572,contains last.pt
+chemvector-grounded-overfit-100-eval,evaluations,outputs/chemvector-grounded-overfit-100-eval,outputs/evaluations/chemvector-grounded-overfit-100-eval,5959,evaluation or validation artifacts
+chemvector-overfit-100,checkpoints,outputs/chemvector-overfit-100,outputs/checkpoints/chemvector-overfit-100,599896095,contains last.pt
+chemvector-overfit-100-eval,evaluations,outputs/chemvector-overfit-100-eval,outputs/evaluations/chemvector-overfit-100-eval,593,evaluation or validation artifacts
+chemvector-overfit-100-eval-final,evaluations,outputs/chemvector-overfit-100-eval-final,outputs/evaluations/chemvector-overfit-100-eval-final,20931,evaluation or validation artifacts
+chemvector-overfit-100-eval-valence,evaluations,outputs/chemvector-overfit-100-eval-valence,outputs/evaluations/chemvector-overfit-100-eval-valence,3284,evaluation or validation artifacts
+chemvector-tiny-check,checkpoints,outputs/chemvector-tiny-check,outputs/checkpoints/chemvector-tiny-check,60788278,contains last.pt
+chemvector-v071-decoupled-gd906,predictions,outputs/chemvector-v071-decoupled-gd906,outputs/predictions/chemvector-v071-decoupled-gd906,138745,single-image prediction artifacts
+chemvector-v072-gd906,predictions,outputs/chemvector-v072-gd906,outputs/predictions/chemvector-v072-gd906,137398,single-image prediction artifacts
+chemvector-v072-relation-5k,checkpoints,outputs/chemvector-v072-relation-5k,outputs/checkpoints/chemvector-v072-relation-5k,206172850,contains last.pt
+chemvector-v072-relation-pair-5k,checkpoints,outputs/chemvector-v072-relation-pair-5k,outputs/checkpoints/chemvector-v072-relation-pair-5k,207316441,contains last.pt
+chemvector-v072-visible-relation-5k,checkpoints,outputs/chemvector-v072-visible-relation-5k,outputs/checkpoints/chemvector-v072-visible-relation-5k,207315668,contains last.pt
+chemvector-v072-visible-relation-cpu-validation-500,evaluations,outputs/chemvector-v072-visible-relation-cpu-validation-500,outputs/evaluations/chemvector-v072-visible-relation-cpu-validation-500,277268,evaluation or validation artifacts
+chemvector-v072-visible-relation-validation-500,evaluations,outputs/chemvector-v072-visible-relation-validation-500,outputs/evaluations/chemvector-v072-visible-relation-validation-500,1192685,evaluation or validation artifacts
+chemvector-v3-final-1k,checkpoints,outputs/chemvector-v3-final-1k,outputs/checkpoints/chemvector-v3-final-1k,599831016,contains last.pt
+chemvector-v3-final-1k-eval,evaluations,outputs/chemvector-v3-final-1k-eval,outputs/evaluations/chemvector-v3-final-1k-eval,59455,evaluation or validation artifacts
+chemvector-v3-final-1k-v2,checkpoints,outputs/chemvector-v3-final-1k-v2,outputs/checkpoints/chemvector-v3-final-1k-v2,599831020,contains last.pt
+chemvector-v3-final-1k-v2-eval,evaluations,outputs/chemvector-v3-final-1k-v2-eval,outputs/evaluations/chemvector-v3-final-1k-v2-eval,75065,evaluation or validation artifacts
+chemvector-v3-final-1k-v2-eval-150,evaluations,outputs/chemvector-v3-final-1k-v2-eval-150,outputs/evaluations/chemvector-v3-final-1k-v2-eval-150,73924,evaluation or validation artifacts
+chemvector-v3-final-1k-v2-eval-200,evaluations,outputs/chemvector-v3-final-1k-v2-eval-200,outputs/evaluations/chemvector-v3-final-1k-v2-eval-200,76075,evaluation or validation artifacts
+chemvector-v3-final-1k-v2-eval-250,evaluations,outputs/chemvector-v3-final-1k-v2-eval-250,outputs/evaluations/chemvector-v3-final-1k-v2-eval-250,92369,evaluation or validation artifacts
+chemvector-v3-final-1k-v2-eval-250-chemical-beam4,evaluations,outputs/chemvector-v3-final-1k-v2-eval-250-chemical-beam4,outputs/evaluations/chemvector-v3-final-1k-v2-eval-250-chemical-beam4,69228,evaluation or validation artifacts
+chemvector-v3-final-1k-v2-eval-250-chemical-constraints,evaluations,outputs/chemvector-v3-final-1k-v2-eval-250-chemical-constraints,outputs/evaluations/chemvector-v3-final-1k-v2-eval-250-chemical-constraints,50695,evaluation or validation artifacts
+chemvector-v3-final-1k-v2-eval-beam2-smoke,evaluations,outputs/chemvector-v3-final-1k-v2-eval-beam2-smoke,outputs/evaluations/chemvector-v3-final-1k-v2-eval-beam2-smoke,20772,evaluation or validation artifacts
+chemvector-v3-final-1k-v2-eval-beam4-batched-smoke,evaluations,outputs/chemvector-v3-final-1k-v2-eval-beam4-batched-smoke,outputs/evaluations/chemvector-v3-final-1k-v2-eval-beam4-batched-smoke,24646,evaluation or validation artifacts
+chemvector-v3-final-1k-v2-eval-beam4-smoke,evaluations,outputs/chemvector-v3-final-1k-v2-eval-beam4-smoke,outputs/evaluations/chemvector-v3-final-1k-v2-eval-beam4-smoke,24646,evaluation or validation artifacts
+chemvector-v3-final-1k-v2-validation-1k-chemical-constraints,evaluations,outputs/chemvector-v3-final-1k-v2-validation-1k-chemical-constraints,outputs/evaluations/chemvector-v3-final-1k-v2-validation-1k-chemical-constraints,5532,evaluation or validation artifacts
+chemvector-v3-final-tiny-check,checkpoints,outputs/chemvector-v3-final-tiny-check,outputs/checkpoints/chemvector-v3-final-tiny-check,60756944,contains last.pt
+chemvector-v3-finetune-1k,checkpoints,outputs/chemvector-v3-finetune-1k,outputs/checkpoints/chemvector-v3-finetune-1k,599831019,contains last.pt
+chemvector-v3-finetune-1k-v2,checkpoints,outputs/chemvector-v3-finetune-1k-v2,outputs/checkpoints/chemvector-v3-finetune-1k-v2,599831027,contains last.pt
+chemvector-v3-grounded-1k,checkpoints,outputs/chemvector-v3-grounded-1k,outputs/checkpoints/chemvector-v3-grounded-1k,599831020,contains last.pt
+chemvector-v3-tiny-check,checkpoints,outputs/chemvector-v3-tiny-check,outputs/checkpoints/chemvector-v3-tiny-check,60750682,contains last.pt
+chemvector-v4-before-ocr-eval-100,evaluations,outputs/chemvector-v4-before-ocr-eval-100,outputs/evaluations/chemvector-v4-before-ocr-eval-100,188,evaluation or validation artifacts
+chemvector-v4-clean-50k,checkpoints,outputs/chemvector-v4-clean-50k,outputs/checkpoints/chemvector-v4-clean-50k,3600181828,contains last.pt
+chemvector-v4-clean-50k-external,evaluations,outputs/chemvector-v4-clean-50k-external,outputs/evaluations/chemvector-v4-clean-50k-external,6276,evaluation or validation artifacts
+chemvector-v4-clean-50k-validation-1k,evaluations,outputs/chemvector-v4-clean-50k-validation-1k,outputs/evaluations/chemvector-v4-clean-50k-validation-1k,61168,evaluation or validation artifacts
+chemvector-v4-final-10k,checkpoints,outputs/chemvector-v4-final-10k,outputs/checkpoints/chemvector-v4-final-10k,599997659,contains last.pt
+chemvector-v4-final-10k-validation-1k,evaluations,outputs/chemvector-v4-final-10k-validation-1k,outputs/evaluations/chemvector-v4-final-10k-validation-1k,8149,evaluation or validation artifacts
+chemvector-v4-final-1k,checkpoints,outputs/chemvector-v4-final-1k,outputs/checkpoints/chemvector-v4-final-1k,599997474,contains last.pt
+chemvector-v4-final-1k-eval-150,evaluations,outputs/chemvector-v4-final-1k-eval-150,outputs/evaluations/chemvector-v4-final-1k-eval-150,126471,evaluation or validation artifacts
+chemvector-v4-final-1k-validation-1k,evaluations,outputs/chemvector-v4-final-1k-validation-1k,outputs/evaluations/chemvector-v4-final-1k-validation-1k,5547,evaluation or validation artifacts
+chemvector-v4-finetune-1k,checkpoints,outputs/chemvector-v4-finetune-1k,outputs/checkpoints/chemvector-v4-finetune-1k,599997478,contains last.pt
+chemvector-v4-finetune-1k-eval,evaluations,outputs/chemvector-v4-finetune-1k-eval,outputs/evaluations/chemvector-v4-finetune-1k-eval,7689,evaluation or validation artifacts
+chemvector-v4-gd906,predictions,outputs/chemvector-v4-gd906,outputs/predictions/chemvector-v4-gd906,0,single-image prediction artifacts
+chemvector-v4-grounded-10k,checkpoints,outputs/chemvector-v4-grounded-10k,outputs/checkpoints/chemvector-v4-grounded-10k,599997659,contains last.pt
+chemvector-v4-grounded-10k-validation-1k,evaluations,outputs/chemvector-v4-grounded-10k-validation-1k,outputs/evaluations/chemvector-v4-grounded-10k-validation-1k,5546,evaluation or validation artifacts
+chemvector-v4-grounded-1k,checkpoints,outputs/chemvector-v4-grounded-1k,outputs/checkpoints/chemvector-v4-grounded-1k,599997436,contains last.pt
+chemvector-v4-replay-50k,checkpoints,outputs/chemvector-v4-replay-50k,outputs/checkpoints/chemvector-v4-replay-50k,3600188011,contains last.pt
+chemvector-v4-replay-interp-010,diagnostics,outputs/chemvector-v4-replay-interp-010,outputs/diagnostics/chemvector-v4-replay-interp-010,204405513,"preview, compatibility, or diagnostic artifacts"
+chemvector-v4-replay-interp-010-eval,evaluations,outputs/chemvector-v4-replay-interp-010-eval,outputs/evaluations/chemvector-v4-replay-interp-010-eval,34022,evaluation or validation artifacts
+chemvector-v4-replay-interp-010-external,evaluations,outputs/chemvector-v4-replay-interp-010-external,outputs/evaluations/chemvector-v4-replay-interp-010-external,4680,evaluation or validation artifacts
+chemvector-v4-replay-interp-020,diagnostics,outputs/chemvector-v4-replay-interp-020,outputs/diagnostics/chemvector-v4-replay-interp-020,204405513,"preview, compatibility, or diagnostic artifacts"
+chemvector-v4-replay-interp-020-eval,evaluations,outputs/chemvector-v4-replay-interp-020-eval,outputs/evaluations/chemvector-v4-replay-interp-020-eval,18781,evaluation or validation artifacts
+chemvector-v4-replay-smoke,checkpoints,outputs/chemvector-v4-replay-smoke,outputs/checkpoints/chemvector-v4-replay-smoke,60840564,contains last.pt
+chemvector-v4-smoke,checkpoints,outputs/chemvector-v4-smoke,outputs/checkpoints/chemvector-v4-smoke,60840398,contains last.pt
+chemvector-v4-smoke-eval,evaluations,outputs/chemvector-v4-smoke-eval,outputs/evaluations/chemvector-v4-smoke-eval,185,evaluation or validation artifacts
+chemvector-v4-test1,predictions,outputs/chemvector-v4-test1,outputs/predictions/chemvector-v4-test1,7859,single-image prediction artifacts
+chemvector-v5-after-ocr-eval-100,evaluations,outputs/chemvector-v5-after-ocr-eval-100,outputs/evaluations/chemvector-v5-after-ocr-eval-100,187,evaluation or validation artifacts
+chemvector-v5-auto-gd906,predictions,outputs/chemvector-v5-auto-gd906,outputs/predictions/chemvector-v5-auto-gd906,139557,single-image prediction artifacts
+chemvector-v5-auto-gd906-raw,predictions,outputs/chemvector-v5-auto-gd906-raw,outputs/predictions/chemvector-v5-auto-gd906-raw,201275,single-image prediction artifacts
+chemvector-v5-auto-gd906-regression,predictions,outputs/chemvector-v5-auto-gd906-regression,outputs/predictions/chemvector-v5-auto-gd906-regression,137205,single-image prediction artifacts
+chemvector-v5-detected-gd906,predictions,outputs/chemvector-v5-detected-gd906,outputs/predictions/chemvector-v5-detected-gd906,396339,single-image prediction artifacts
+chemvector-v5-e2e-validation-500,evaluations,outputs/chemvector-v5-e2e-validation-500,outputs/evaluations/chemvector-v5-e2e-validation-500,1669631,evaluation or validation artifacts
+chemvector-v5-joint-1k-stage1,checkpoints,outputs/chemvector-v5-joint-1k-stage1,outputs/checkpoints/chemvector-v5-joint-1k-stage1,1230966857,contains last.pt
+chemvector-v5-joint-1k-stage2,checkpoints,outputs/chemvector-v5-joint-1k-stage2,outputs/checkpoints/chemvector-v5-joint-1k-stage2,1230966858,contains last.pt
+chemvector-v5-joint-replay-10k-gd906,predictions,outputs/chemvector-v5-joint-replay-10k-gd906,outputs/predictions/chemvector-v5-joint-replay-10k-gd906,65297,single-image prediction artifacts
+chemvector-v5-joint-replay-10k-stage1,checkpoints,outputs/chemvector-v5-joint-replay-10k-stage1,outputs/checkpoints/chemvector-v5-joint-replay-10k-stage1,2461979277,contains last.pt
+chemvector-v5-joint-replay-1k-stage1,checkpoints,outputs/chemvector-v5-joint-replay-1k-stage1,outputs/checkpoints/chemvector-v5-joint-replay-1k-stage1,1230966980,contains last.pt
+chemvector-v5-joint-replay-1k-stage2,checkpoints,outputs/chemvector-v5-joint-replay-1k-stage2,outputs/checkpoints/chemvector-v5-joint-replay-1k-stage2,1230966988,contains last.pt
+chemvector-v5-joint-replay-smoke,checkpoints,outputs/chemvector-v5-joint-replay-smoke,outputs/checkpoints/chemvector-v5-joint-replay-smoke,615460761,contains last.pt
+chemvector-v5-ocr-frozen-640k,checkpoints,outputs/chemvector-v5-ocr-frozen-640k,outputs/checkpoints/chemvector-v5-ocr-frozen-640k,215473734,contains last.pt
+chemvector-v5-ocr-frozen-eval-100,evaluations,outputs/chemvector-v5-ocr-frozen-eval-100,outputs/evaluations/chemvector-v5-ocr-frozen-eval-100,188,evaluation or validation artifacts
+chemvector-v5-ocr-pretrain-192k,checkpoints,outputs/chemvector-v5-ocr-pretrain-192k,outputs/checkpoints/chemvector-v5-ocr-pretrain-192k,222295025,contains last.pt
+chemvector-v5-ocr-pretrain-19k,checkpoints,outputs/chemvector-v5-ocr-pretrain-19k,outputs/checkpoints/chemvector-v5-ocr-pretrain-19k,222295023,contains last.pt
+chemvector-v5-ocr-pretrain-640k,checkpoints,outputs/chemvector-v5-ocr-pretrain-640k,outputs/checkpoints/chemvector-v5-ocr-pretrain-640k,222295027,contains last.pt
+chemvector-v5-ocr-smoke,checkpoints,outputs/chemvector-v5-ocr-smoke,outputs/checkpoints/chemvector-v5-ocr-smoke,615460702,contains last.pt
+chemvector-v5-stroke-10k,checkpoints,outputs/chemvector-v5-stroke-10k,outputs/checkpoints/chemvector-v5-stroke-10k,206886624,contains last.pt
+chemvector-v5-stroke-10k-gd906,predictions,outputs/chemvector-v5-stroke-10k-gd906,outputs/predictions/chemvector-v5-stroke-10k-gd906,91036,single-image prediction artifacts
+chemvector-v5-stroke-robust-10k,checkpoints,outputs/chemvector-v5-stroke-robust-10k,outputs/checkpoints/chemvector-v5-stroke-robust-10k,206886655,contains last.pt
+chemvector-v5-stroke-robust-10k-gd906,predictions,outputs/chemvector-v5-stroke-robust-10k-gd906,outputs/predictions/chemvector-v5-stroke-robust-10k-gd906,90914,single-image prediction artifacts
+chemvector-v5-vertex-10k,checkpoints,outputs/chemvector-v5-vertex-10k,outputs/checkpoints/chemvector-v5-vertex-10k,206860080,contains last.pt
+chemvector-v5-vertex-10k-gd906,predictions,outputs/chemvector-v5-vertex-10k-gd906,outputs/predictions/chemvector-v5-vertex-10k-gd906,61584,single-image prediction artifacts
+chemvector-v5-visual-first-gd906,predictions,outputs/chemvector-v5-visual-first-gd906,outputs/predictions/chemvector-v5-visual-first-gd906,70819,single-image prediction artifacts
+chemvector-v6-parallel-cpu-gd906,predictions,outputs/chemvector-v6-parallel-cpu-gd906,outputs/predictions/chemvector-v6-parallel-cpu-gd906,138744,single-image prediction artifacts
+chemvector-v6-parallel-cpu-validation-500,evaluations,outputs/chemvector-v6-parallel-cpu-validation-500,outputs/evaluations/chemvector-v6-parallel-cpu-validation-500,1193469,evaluation or validation artifacts
+chemvector-v6-parallel-cuda-gd906,predictions,outputs/chemvector-v6-parallel-cuda-gd906,outputs/predictions/chemvector-v6-parallel-cuda-gd906,138746,single-image prediction artifacts
+chemvector-visual-aux-tiny-check,checkpoints,outputs/chemvector-visual-aux-tiny-check,outputs/checkpoints/chemvector-visual-aux-tiny-check,60839595,contains last.pt
+chemvector-visual-overfit-100,checkpoints,outputs/chemvector-visual-overfit-100,outputs/checkpoints/chemvector-visual-overfit-100,599925715,contains last.pt
+chemvector-visual2-overfit-100,checkpoints,outputs/chemvector-visual2-overfit-100,outputs/checkpoints/chemvector-visual2-overfit-100,599896095,contains last.pt
+chemvector-visual3-overfit-100,checkpoints,outputs/chemvector-visual3-overfit-100,outputs/checkpoints/chemvector-visual3-overfit-100,599896095,contains last.pt
+eval-v2-compat-check,evaluations,outputs/eval-v2-compat-check,outputs/evaluations/eval-v2-compat-check,170,evaluation or validation artifacts
+eval-v3-load-check,evaluations,outputs/eval-v3-load-check,outputs/evaluations/eval-v3-load-check,183,evaluation or validation artifacts
+ocr-teacher,diagnostics,outputs/ocr-teacher,outputs/diagnostics/ocr-teacher,852,"preview, compatibility, or diagnostic artifacts"
+synthetic-ocr-preview-check,diagnostics,outputs/synthetic-ocr-preview-check,outputs/diagnostics/synthetic-ocr-preview-check,24901,"preview, compatibility, or diagnostic artifacts"
+v3-complex-sdf-write-check.sdf,diagnostics,outputs/v3-complex-sdf-write-check.sdf,outputs/diagnostics/loose-files/v3-complex-sdf-write-check.sdf,7275,loose file from an early compatibility check
+v3-sdf-write-check.sdf,diagnostics,outputs/v3-sdf-write-check.sdf,outputs/diagnostics/loose-files/v3-sdf-write-check.sdf,2855,loose file from an early compatibility check

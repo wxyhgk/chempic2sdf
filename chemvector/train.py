@@ -361,7 +361,7 @@ def main() -> None:
     parser.add_argument("--replay-shards", nargs="+")
     parser.add_argument("--replay-probability", type=float, default=0.0)
     parser.add_argument("--validation-shards", nargs="+")
-    parser.add_argument("--output-dir", default="outputs/chemvector")
+    parser.add_argument("--output-dir", default="outputs/checkpoints/chemvector")
     parser.add_argument(
         "--sequence-version",
         choices=("0.2", "0.3", "0.4"),

@@ -8,26 +8,15 @@ import unittest
 from rdkit import Chem
 from rdkit.Chem import rdDepictor
 
-try:
-    from .chemmol_sequence import (
-        ChemMolSequenceError,
-        END_TOKEN,
-        START_TOKEN,
-        mol_from_chemmolseq,
-        parse_chemmolseq,
-        serialize_chemmolseq,
-        validate_chemmolseq_roundtrip,
-    )
-except ImportError:
-    from chemmol_sequence import (
-        ChemMolSequenceError,
-        END_TOKEN,
-        START_TOKEN,
-        mol_from_chemmolseq,
-        parse_chemmolseq,
-        serialize_chemmolseq,
-        validate_chemmolseq_roundtrip,
-    )
+from Data.sdf.chemmol_sequence import (
+    ChemMolSequenceError,
+    END_TOKEN,
+    START_TOKEN,
+    mol_from_chemmolseq,
+    parse_chemmolseq,
+    serialize_chemmolseq,
+    validate_chemmolseq_roundtrip,
+)
 
 
 def enum_name(value: object) -> str:

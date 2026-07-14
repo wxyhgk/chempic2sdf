@@ -66,7 +66,7 @@ python -m venv --system-site-packages .venv-train
   --gradient-accumulation 4 \
   --image-size 768 \
   --epochs 1 \
-  --output-dir outputs/chemvector-v0
+  --output-dir outputs/checkpoints/chemvector-v0
 ```
 
 第一轮正式训练建议从 100 个固定样本过拟合开始，再扩展到 1,000、10,000
@@ -91,7 +91,7 @@ python -m venv --system-site-packages .venv-train
 100 样本最终 checkpoint：
 
 ```text
-outputs/chemvector-grounded-final-100/last.pt
+outputs/checkpoints/chemvector-grounded-final-100/last.pt
 ```
 
 最终实测结果：
@@ -106,8 +106,8 @@ outputs/chemvector-grounded-final-100/last.pt
 详细评估结果位于：
 
 ```text
-outputs/chemvector-grounded-final-100-eval/teacher_forcing_metrics.json
-outputs/chemvector-grounded-final-100-eval-20/generated/generation_metrics.json
+outputs/evaluations/chemvector-grounded-final-100-eval/teacher_forcing_metrics.json
+outputs/evaluations/chemvector-grounded-final-100-eval-20/generated/generation_metrics.json
 ```
 
 这组结果只证明训练、视觉接地、自回归和 SDF 往返链路正确，不代表未见分子
@@ -130,7 +130,7 @@ validation 检查泛化。
   --epochs 10 \
   --token-corruption-probability 0.5 \
   --visual-aux-weight 5.0 \
-  --output-dir outputs/chemvector-v3-grounded-1k
+  --output-dir outputs/checkpoints/chemvector-v3-grounded-1k
 ```
 
 第二阶段从第 10 个 epoch 继续到第 20 个 epoch：
@@ -144,9 +144,9 @@ validation 检查泛化。
   --batch-size 4 --gradient-accumulation 1 \
   --train-samples-per-epoch 1000 --epochs 20 \
   --token-corruption-probability 0.1 --visual-aux-weight 1.0 \
-  --resume outputs/chemvector-v3-grounded-1k/last.pt \
+  --resume outputs/checkpoints/chemvector-v3-grounded-1k/last.pt \
   --resume-learning-rate 3e-5 \
-  --output-dir outputs/chemvector-v3-finetune-1k
+  --output-dir outputs/checkpoints/chemvector-v3-finetune-1k
 ```
 
 第三阶段从第 20 个 epoch 继续到第 25 个 epoch：
@@ -160,9 +160,9 @@ validation 检查泛化。
   --batch-size 4 --gradient-accumulation 1 \
   --train-samples-per-epoch 1000 --epochs 25 \
   --token-corruption-probability 0 --visual-aux-weight 1.0 \
-  --resume outputs/chemvector-v3-finetune-1k/last.pt \
+  --resume outputs/checkpoints/chemvector-v3-finetune-1k/last.pt \
   --resume-learning-rate 1e-5 \
-  --output-dir outputs/chemvector-v3-final-1k
+  --output-dir outputs/checkpoints/chemvector-v3-final-1k
 ```
 
 首 shard 的 4,992 张图片已全部通过 v0.3 化学往返，平均序列缩短 16.71%。
@@ -190,7 +190,7 @@ v0.4 不再输出 `<b atom_id atom_id>`。每条 stroke 直接携带可见起点
   --validation-shards Data/sdf/webdataset_full_v0/shards/validation-000000.tar \
   --batch-size 4 --gradient-accumulation 1 \
   --workers 0 --epochs 1 \
-  --output-dir outputs/chemvector-v4
+  --output-dir outputs/checkpoints/chemvector-v4
 ```
 
 协议细节见 `Data/sdf/CHEMSVG_V0_4.md`。完全重合的视觉顶点无法从图片唯一
@@ -204,11 +204,11 @@ v0.4 不再输出 `<b atom_id atom_id>`。每条 stroke 直接携带可见起点
 
 ```bash
 .venv-train/bin/python -m chemvector.evaluate \
-  --checkpoint outputs/chemvector-grounded-final-100/last.pt \
+  --checkpoint outputs/checkpoints/chemvector-grounded-final-100/last.pt \
   --shards Data/sdf/webdataset_full_v0/shards/train-000000.tar \
   --samples 100 \
   --generate-samples 20 \
-  --output-dir outputs/chemvector-grounded-final-100-eval
+  --output-dir outputs/evaluations/chemvector-grounded-final-100-eval
 ```
 
 语法约束只负责保证记录顺序、字段类型、原子/键编号和端点引用合法，不会根据
@@ -232,15 +232,15 @@ stroke 和键型；OCR head 根据顶点锚点读取局部文字。OCR 使用 UT
 ```bash
 .venv-train/bin/python -m chemvector.synthetic_ocr \
   --samples 64 \
-  --output-dir outputs/synthetic-ocr-preview
+  --output-dir outputs/diagnostics/synthetic-ocr-preview
 ```
 
 局部图预训练必须冻结共享视觉编码器，只更新 OCR head：
 
 ```bash
 .venv-train/bin/python -m chemvector.pretrain_ocr \
-  --init-checkpoint outputs/chemvector-v4-replay-interp-010/model.pt \
-  --output-dir outputs/chemvector-v5-ocr-frozen \
+  --init-checkpoint outputs/diagnostics/chemvector-v4-replay-interp-010/model.pt \
+  --output-dir outputs/checkpoints/chemvector-v5-ocr-frozen \
   --steps 10000 --batch-size 64 --workers 2 \
   --ocr-learning-rate 1e-4 \
   --vision-learning-rate 0
@@ -256,7 +256,7 @@ stroke 和键型；OCR head 根据顶点锚点读取局部文字。OCR 使用 UT
 ```bash
 .venv-train/bin/python -m chemvector.train \
   --sequence-version 0.4 \
-  --init-checkpoint outputs/chemvector-v5-ocr-frozen/last.pt \
+  --init-checkpoint outputs/checkpoints/chemvector-v5-ocr-frozen/last.pt \
   --train-shards Data/sdf/webdataset_full_v0/shards/train-000000.tar \
   --validation-shards Data/sdf/webdataset_full_v0/shards/validation-000000.tar \
   --no-shuffle --workers 0 \
@@ -267,7 +267,7 @@ stroke 和键型；OCR head 根据顶点锚点读取局部文字。OCR 使用 UT
   --synthetic-ocr-replay-weight 0.5 \
   --synthetic-ocr-replay-batch-size 64 \
   --visual-aux-weight 1.0 \
-  --output-dir outputs/chemvector-v5-joint-1k
+  --output-dir outputs/checkpoints/chemvector-v5-joint-1k
 ```
 
 完整分子数据没有 `R1/Ph/Me` 等标签。若联合训练时不加入合成 replay，OCR head
@@ -285,12 +285,12 @@ ChemMol 元素真值和 Render 锚点，不需要再由 PaddleOCR 重复标注�
 
 ```bash
 .venv-train/bin/python -m chemvector.evaluate \
-  --checkpoint outputs/chemvector-v5-joint-replay-10k-stage1/last.pt \
+  --checkpoint outputs/checkpoints/chemvector-v5-joint-replay-10k-stage1/last.pt \
   --shards Data/sdf/webdataset_full_v0/shards/validation-000000.tar \
   --samples 20 --generate-samples 5 --beam-width 4 \
   --visual-first --ocr-fusion --stroke-scoring \
   --stroke-threshold 0.5 \
-  --output-dir outputs/chemvector-v5-visual-first-eval
+  --output-dir outputs/evaluations/chemvector-v5-visual-first-eval
 ```
 
 scorer 使用 stride-4 特征沿点对之间采样带状视觉区域，不设置键长上限。10k
@@ -310,9 +310,9 @@ scorer 使用 stride-4 特征沿点对之间采样带状视觉区域，不设置
 
 ```bash
 .venv-train/bin/python -m chemvector.infer_detected_v5 \
-  --checkpoint outputs/chemvector-v5-vertex-10k/last.pt \
-  --image Data/GD906.png \
-  --output-dir outputs/chemvector-v5-auto-gd906-raw
+  --checkpoint outputs/checkpoints/chemvector-v5-vertex-10k/last.pt \
+  --image Data/images/GD906.png \
+  --output-dir outputs/predictions/chemvector-v5-auto-gd906-raw
 ```
 
 命令会依次完成透明背景白底合成、等比例画布准备、顶点检测、OCR、stroke
@@ -329,11 +329,11 @@ scorer 使用 stride-4 特征沿点对之间采样带状视觉区域，不设置
 
 ```bash
 .venv-train/bin/python -m chemvector.evaluate_detected_v5 \
-  --checkpoint outputs/chemvector-v5-vertex-10k/last.pt \
+  --checkpoint outputs/checkpoints/chemvector-v5-vertex-10k/last.pt \
   --shards Data/sdf/webdataset_full_v0/shards/validation-000000.tar \
   --samples 500 \
   --reject-keys-file Data/sdf/chemmolseq_v0_3_depiction_reject_keys.txt \
-  --output-dir outputs/chemvector-v5-e2e-validation-500
+  --output-dir outputs/evaluations/chemvector-v5-e2e-validation-500
 ```
 
 这 500 张图片对应 125 个未见分子，每个分子四种布局。当前结果：
@@ -353,7 +353,7 @@ scorer 使用 stride-4 特征沿点对之间采样带状视觉区域，不设置
 13.6%、Stress 2.4%。257 个修复失败中，120 个是墨线图断开，112 个是价态
 冲突，25 个是芳香 Kekulé 化失败。因此现阶段瓶颈已经从视觉定位转移到布局
 鲁棒的连线恢复、价态约束键型求解和立体化学恢复。详细结果见
-`outputs/chemvector-v5-e2e-validation-500/summary.json`。
+`outputs/evaluations/chemvector-v5-e2e-validation-500/summary.json`。
 
 ## ChemVector v0.6：无 decoder 并行 CPU 推理
 
@@ -366,9 +366,9 @@ CPU 推理命令：
 
 ```bash
 .venv-train/bin/python -m chemvector.infer_parallel_v6 \
-  --checkpoint outputs/chemvector-v5-vertex-10k/last.pt \
-  --image Data/GD906.png \
-  --output-dir outputs/chemvector-v6-parallel-cpu-gd906 \
+  --checkpoint outputs/checkpoints/chemvector-v5-vertex-10k/last.pt \
+  --image Data/images/GD906.png \
+  --output-dir outputs/predictions/chemvector-v6-parallel-cpu-gd906 \
   --device cpu --cpu-threads 16
 ```
 
@@ -387,7 +387,7 @@ SMILES 和 InChIKey 与 CUDA 版本一致。CUDA 并行版本耗时约 0.389 秒
 - 墨线图断开失败从 120 个降到 12 个。
 - 价态冲突从 112 个增加到 223 个，说明下一瓶颈是全局键型约束求解。
 
-详细结果见 `outputs/chemvector-v6-parallel-cpu-validation-500/summary.json`。
+详细结果见 `outputs/evaluations/chemvector-v6-parallel-cpu-validation-500/summary.json`。
 当前命令加载完整训练 checkpoint 后再从内存移除 decoder；后续部署导出需要只
 保留 15.18M 前端参数，并进一步进行 ONNX/OpenVINO INT8 量化。
 
@@ -413,8 +413,8 @@ head 只在真实边上区分可从局部线条观察到的 `SINGLE/DOUBLE/TRIPL
 
 ```bash
 .venv-train/bin/python -m chemvector.pretrain_relation \
-  --init-checkpoint outputs/chemvector-v5-vertex-10k/last.pt \
-  --output-dir outputs/chemvector-v072-visible-relation-5k \
+  --init-checkpoint outputs/checkpoints/chemvector-v5-vertex-10k/last.pt \
+  --output-dir outputs/checkpoints/chemvector-v072-visible-relation-5k \
   --train-samples 5000 --batch-size 4 --learning-rate 1e-4 \
   --negative-ratio 4 --anchor-jitter-pixels 12 \
   --stroke-band 9 --stroke-band-radius 12 \
@@ -424,7 +424,7 @@ head 只在真实边上区分可从局部线条观察到的 `SINGLE/DOUBLE/TRIPL
 但同一批 500 张 CPU 端到端盲测没有改善：完整拓扑仍为 20.6%，化学完全一致
 仍为 13.2%，合法 SDF 从 43.0% 降到 41.2%；价态失败为 236，Kekulé 失败为
 46。详细结果见
-`outputs/chemvector-v072-visible-relation-cpu-validation-500/summary.json`。
+`outputs/evaluations/chemvector-v072-visible-relation-cpu-validation-500/summary.json`。
 
 因此该实验只作为后续全图求解器的概率输入接口保留，不更新 `VERSION`，也不打
 `v0.7.2` tag。下一阶段应在全图范围内联合选择边和键级，显式满足原子价态、

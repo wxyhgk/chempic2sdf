@@ -88,7 +88,7 @@ ChemSVG 到 SDF 的编译步骤：
   --gradient-accumulation 1 \
   --workers 0 \
   --epochs 1 \
-  --output-dir outputs/chemvector-v4
+  --output-dir outputs/checkpoints/chemvector-v4
 ```
 
 首个训练 shard 的验收结果：
@@ -106,7 +106,7 @@ ChemSVG 到 SDF 的编译步骤：
 
 ```bash
 .venv-train/bin/python -m unittest -v \
-  Data.sdf.test_chemsvg_sequence_v4 \
-  Data.sdf.test_chemsvg_tokenizer_v4 \
-  chemvector.test_generation_v4
+  tests.data_sdf.test_chemsvg_sequence_v4 \
+  tests.data_sdf.test_chemsvg_tokenizer_v4 \
+  tests.chemvector.test_generation_v4
 ```

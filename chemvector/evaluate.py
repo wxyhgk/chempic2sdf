@@ -261,7 +261,7 @@ def main() -> None:
     parser.add_argument("--ocr-fusion", action="store_true")
     parser.add_argument("--stroke-scoring", action="store_true")
     parser.add_argument("--stroke-threshold", type=float, default=0.5)
-    parser.add_argument("--output-dir", default="outputs/chemvector-evaluation")
+    parser.add_argument("--output-dir", default="outputs/evaluations/chemvector-evaluation")
     parser.add_argument("--reject-keys-file")
     args = parser.parse_args()
 

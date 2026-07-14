@@ -8,7 +8,7 @@ import torch
 
 from Data.sdf.chemmol_sequence_v3 import serialize_chemmolseq_v3
 from Data.sdf.chemmol_tokenizer_v3 import ChemMolTokenizerV3
-from Data.sdf.test_chemmol_sequence import make_annotations
+from tests.data_sdf.test_chemmol_sequence import make_annotations
 from chemvector.generation_v3 import ChemMolGrammarV3, generate_chemmolseq_v3
 
 

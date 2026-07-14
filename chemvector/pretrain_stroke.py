@@ -172,7 +172,7 @@ def main() -> None:
         nargs="+",
         default=["Data/sdf/webdataset_full_v0/shards/validation-000000.tar"],
     )
-    parser.add_argument("--output-dir", default="outputs/chemvector-v5-stroke-10k")
+    parser.add_argument("--output-dir", default="outputs/checkpoints/chemvector-v5-stroke-10k")
     parser.add_argument("--train-samples", type=int, default=10000)
     parser.add_argument("--batch-size", type=int, default=4)
     parser.add_argument("--workers", type=int, default=0)

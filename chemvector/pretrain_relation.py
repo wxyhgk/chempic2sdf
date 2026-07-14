@@ -190,7 +190,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--init-checkpoint",
-        default="outputs/chemvector-v5-vertex-10k/last.pt",
+        default="outputs/checkpoints/chemvector-v5-vertex-10k/last.pt",
     )
     parser.add_argument(
         "--train-shards",
@@ -202,7 +202,7 @@ def main() -> None:
         nargs="+",
         default=["Data/sdf/webdataset_full_v0/shards/validation-000000.tar"],
     )
-    parser.add_argument("--output-dir", default="outputs/chemvector-v072-relation-5k")
+    parser.add_argument("--output-dir", default="outputs/checkpoints/chemvector-v072-relation-5k")
     parser.add_argument("--train-samples", type=int, default=5000)
     parser.add_argument("--batch-size", type=int, default=4)
     parser.add_argument("--workers", type=int, default=0)
