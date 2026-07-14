@@ -22,7 +22,7 @@ from Data.sdf.chemsvg_sequence_v4 import (
     parse_chemsvg_v4,
     serialize_parsed_chemsvg_v4,
 )
-from chemvector.generation_v4 import write_sdf_v4
+from chemvector.sdf_io import write_sdf_v4
 
 
 Coordinate = tuple[int, int]

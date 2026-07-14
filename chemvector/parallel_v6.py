@@ -13,7 +13,7 @@ from Data.sdf.chemsvg_sequence_v4 import (
     VertexRecordV4,
     serialize_parsed_chemsvg_v4,
 )
-from chemvector.generation_v4 import _detect_vertex_records
+from chemvector.detection import detect_vertex_records
 from chemvector.model import ChemVectorModel
 from chemvector.stroke import STROKE_CLASSES, all_pair_indices
 
@@ -140,7 +140,7 @@ def generate_parallel_chemsvg_v6(
     device = pixel_values.device
     _synchronize(device)
     started = time.perf_counter()
-    vertices, stroke_features = _detect_vertex_records(
+    vertices, stroke_features = detect_vertex_records(
         model,
         pixel_values,
         threshold=vertex_threshold,

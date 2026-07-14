@@ -7,6 +7,25 @@ ChemVector 是面向化学结构图片识别的轻量视觉到结构序列模型
 项目版本从 `v0.7` 重新开始，以后每次发布增加 `0.0.1`：`v0.7.1`、
 `v0.7.2`、`v0.7.3`。根目录 `VERSION` 是当前开发版本的唯一来源。
 
+### v0.7.1 模块边界
+
+推理代码不再从 CLI 或 generation 模块反向导入工具函数：
+
+```text
+image_io.py             图片准备、PIL/Tensor 转换
+detection.py            vertex 检测与锚点 OCR
+stroke.py               点对监督与线段分类
+parallel_v6.py          无 decoder 并行结构预测
+repair_v4.py            墨线拓扑与化学图修复
+sdf_io.py               SDF 写入及立体往返校验
+evaluation_metrics.py   纯图比较、叠加图与汇总指标
+infer_*.py              参数解析与结果落盘
+evaluate_detected_v5.py 数据迭代与 pipeline 调度
+```
+
+核心模块不再依赖 `infer_*` CLI；`repair_v4` 不再依赖 generation；并行推理只调用
+公开的 `detect_vertex_records`，不再引用 generation 内部私有函数。
+
 ## 当前基线
 
 - 参数量：49,974,768

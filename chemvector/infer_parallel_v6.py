@@ -15,14 +15,14 @@ from rdkit.Chem.Draw import rdMolDraw2D
 import torch
 
 from chemvector.evaluate import load_model
-from chemvector.generation_v4 import write_sdf_v4
-from chemvector.infer_detected_v5 import image_tensor, prepare_input_image
+from chemvector.image_io import image_tensor, prepare_input_image
 from chemvector.parallel_v6 import (
     deployment_parameter_count,
     generate_parallel_chemsvg_v6,
     strip_autoregressive_modules,
 )
 from chemvector.repair_v4 import InkGraphRepairConfig, repair_chemsvg_v4_from_image
+from chemvector.sdf_io import write_sdf_v4
 
 
 def main() -> None:

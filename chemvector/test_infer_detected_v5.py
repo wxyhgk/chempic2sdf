@@ -7,7 +7,7 @@ import unittest
 import numpy as np
 from PIL import Image, ImageDraw
 
-from chemvector.infer_detected_v5 import prepare_input_image
+from chemvector.image_io import prepare_input_image
 
 
 class DetectedInferencePreparationTests(unittest.TestCase):
