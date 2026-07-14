@@ -15,6 +15,7 @@ from Data.sdf.chemsvg_sequence_v4 import (
 )
 from chemvector.detection import detect_vertex_records
 from chemvector.model import ChemVectorModel
+from chemvector.relation import factorized_relation_probabilities
 from chemvector.stroke import STROKE_CLASSES, all_pair_indices
 
 
@@ -77,14 +78,23 @@ def score_vertex_pairs_parallel(
         device=stroke_features.device,
         dtype=torch.bool,
     )
-    logits = model.stroke_head(
+    pair_features = model.stroke_head.encode_pairs(
         stroke_features,
         anchors,
         pair_indices,
         pair_mask,
         pixel_size,
     )
-    return pairs, logits.float().softmax(dim=-1)
+    if model.relation_head is None:
+        logits = model.stroke_head.classifier[3](pair_features)
+        probabilities = logits.float().softmax(dim=-1)
+    else:
+        output = model.relation_head(pair_features)
+        probabilities = factorized_relation_probabilities(
+            output["edge_logits"],
+            output["bond_logits"],
+        )
+    return pairs, probabilities
 
 
 def build_parallel_sequence(

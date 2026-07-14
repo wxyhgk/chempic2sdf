@@ -39,6 +39,8 @@ class ChemVectorConfig:
     stroke_samples: int = 32
     stroke_band: int = 5
     stroke_band_radius: float = 4.0
+    relation_enabled: bool = False
+    relation_bond_classes: int = 3
     vertex_enabled: bool = False
     vertex_feature_dim: int = 64
 
@@ -65,6 +67,10 @@ class ChemVectorConfig:
             raise ValueError("Stroke sampling dimensions are invalid")
         if self.stroke_band_radius <= 0:
             raise ValueError("stroke_band_radius must be positive")
+        if self.relation_bond_classes != 3:
+            raise ValueError(
+                "Factorized relation head predicts visible single, double, and triple bonds"
+            )
         if self.vertex_feature_dim < 1:
             raise ValueError("vertex_feature_dim must be positive")
 
@@ -556,7 +562,7 @@ class ChemStrokeScorer(nn.Module):
         ).to(device=device, dtype=dtype)
         return selected, geometry[pair_mask.to(device=device)]
 
-    def forward(
+    def encode_pairs(
         self,
         feature_map: torch.Tensor,
         anchor_points: torch.Tensor,
@@ -573,7 +579,47 @@ class ChemStrokeScorer(nn.Module):
         )
         line_features = self.line_encoder(line_bands).flatten(1)
         geometry_features = self.geometry_encoder(geometry)
-        return self.classifier(torch.cat((line_features, geometry_features), dim=-1))
+        hidden = torch.cat((line_features, geometry_features), dim=-1)
+        return self.classifier[:3](hidden)
+
+    def forward(
+        self,
+        feature_map: torch.Tensor,
+        anchor_points: torch.Tensor,
+        pair_indices: torch.Tensor,
+        pair_mask: torch.Tensor,
+        pixel_size: tuple[int, int],
+    ) -> torch.Tensor:
+        hidden = self.encode_pairs(
+            feature_map,
+            anchor_points,
+            pair_indices,
+            pair_mask,
+            pixel_size,
+        )
+        return self.classifier[3](hidden)
+
+
+class ChemFactorizedRelationHead(nn.Module):
+    """Predict edge existence separately from the conditional bond type."""
+
+    def __init__(self, config: ChemVectorConfig) -> None:
+        super().__init__()
+        channels = config.stroke_feature_dim
+        self.shared = nn.Sequential(
+            nn.Linear(channels, channels),
+            nn.GELU(),
+            nn.Dropout(config.dropout),
+        )
+        self.edge = nn.Linear(channels, 1)
+        self.bond = nn.Linear(channels, config.relation_bond_classes)
+
+    def forward(self, pair_features: torch.Tensor) -> dict[str, torch.Tensor]:
+        hidden = self.shared(pair_features)
+        return {
+            "edge_logits": self.edge(hidden).squeeze(-1),
+            "bond_logits": self.bond(hidden),
+        }
 
 
 class ChemVertexDetector(nn.Module):
@@ -634,6 +680,9 @@ class ChemVectorModel(nn.Module):
         self.visual_aux_head = nn.Linear(config.d_model, config.visual_aux_channels)
         self.ocr_head = ChemOCRHead(config) if config.ocr_enabled else None
         self.stroke_head = ChemStrokeScorer(config) if config.stroke_enabled else None
+        self.relation_head = (
+            ChemFactorizedRelationHead(config) if config.relation_enabled else None
+        )
         self.vertex_head = ChemVertexDetector(config) if config.vertex_enabled else None
         self._reset_parameters()
 

@@ -390,3 +390,42 @@ SMILES 和 InChIKey 与 CUDA 版本一致。CUDA 并行版本耗时约 0.389 秒
 详细结果见 `outputs/chemvector-v6-parallel-cpu-validation-500/summary.json`。
 当前命令加载完整训练 checkpoint 后再从内存移除 decoder；后续部署导出需要只
 保留 15.18M 前端参数，并进一步进行 ONNX/OpenVINO INT8 量化。
+
+## v0.7.2 候选实验：因子化 Edge/Bond head（未发布）
+
+旧 stroke scorer 用一个五分类同时预测 `NONE/SINGLE/DOUBLE/TRIPLE/AROMATIC`。
+候选实验将其拆成两个目标：Edge head 判断两点之间是否存在可见连线，Bond
+head 只在真实边上区分可从局部线条观察到的 `SINGLE/DOUBLE/TRIPLE`。
+
+实验中发现，Render JSON 的 `AROMATIC` 是化学键属性，不一定是局部可辨识的
+绘图类型。RDKit 即使保留 aromatic bond，也会在图片中画出环内交替单线和双线；
+因此不能要求局部线段分类器从完全相同的像素中区分“普通单键”和“芳香环中的
+单线”。芳香性继续由顶点芳香预测、环结构和修复器全局恢复。
+
+5,000 张训练图片、冻结视觉 stem 并解冻 pair encoder 后的局部验证结果：
+
+- Edge precision/recall/F1：85.90% / 99.77% / 92.32%。
+- 可观察键型准确率：96.23%。
+- SINGLE/DOUBLE/TRIPLE recall：97.25% / 92.75% / 90.63%。
+- 3,144 条芳香边只参与 Edge loss，不参与局部 Bond loss。
+
+训练命令：
+
+```bash
+.venv-train/bin/python -m chemvector.pretrain_relation \
+  --init-checkpoint outputs/chemvector-v5-vertex-10k/last.pt \
+  --output-dir outputs/chemvector-v072-visible-relation-5k \
+  --train-samples 5000 --batch-size 4 --learning-rate 1e-4 \
+  --negative-ratio 4 --anchor-jitter-pixels 12 \
+  --stroke-band 9 --stroke-band-radius 12 \
+  --sample-shuffle-buffer 4096 --train-pair-encoder
+```
+
+但同一批 500 张 CPU 端到端盲测没有改善：完整拓扑仍为 20.6%，化学完全一致
+仍为 13.2%，合法 SDF 从 43.0% 降到 41.2%；价态失败为 236，Kekulé 失败为
+46。详细结果见
+`outputs/chemvector-v072-visible-relation-cpu-validation-500/summary.json`。
+
+因此该实验只作为后续全图求解器的概率输入接口保留，不更新 `VERSION`，也不打
+`v0.7.2` tag。下一阶段应在全图范围内联合选择边和键级，显式满足原子价态、
+连通性和芳香环一致性，而不是继续单独扩大局部 Bond head。
