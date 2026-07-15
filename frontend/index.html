@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ChemVector Benchmark</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand-block">
+        <div class="brand-mark">CV</div>
+        <div>
+          <h1>ChemVector Benchmark</h1>
+          <p id="runMeta">正在读取评测记录</p>
+        </div>
+      </div>
+      <label class="run-picker">
+        <span>评测运行</span>
+        <select id="runSelect" aria-label="选择评测运行"></select>
+      </label>
+    </header>
+
+    <main>
+      <section class="metrics" id="metrics" aria-label="评测汇总"></section>
+
+      <section class="workspace">
+        <aside class="sample-browser">
+          <div class="filters">
+            <label class="search-field">
+              <span>搜索</span>
+              <input id="searchInput" type="search" placeholder="分子 ID、错误类型">
+            </label>
+            <div class="segmented" id="statusFilter" aria-label="结果状态">
+              <button type="button" data-status="all" class="active">全部</button>
+              <button type="button" data-status="exact">一致</button>
+              <button type="button" data-status="similar">数量一致</button>
+              <button type="button" data-status="mismatch">数量不同</button>
+              <button type="button" data-status="invalid">无效</button>
+            </div>
+            <div class="filter-row">
+              <label>
+                <span>键长难度</span>
+                <select id="difficultyFilter">
+                  <option value="all">全部难度</option>
+                  <option value="standard_bond_length">标准键长</option>
+                  <option value="long_bond">长键</option>
+                  <option value="extreme_long_bond">极端长键</option>
+                </select>
+              </label>
+              <span id="resultCount" class="result-count">0 个样本</span>
+            </div>
+            <label class="diagnostic-filter">
+              <span>图错误诊断</span>
+              <select id="errorFilter">
+                <option value="all">全部错误类型</option>
+              </select>
+            </label>
+          </div>
+          <div id="sampleList" class="sample-list" aria-live="polite"></div>
+          <div class="pagination">
+            <button id="previousPage" type="button">上一页</button>
+            <span id="pageLabel">1 / 1</span>
+            <button id="nextPage" type="button">下一页</button>
+          </div>
+        </aside>
+
+        <section class="detail" id="detail">
+          <div class="empty-state">
+            <strong>选择一个样本</strong>
+            <span>查看真值 SDF 与模型预测 SDF</span>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script src="/app.js" defer></script>
+  </body>
+</html>

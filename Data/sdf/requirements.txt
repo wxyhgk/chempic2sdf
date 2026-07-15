@@ -3,3 +3,5 @@ fastjsonschema==2.21.2
 jsonschema==4.26.0
 opencv-python-headless==5.0.0.93
 webdataset==1.0.2
+CairoSVG==2.8.2
+svgpathtools==1.7.1

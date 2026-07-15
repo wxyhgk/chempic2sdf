@@ -96,6 +96,32 @@ def factorized_relation_loss(
     }
 
 
+def relation_teacher_consistency_loss(
+    output: dict[str, torch.Tensor],
+    teacher_output: dict[str, torch.Tensor],
+) -> dict[str, torch.Tensor]:
+    """Preserve frozen edge-existence and conditional bond logits on replay pairs."""
+    edge_logits = output["edge_logits"]
+    bond_logits = output["bond_logits"]
+    teacher_edge = teacher_output["edge_logits"].detach()
+    teacher_bond = teacher_output["bond_logits"].detach()
+    if edge_logits.shape != teacher_edge.shape or bond_logits.shape != teacher_bond.shape:
+        raise ValueError("Teacher relation output shapes differ")
+    edge_loss = F.smooth_l1_loss(edge_logits, teacher_edge)
+    teacher_edge_weights = teacher_edge.sigmoid().square().unsqueeze(-1)
+    bond_loss = (
+        F.smooth_l1_loss(bond_logits, teacher_bond, reduction="none")
+        * teacher_edge_weights
+    ).sum() / (
+        teacher_edge_weights.sum().clamp_min(1e-6) * bond_logits.size(-1)
+    )
+    return {
+        "teacher_loss": edge_loss + bond_loss,
+        "teacher_edge_loss": edge_loss,
+        "teacher_bond_loss": bond_loss,
+    }
+
+
 def new_relation_totals() -> dict[str, int]:
     totals = {
         "pairs": 0,

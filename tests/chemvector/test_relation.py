@@ -9,13 +9,19 @@ import torch
 from Data.sdf.chemsvg_sequence_v4 import VertexRecordV4
 from chemvector.model import ChemVectorConfig, ChemVectorModel
 from chemvector.parallel_v6 import score_vertex_pairs_parallel
+from chemvector.pretrain_relation import set_relation_trainable
 from chemvector.relation import (
     factorized_relation_loss,
     factorized_relation_probabilities,
+    relation_teacher_consistency_loss,
 )
 
 
-def small_config(*, relation_enabled: bool = True) -> ChemVectorConfig:
+def small_config(
+    *,
+    relation_enabled: bool = True,
+    residual_adapter: bool = False,
+) -> ChemVectorConfig:
     return ChemVectorConfig(
         vocab_size=64,
         d_model=64,
@@ -30,6 +36,8 @@ def small_config(*, relation_enabled: bool = True) -> ChemVectorConfig:
         stroke_samples=12,
         stroke_band=3,
         relation_enabled=relation_enabled,
+        structure_residual_adapter=residual_adapter,
+        structure_adapter_dim=8,
     )
 
 
@@ -40,6 +48,42 @@ class FactorizedRelationTests(unittest.TestCase):
 
         self.assertEqual(output["edge_logits"].shape, (7,))
         self.assertEqual(output["bond_logits"].shape, (7, 3))
+
+    def test_zero_initialized_adapters_preserve_relation_outputs(self) -> None:
+        base = ChemVectorModel(small_config()).eval()
+        adapted = ChemVectorModel(small_config(residual_adapter=True)).eval()
+        adapted.load_state_dict(base.state_dict(), strict=False)
+        pair_features = torch.randn(7, 16)
+        expected = base.relation_head(pair_features)
+        actual = adapted.relation_head(pair_features)
+        self.assertTrue(torch.equal(actual["edge_logits"], expected["edge_logits"]))
+        self.assertTrue(torch.equal(actual["bond_logits"], expected["bond_logits"]))
+
+        trainable = set_relation_trainable(adapted, adapter_only=True)
+        expected_parameters = sum(
+            parameter.numel()
+            for module in (
+                adapted.stroke_head.pair_feature_adapter,
+                adapted.relation_head.logit_adapter,
+            )
+            for parameter in module.parameters()
+        )
+        self.assertEqual(
+            sum(parameter.numel() for parameter in trainable),
+            expected_parameters,
+        )
+
+    def test_teacher_consistency_is_zero_only_for_identical_logits(self) -> None:
+        teacher = {
+            "edge_logits": torch.randn(9),
+            "bond_logits": torch.randn(9, 3),
+        }
+        identical = relation_teacher_consistency_loss(teacher, teacher)
+        self.assertEqual(float(identical["teacher_loss"]), 0.0)
+        changed = {key: value.clone() for key, value in teacher.items()}
+        changed["bond_logits"][2, 1] += 1.0
+        changed_loss = relation_teacher_consistency_loss(changed, teacher)
+        self.assertGreater(float(changed_loss["teacher_loss"]), 0.0)
 
     def test_bond_loss_ignores_negative_pairs(self) -> None:
         edge_logits = torch.tensor([0.2, -0.4, 0.7])

@@ -27,6 +27,7 @@ from chemvector.sdf_io import write_sdf_v4
 
 Coordinate = tuple[int, int]
 IndexPair = tuple[int, int]
+PixelBox = tuple[float, float, float, float]
 
 
 @dataclass(frozen=True, slots=True)
@@ -42,6 +43,8 @@ class InkGraphRepairConfig:
     maximum_aromatic_cycle_size: int = 6
     aromatic_vote_fraction: float = 0.5
     aromatic_vote_source: str = "auto"
+    candidate_pair_mode: str = "all"
+    model_bridge_min_score: float = 0.1
 
 
 @dataclass(frozen=True, slots=True)
@@ -52,6 +55,7 @@ class InkGraphRepairResult:
     strokes: int
     components: int
     aromatic_strokes: int
+    model_bridge_strokes: int
 
 
 def _distance(left: VertexRecordV4, right: VertexRecordV4) -> float:
@@ -88,16 +92,38 @@ def _line_gap_statistics(
     begin: VertexRecordV4,
     end: VertexRecordV4,
     config: InkGraphRepairConfig,
+    begin_box: PixelBox | None = None,
+    end_box: PixelBox | None = None,
 ) -> tuple[float, float, float]:
     height, width = distance_field.shape
     length = _distance(begin, end)
     samples = max(32, int(length * 0.7))
-    trim = min(samples // 3, int(samples * config.endpoint_trim))
-    x = np.linspace(begin.x / 1023.0 * (width - 1), end.x / 1023.0 * (width - 1), samples)
-    y = np.linspace(begin.y / 1023.0 * (height - 1), end.y / 1023.0 * (height - 1), samples)
-    if trim:
-        x = x[trim:-trim]
-        y = y[trim:-trim]
+    begin_point = np.array(
+        (begin.x / 1023.0 * (width - 1), begin.y / 1023.0 * (height - 1)),
+        dtype=np.float64,
+    )
+    end_point = np.array(
+        (end.x / 1023.0 * (width - 1), end.y / 1023.0 * (height - 1)),
+        dtype=np.float64,
+    )
+    start = config.endpoint_trim
+    stop = 1.0 - config.endpoint_trim
+    pixel_length = float(np.linalg.norm(end_point - begin_point))
+    margin = 1.0 / max(pixel_length, 1.0)
+    if begin_box is not None:
+        interval = _line_box_interval(begin_point, end_point, begin_box)
+        if interval is not None and interval[0] <= 0.25:
+            start = max(start, interval[1] + margin)
+    if end_box is not None:
+        interval = _line_box_interval(begin_point, end_point, end_box)
+        if interval is not None and interval[1] >= 0.75:
+            stop = min(stop, interval[0] - margin)
+    if start >= stop:
+        return float("inf"), float("inf"), 1.0
+    positions = np.linspace(start, stop, samples)
+    delta = end_point - begin_point
+    x = begin_point[0] + positions * delta[0]
+    y = begin_point[1] + positions * delta[1]
     x_indices = np.rint(x).astype(np.int64).clip(0, width - 1)
     y_indices = np.rint(y).astype(np.int64).clip(0, height - 1)
     gaps = distance_field[y_indices, x_indices]
@@ -106,6 +132,33 @@ def _line_gap_statistics(
         float(gaps.max(initial=0.0)),
         float((gaps > config.gap_pixel_threshold).mean()),
     )
+
+
+def _line_box_interval(
+    begin: np.ndarray,
+    end: np.ndarray,
+    box: PixelBox,
+) -> tuple[float, float] | None:
+    """Return the parameter interval where a segment crosses an axis-aligned box."""
+
+    lower = np.array((box[0], box[1]), dtype=np.float64)
+    upper = np.array((box[2], box[3]), dtype=np.float64)
+    delta = end - begin
+    enter = 0.0
+    leave = 1.0
+    for axis in range(2):
+        if abs(delta[axis]) < 1e-9:
+            if begin[axis] < lower[axis] or begin[axis] > upper[axis]:
+                return None
+            continue
+        left = (lower[axis] - begin[axis]) / delta[axis]
+        right = (upper[axis] - begin[axis]) / delta[axis]
+        axis_enter, axis_leave = sorted((float(left), float(right)))
+        enter = max(enter, axis_enter)
+        leave = min(leave, axis_leave)
+        if enter > leave:
+            return None
+    return enter, leave
 
 
 def _has_intermediate_vertex(
@@ -260,11 +313,24 @@ def repair_chemsvg_v4_from_image(
     image: Image.Image,
     *,
     element_overrides: dict[Coordinate, str] | None = None,
+    endpoint_boxes: dict[Coordinate, PixelBox] | None = None,
+    pair_predictions: dict[
+        tuple[Coordinate, Coordinate],
+        tuple[float, str],
+    ] | None = None,
     config: InkGraphRepairConfig | None = None,
+    validate_chemistry: bool = True,
 ) -> InkGraphRepairResult:
     """Rebuild strokes from visible continuous ink without a bond-length cutoff."""
 
     config = config or InkGraphRepairConfig()
+    if config.candidate_pair_mode not in {"all", "model", "model_connect"}:
+        raise ValueError(
+            f"Unknown candidate_pair_mode: {config.candidate_pair_mode!r}"
+        )
+    if not 0.0 <= config.model_bridge_min_score <= 1.0:
+        raise ValueError("model_bridge_min_score must be in [0, 1]")
+    pair_predictions = pair_predictions or {}
     parsed = parse_chemsvg_v4(sequence)
     source_vertices = tuple(
         replace(vertex, element=element_overrides[(vertex.x, vertex.y)])
@@ -282,15 +348,37 @@ def repair_chemsvg_v4_from_image(
     }
     retained_vertices = tuple(source_vertices[index] for index in retained_source)
     distance_field = _ink_distance_field(image, config.ink_threshold)
+    original_strokes = {
+        tuple(sorted((stroke.begin, stroke.end))): stroke for stroke in parsed.strokes
+    }
 
     source_pairs: set[IndexPair] = set()
+    ink_candidates: list[tuple[float, float, float, int, int]] = []
     for offset, begin in enumerate(retained_source):
         for end in retained_source[offset + 1 :]:
+            coordinate_pair = tuple(
+                sorted(
+                    (
+                        (source_vertices[begin].x, source_vertices[begin].y),
+                        (source_vertices[end].x, source_vertices[end].y),
+                    )
+                )
+            )
+            model_candidate = (
+                config.candidate_pair_mode == "all"
+                or coordinate_pair in original_strokes
+            )
             mean_gap, maximum_gap, gap_fraction = _line_gap_statistics(
                 distance_field,
                 source_vertices[begin],
                 source_vertices[end],
                 config,
+                endpoint_boxes.get((source_vertices[begin].x, source_vertices[begin].y))
+                if endpoint_boxes
+                else None,
+                endpoint_boxes.get((source_vertices[end].x, source_vertices[end].y))
+                if endpoint_boxes
+                else None,
             )
             if (
                 mean_gap <= config.maximum_mean_gap_pixels
@@ -304,7 +392,11 @@ def repair_chemsvg_v4_from_image(
                     config.intermediate_vertex_radius,
                 )
             ):
-                source_pairs.add((begin, end))
+                ink_candidates.append(
+                    (mean_gap, maximum_gap, gap_fraction, begin, end)
+                )
+                if model_candidate:
+                    source_pairs.add((begin, end))
 
     pairs = {
         tuple(sorted((source_to_repaired[begin], source_to_repaired[end])))
@@ -314,10 +406,49 @@ def repair_chemsvg_v4_from_image(
     for begin, end in pairs:
         adjacency[begin].add(end)
         adjacency[end].add(begin)
-    original_strokes = {
-        tuple(sorted((stroke.begin, stroke.end))): stroke for stroke in parsed.strokes
-    }
     components = _connected_components(adjacency)
+    model_bridge_pairs: set[IndexPair] = set()
+    if config.candidate_pair_mode == "model_connect" and components != 1:
+        ranked_ink_candidates = sorted(
+            ink_candidates,
+            key=lambda item: (
+                -pair_predictions.get(
+                    tuple(
+                        sorted(
+                            (
+                                (
+                                    source_vertices[item[3]].x,
+                                    source_vertices[item[3]].y,
+                                ),
+                                (
+                                    source_vertices[item[4]].x,
+                                    source_vertices[item[4]].y,
+                                ),
+                            )
+                        )
+                    ),
+                    (0.0, "SINGLE"),
+                )[0],
+                item[0],
+                item[1],
+                item[2],
+            ),
+        )
+        for _, _, _, source_begin, source_end in ranked_ink_candidates:
+            begin = source_to_repaired[source_begin]
+            end = source_to_repaired[source_end]
+            pair = tuple(sorted((begin, end)))
+            if pair in pairs:
+                continue
+            labels = _component_labels(adjacency)
+            if labels[begin] == labels[end]:
+                continue
+            pairs.add(pair)
+            adjacency[begin].add(end)
+            adjacency[end].add(begin)
+            if _connected_components(adjacency) == 1:
+                break
+        components = _connected_components(adjacency)
     if components != 1:
         coordinate_to_repaired = {
             (vertex.x, vertex.y): index
@@ -338,6 +469,57 @@ def repair_chemsvg_v4_from_image(
             if labels[begin] == labels[end]:
                 continue
             pairs.add((begin, end))
+            adjacency[begin].add(end)
+            adjacency[end].add(begin)
+            if _connected_components(adjacency) == 1:
+                break
+        components = _connected_components(adjacency)
+    if (
+        config.candidate_pair_mode == "model_connect"
+        and components != 1
+        and pair_predictions
+    ):
+        coordinate_to_source = {
+            (source_vertices[index].x, source_vertices[index].y): index
+            for index in retained_source
+        }
+        coordinate_to_repaired = {
+            (vertex.x, vertex.y): index
+            for index, vertex in enumerate(retained_vertices)
+        }
+        for coordinate_pair, (score, _) in sorted(
+            pair_predictions.items(),
+            key=lambda item: item[1][0],
+            reverse=True,
+        ):
+            if score < config.model_bridge_min_score:
+                break
+            if not all(
+                coordinate in coordinate_to_repaired for coordinate in coordinate_pair
+            ):
+                continue
+            source_begin, source_end = (
+                coordinate_to_source[coordinate] for coordinate in coordinate_pair
+            )
+            if _has_intermediate_vertex(
+                source_vertices,
+                retained_source,
+                source_begin,
+                source_end,
+                config.intermediate_vertex_radius,
+            ):
+                continue
+            begin, end = (
+                coordinate_to_repaired[coordinate] for coordinate in coordinate_pair
+            )
+            pair = tuple(sorted((begin, end)))
+            if pair in pairs:
+                continue
+            labels = _component_labels(adjacency)
+            if labels[begin] == labels[end]:
+                continue
+            pairs.add(pair)
+            model_bridge_pairs.add(pair)
             adjacency[begin].add(end)
             adjacency[end].add(begin)
             if _connected_components(adjacency) == 1:
@@ -367,6 +549,7 @@ def repair_chemsvg_v4_from_image(
         right = repaired_vertices[end]
         coordinate_pair = tuple(sorted(((left.x, left.y), (right.x, right.y))))
         original = original_strokes.get(coordinate_pair)
+        pair_prediction = pair_predictions.get(coordinate_pair)
         if (begin, end) in aromatic_pairs:
             display_type = bond_type = "AROMATIC"
             direction = "NONE"
@@ -390,6 +573,11 @@ def repair_chemsvg_v4_from_image(
             } <= retained_coordinates:
                 stereo = "STEREONONE"
                 stereo_coordinates = (-1, -1, -1, -1)
+        elif pair_prediction is not None and pair_prediction[1] in {"DOUBLE", "TRIPLE"}:
+            display_type = bond_type = pair_prediction[1]
+            direction = "NONE"
+            stereo = "STEREONONE"
+            stereo_coordinates = (-1, -1, -1, -1)
         else:
             display_type = bond_type = "SINGLE"
             direction = original.direction if original is not None else "NONE"
@@ -415,7 +603,8 @@ def repair_chemsvg_v4_from_image(
     repaired = serialize_parsed_chemsvg_v4(
         ParsedChemSVGSequenceV4(repaired_vertices, tuple(strokes))
     )
-    mol_from_chemsvg_v4(repaired)
+    if validate_chemistry:
+        mol_from_chemsvg_v4(repaired)
     return InkGraphRepairResult(
         sequence=repaired,
         removed_coordinates=tuple(
@@ -426,6 +615,7 @@ def repair_chemsvg_v4_from_image(
         strokes=len(strokes),
         components=components,
         aromatic_strokes=len(aromatic_pairs),
+        model_bridge_strokes=len(model_bridge_pairs),
     )
 
 

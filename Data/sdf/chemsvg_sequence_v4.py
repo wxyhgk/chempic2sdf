@@ -401,6 +401,7 @@ def mol_from_parsed_chemsvg_v4(
     parsed: ParsedChemSVGSequenceV4,
     *,
     apply_display_directions: bool = False,
+    sanitize: bool = True,
 ) -> Chem.Mol:
     rw_mol = Chem.RWMol()
     coordinate_to_atom = {}
@@ -438,10 +439,13 @@ def mol_from_parsed_chemsvg_v4(
         stroke_bonds.append((record, begin_atom, end_atom))
 
     mol = rw_mol.GetMol()
-    try:
-        Chem.SanitizeMol(mol)
-    except Exception as error:
-        raise ChemMolSequenceError(f"RDKit sanitization failed: {error}") from error
+    if sanitize:
+        try:
+            Chem.SanitizeMol(mol)
+        except Exception as error:
+            raise ChemMolSequenceError(f"RDKit sanitization failed: {error}") from error
+    else:
+        mol.UpdatePropertyCache(strict=False)
 
     conformer = Chem.Conformer(len(parsed.vertices))
     conformer.Set3D(False)
@@ -476,7 +480,8 @@ def mol_from_parsed_chemsvg_v4(
         if apply_display_directions:
             bond.SetBondDir(_enum_member(Chem.BondDir, record.direction, "bond direction"))
 
-    Chem.AssignStereochemistry(mol, cleanIt=False, force=True)
+    if sanitize:
+        Chem.AssignStereochemistry(mol, cleanIt=False, force=True)
     return mol
 
 
@@ -488,6 +493,20 @@ def mol_from_chemsvg_v4(
     return mol_from_parsed_chemsvg_v4(
         parse_chemsvg_v4(sequence),
         apply_display_directions=apply_display_directions,
+    )
+
+
+def diagnostic_mol_from_chemsvg_v4(
+    sequence: str,
+    *,
+    apply_display_directions: bool = True,
+) -> Chem.Mol:
+    """Compile model primitives without sanitizing invalid diagnostic graphs."""
+
+    return mol_from_parsed_chemsvg_v4(
+        parse_chemsvg_v4(sequence),
+        apply_display_directions=apply_display_directions,
+        sanitize=False,
     )
 
 

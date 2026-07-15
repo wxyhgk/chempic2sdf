@@ -50,8 +50,23 @@ def prepare_input_image(
             or x_slice.stop == source.shape[1]
             or y_slice.stop == source.shape[0]
         )
-        if touches_boundary and width_fraction >= 0.9 and height_fraction >= 0.9:
-            source[components == component_id] = 255
+        component = components == component_id
+        boundary_pixels = np.concatenate(
+            (
+                component[0, :],
+                component[-1, :],
+                component[1:-1, 0],
+                component[1:-1, -1],
+            )
+        )
+        boundary_coverage = float(boundary_pixels.mean())
+        if (
+            touches_boundary
+            and width_fraction >= 0.9
+            and height_fraction >= 0.9
+            and boundary_coverage >= 0.5
+        ):
+            source[component] = 255
     cleaned = Image.fromarray(source)
     scale = min(content_size / cleaned.width, content_size / cleaned.height)
     resized_size = (

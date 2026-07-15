@@ -5,7 +5,7 @@ from __future__ import annotations
 import torch
 
 from Data.sdf.chemsvg_sequence_v4 import VertexRecordV4
-from chemvector.model import ChemVectorModel
+from chemvector.model import ChemVectorModel, OCR_ROLE_LABELS
 from chemvector.ocr import OCRTextCodec, parse_atom_display_text
 from chemvector.vertex import decode_vertices
 
@@ -58,21 +58,35 @@ def detect_vertex_records(
         dtype=torch.float32,
     )
     mask = torch.ones((1, len(ordered)), device=pixel_values.device, dtype=torch.bool)
-    ocr_features = model.vision_encoder.forward_high_resolution_from_stroke(
-        stroke_features
-    )
-    ocr_ids = model.ocr_head.generate(
-        ocr_features,
-        points,
-        mask,
-        pixel_values.shape[-2:],
-        roi_radius=ocr_roi_radius,
-    )
+    ocr_features = model.ocr_source(pixel_values, stroke_features)
+    if (
+        model.ocr_head.role_classifier is not None
+        and model.config.ocr_role_routing
+    ):
+        ocr_ids, role_logits = model.ocr_head.generate_with_roles(
+            ocr_features,
+            points,
+            mask,
+            pixel_values.shape[-2:],
+            roi_radius=ocr_roi_radius,
+        )
+        roles = [OCR_ROLE_LABELS[index] for index in role_logits.argmax(dim=-1).tolist()]
+    else:
+        ocr_ids = model.ocr_head.generate(
+            ocr_features,
+            points,
+            mask,
+            pixel_values.shape[-2:],
+            roi_radius=ocr_roi_radius,
+        )
+        roles = [None] * len(ordered)
     codec = OCRTextCodec(max_length=model.config.ocr_max_length)
     labels = [codec.decode(row.tolist()) for row in ocr_ids.cpu()]
     vertices = []
-    for (coordinate, detection), label in zip(ordered, labels):
-        parsed = parse_atom_display_text(label)
+    for (coordinate, detection), label, role in zip(ordered, labels, roles):
+        if role == "non_molecule_text":
+            continue
+        parsed = None if role == "implicit_c" else parse_atom_display_text(label)
         if parsed is None or parsed["element"] == "C":
             parsed = {
                 "element": "C",

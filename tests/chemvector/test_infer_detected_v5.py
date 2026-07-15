@@ -30,6 +30,18 @@ class DetectedInferencePreparationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "content_size"):
             prepare_input_image(Image.new("RGB", (10, 10)), image_size=32, content_size=33)
 
+    def test_edge_to_edge_connected_content_is_not_removed_as_a_frame(self) -> None:
+        image = Image.new("RGB", (100, 80), "white")
+        draw = ImageDraw.Draw(image)
+        draw.line((0, 40, 50, 0), fill="black", width=2)
+        draw.line((50, 0, 99, 40), fill="black", width=2)
+        draw.line((99, 40, 50, 79), fill="black", width=2)
+        draw.line((50, 79, 0, 40), fill="black", width=2)
+
+        prepared = prepare_input_image(image, image_size=128, content_size=100)
+
+        self.assertGreater((np.asarray(prepared).min(axis=2) < 160).sum(), 200)
+
     def test_transparent_pixels_are_composited_on_white(self) -> None:
         image = Image.new("RGBA", (20, 10), (0, 0, 0, 0))
         prepared = prepare_input_image(image, image_size=32, content_size=20)

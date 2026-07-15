@@ -81,7 +81,7 @@ def vertex_detection_loss(
         height,
         width,
     )
-    probabilities = heatmap_logits.sigmoid().clamp(1e-5, 1.0 - 1e-5)
+    probabilities = heatmap_logits.float().sigmoid().clamp(1e-5, 1.0 - 1e-5)
     positive = heatmap_targets == 1
     negative = heatmap_targets < 1
     positive_loss = -torch.log(probabilities) * (1.0 - probabilities) ** 2 * positive
@@ -119,6 +119,60 @@ def vertex_detection_loss(
         "heatmap_loss": heatmap_loss,
         "offset_loss": offset_loss,
         "aromatic_loss": aromatic_loss,
+    }
+
+
+def vertex_teacher_consistency_loss(
+    output: dict[str, torch.Tensor],
+    teacher_output: dict[str, torch.Tensor],
+) -> dict[str, torch.Tensor]:
+    """Preserve a frozen detector's dense outputs on replay images."""
+    required = (
+        "vertex_heatmap_logits",
+        "vertex_offset_logits",
+        "vertex_aromatic_logits",
+    )
+    for key in required:
+        if output[key].shape != teacher_output[key].shape:
+            raise ValueError(f"Teacher vertex output shape differs for {key}")
+
+    teacher_heatmap = teacher_output["vertex_heatmap_logits"].detach()
+    heatmap_dense_loss = F.smooth_l1_loss(
+        output["vertex_heatmap_logits"],
+        teacher_heatmap,
+    )
+    peak_weights = teacher_heatmap.sigmoid().square()
+    weight_sum = peak_weights.sum().clamp_min(1e-6)
+    heatmap_peak_loss = (
+        F.smooth_l1_loss(
+            output["vertex_heatmap_logits"],
+            teacher_heatmap,
+            reduction="none",
+        )
+        * peak_weights
+    ).sum() / weight_sum
+    offset_loss = (
+        F.smooth_l1_loss(
+            output["vertex_offset_logits"].sigmoid(),
+            teacher_output["vertex_offset_logits"].detach().sigmoid(),
+            reduction="none",
+        )
+        * peak_weights
+    ).sum() / (weight_sum * output["vertex_offset_logits"].size(1))
+    aromatic_loss = (
+        F.smooth_l1_loss(
+            output["vertex_aromatic_logits"].sigmoid(),
+            teacher_output["vertex_aromatic_logits"].detach().sigmoid(),
+            reduction="none",
+        )
+        * peak_weights
+    ).sum() / weight_sum
+    loss = heatmap_dense_loss + heatmap_peak_loss + offset_loss + aromatic_loss
+    return {
+        "teacher_loss": loss,
+        "teacher_heatmap_loss": heatmap_dense_loss + heatmap_peak_loss,
+        "teacher_offset_loss": offset_loss,
+        "teacher_aromatic_loss": aromatic_loss,
     }
 
 

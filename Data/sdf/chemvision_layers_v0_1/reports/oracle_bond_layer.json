@@ -1,0 +1,43 @@
+{
+  "schema_version": "chemvision-oracle-decision-0.1",
+  "status": "completed",
+  "decision": "no_go_full_generation",
+  "checkpoint": "outputs/checkpoints/chemvector-v073-pixel-ocr-original-refine-1k/last.pt",
+  "result_directory": "outputs/evaluations/chemvision-pilot-oracle-bbox-v073",
+  "evaluated_samples": 998,
+  "excluded_samples": 2,
+  "excluded_reason": "ChemSVG v0.4 quantized coordinate collision",
+  "baseline": {
+    "sdf_valid_rate": 0.20240480961923848,
+    "chemical_match_rate": 0.045090180360721446,
+    "exact_topology_rate": 0.06913827655310621,
+    "edge_precision": 0.8712013761052599,
+    "edge_recall": 0.8136696730552424,
+    "false_edges": 4268
+  },
+  "hard_bond_only_delta": {
+    "false_edge_reduction": -0.03795688847235239,
+    "edge_recall": -0.02113866967305522,
+    "exact_topology_rate": -0.017034068136272548,
+    "chemical_match_rate": -0.00901803607214429
+  },
+  "bbox_aware_bond_delta": {
+    "false_edge_reduction": 0.02788191190253046,
+    "edge_recall": -0.0015501691093573466,
+    "exact_topology_rate": 0.001002004008016033,
+    "chemical_match_rate": 0.0010020040080160261
+  },
+  "large_extreme_bbox_delta": {
+    "samples": 285,
+    "false_edge_reduction": 0.03301622831561276,
+    "edge_recall": 0.001869158878504673,
+    "exact_topology_rate": 0.00350877192982456,
+    "chemical_match_rate": 0.00350877192982456
+  },
+  "go_criteria": {
+    "required_false_edge_reduction": 0.5,
+    "maximum_edge_recall_drop": 0.003,
+    "met": false
+  },
+  "next_experiment": "multiscale_ocr"
+}

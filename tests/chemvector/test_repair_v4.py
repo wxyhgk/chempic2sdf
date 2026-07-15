@@ -9,12 +9,13 @@ from rdkit import Chem
 
 from Data.sdf.chemsvg_sequence_v4 import (
     ParsedChemSVGSequenceV4,
+    StrokeRecordV4,
     VertexRecordV4,
     mol_from_chemsvg_v4,
     parse_chemsvg_v4,
     serialize_parsed_chemsvg_v4,
 )
-from chemvector.repair_v4 import repair_chemsvg_v4_from_image
+from chemvector.repair_v4 import InkGraphRepairConfig, repair_chemsvg_v4_from_image
 
 
 class InkGraphRepairTests(unittest.TestCase):
@@ -75,6 +76,74 @@ class InkGraphRepairTests(unittest.TestCase):
         self.assertEqual(result.strokes, 2)
         self.assertEqual(Chem.MolToSmiles(mol_from_chemsvg_v4(result.sequence)), "CCC")
 
+    def test_model_candidate_mode_does_not_invent_unscored_edge(self) -> None:
+        vertices = (self._vertex(100, 512), self._vertex(900, 512))
+        sequence = serialize_parsed_chemsvg_v4(
+            ParsedChemSVGSequenceV4(vertices, ())
+        )
+
+        with self.assertRaisesRegex(ValueError, "not connected"):
+            repair_chemsvg_v4_from_image(
+                sequence,
+                self._image(vertices, ((0, 1),)),
+                config=InkGraphRepairConfig(candidate_pair_mode="model"),
+            )
+
+    def test_model_connect_adds_only_the_bridge_needed_for_connectivity(self) -> None:
+        vertices = tuple(self._vertex(x, 512) for x in (100, 500, 900))
+        source_stroke = StrokeRecordV4(
+            begin_x=vertices[0].x,
+            begin_y=vertices[0].y,
+            end_x=vertices[1].x,
+            end_y=vertices[1].y,
+            display_type="SINGLE",
+            bond_type="SINGLE",
+            direction="NONE",
+            stereo="STEREONONE",
+        )
+        sequence = serialize_parsed_chemsvg_v4(
+            ParsedChemSVGSequenceV4(vertices, (source_stroke,))
+        )
+
+        result = repair_chemsvg_v4_from_image(
+            sequence,
+            self._image(vertices, ((0, 1), (1, 2))),
+            config=InkGraphRepairConfig(candidate_pair_mode="model_connect"),
+        )
+
+        self.assertEqual(result.strokes, 2)
+        self.assertEqual(Chem.MolToSmiles(mol_from_chemsvg_v4(result.sequence)), "CCC")
+
+    def test_model_probability_can_restore_faint_bridge_and_bond_type(self) -> None:
+        vertices = tuple(self._vertex(x, 512) for x in (100, 500, 900))
+        source_stroke = StrokeRecordV4(
+            begin_x=vertices[0].x,
+            begin_y=vertices[0].y,
+            end_x=vertices[1].x,
+            end_y=vertices[1].y,
+            display_type="SINGLE",
+            bond_type="SINGLE",
+            direction="NONE",
+            stereo="STEREONONE",
+        )
+        sequence = serialize_parsed_chemsvg_v4(
+            ParsedChemSVGSequenceV4(vertices, (source_stroke,))
+        )
+        bridge_coordinates = tuple(
+            sorted(((vertices[1].x, vertices[1].y), (vertices[2].x, vertices[2].y)))
+        )
+
+        result = repair_chemsvg_v4_from_image(
+            sequence,
+            self._image(vertices, ((0, 1),)),
+            pair_predictions={bridge_coordinates: (0.3, "DOUBLE")},
+            config=InkGraphRepairConfig(candidate_pair_mode="model_connect"),
+        )
+        parsed = parse_chemsvg_v4(result.sequence)
+
+        self.assertEqual(result.model_bridge_strokes, 1)
+        self.assertEqual({stroke.bond_type for stroke in parsed.strokes}, {"SINGLE", "DOUBLE"})
+
     def test_close_duplicate_visible_label_is_merged(self) -> None:
         vertices = (
             self._vertex(100, 512),
@@ -108,6 +177,51 @@ class InkGraphRepairTests(unittest.TestCase):
         self.assertEqual(result.aromatic_strokes, 6)
         self.assertTrue(all(vertex.aromatic for vertex in parsed.vertices))
         self.assertEqual(Chem.MolToSmiles(mol_from_chemsvg_v4(result.sequence)), "c1ccccc1")
+
+    def test_invalid_chemistry_can_be_retained_for_diagnostics(self) -> None:
+        vertices = (
+            self._vertex(100, 512, "Cl"),
+            self._vertex(400, 300),
+            self._vertex(400, 500),
+            self._vertex(400, 700),
+        )
+        edges = ((0, 1), (0, 2), (0, 3))
+        sequence = serialize_parsed_chemsvg_v4(
+            ParsedChemSVGSequenceV4(vertices, ())
+        )
+
+        result = repair_chemsvg_v4_from_image(
+            sequence,
+            self._image(vertices, edges),
+            validate_chemistry=False,
+        )
+
+        self.assertEqual(result.strokes, 3)
+        with self.assertRaises(ValueError):
+            mol_from_chemsvg_v4(result.sequence)
+
+    def test_text_box_trims_a_large_visible_label_gap(self) -> None:
+        vertices = (
+            self._vertex(200, 512, "N"),
+            self._vertex(820, 512),
+        )
+        sequence = serialize_parsed_chemsvg_v4(
+            ParsedChemSVGSequenceV4(vertices, ())
+        )
+        image = Image.new("RGB", (256, 256), "white")
+        draw = ImageDraw.Draw(image)
+        draw.line((90, 128, 205, 128), fill="black", width=2)
+
+        with self.assertRaisesRegex(ValueError, "not connected"):
+            repair_chemsvg_v4_from_image(sequence, image)
+
+        result = repair_chemsvg_v4_from_image(
+            sequence,
+            image,
+            endpoint_boxes={(200, 512): (40.0, 110.0, 90.0, 145.0)},
+        )
+
+        self.assertEqual(result.strokes, 1)
 
 
 if __name__ == "__main__":

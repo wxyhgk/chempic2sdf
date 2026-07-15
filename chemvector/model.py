@@ -10,6 +10,36 @@ from torch import nn
 from torch.nn import functional as F
 
 
+OCR_COMMON_LABELS = (
+    "B",
+    "Br",
+    "C",
+    "Cl",
+    "F",
+    "H",
+    "I",
+    "N",
+    "O",
+    "P",
+    "S",
+    "Se",
+    "Si",
+    "NH",
+    "NH2",
+    "N+",
+    "N-",
+    "O-",
+    "OH",
+    "SH",
+)
+
+OCR_ROLE_LABELS = (
+    "implicit_c",
+    "atom_text",
+    "non_molecule_text",
+)
+
+
 @dataclass(frozen=True, slots=True)
 class ChemVectorConfig:
     vocab_size: int = 2153
@@ -33,6 +63,18 @@ class ChemVectorConfig:
     ocr_roi_height: int = 4
     ocr_roi_width: int = 8
     ocr_roi_radius: float = 24.0
+    ocr_pixel_enabled: bool = False
+    ocr_pixel_crop_size: int = 32
+    ocr_pixel_multiscale: bool = False
+    ocr_pixel_scale_radii: tuple[float, ...] = (12.0, 20.0, 32.0)
+    ocr_blank_loss_weight: float = 0.5
+    ocr_common_loss_weight: float = 1.0
+    ocr_auxiliary_routing: bool = False
+    ocr_residual_adapter: bool = False
+    ocr_adapter_dim: int = 48
+    ocr_role_head: bool = False
+    ocr_role_loss_weight: float = 1.0
+    ocr_role_routing: bool = False
     stroke_enabled: bool = False
     stroke_classes: int = 5
     stroke_feature_dim: int = 64
@@ -43,6 +85,8 @@ class ChemVectorConfig:
     relation_bond_classes: int = 3
     vertex_enabled: bool = False
     vertex_feature_dim: int = 64
+    structure_residual_adapter: bool = False
+    structure_adapter_dim: int = 32
 
     def __post_init__(self) -> None:
         if len(self.vision_dims) != len(self.vision_depths):
@@ -61,6 +105,20 @@ class ChemVectorConfig:
             raise ValueError("OCR ROI dimensions must be positive")
         if self.ocr_roi_radius <= 0:
             raise ValueError("ocr_roi_radius must be positive")
+        if self.ocr_pixel_crop_size < 8:
+            raise ValueError("ocr_pixel_crop_size must be at least 8")
+        if self.ocr_pixel_multiscale and not self.ocr_pixel_enabled:
+            raise ValueError("Multi-scale OCR requires pixel OCR")
+        if self.ocr_pixel_multiscale and len(self.ocr_pixel_scale_radii) < 2:
+            raise ValueError("Multi-scale OCR requires at least two radii")
+        if any(radius <= 0 for radius in self.ocr_pixel_scale_radii):
+            raise ValueError("OCR pixel scale radii must be positive")
+        if self.ocr_blank_loss_weight < 0 or self.ocr_common_loss_weight < 0:
+            raise ValueError("OCR auxiliary loss weights must be nonnegative")
+        if self.ocr_adapter_dim < 1:
+            raise ValueError("OCR adapter dimension must be positive")
+        if self.ocr_role_loss_weight < 0:
+            raise ValueError("OCR role loss weight must be nonnegative")
         if self.stroke_classes < 2 or self.stroke_feature_dim < 1:
             raise ValueError("Stroke scorer dimensions are invalid")
         if self.stroke_samples < 2 or self.stroke_band < 1:
@@ -73,6 +131,8 @@ class ChemVectorConfig:
             )
         if self.vertex_feature_dim < 1:
             raise ValueError("vertex_feature_dim must be positive")
+        if self.structure_adapter_dim < 1:
+            raise ValueError("Structure adapter dimension must be positive")
 
 
 class ConvNeXtBlock(nn.Module):
@@ -219,6 +279,44 @@ class ChemOCRHead(nn.Module):
         self.roi_projection = nn.Linear(config.vision_dims[1], config.ocr_d_model)
         roi_tokens = config.ocr_roi_height * config.ocr_roi_width
         self.roi_position_embedding = nn.Embedding(roi_tokens, config.ocr_d_model)
+        if config.ocr_pixel_enabled:
+            pixel_channels = max(config.ocr_d_model // 2, 32)
+            self.pixel_encoder = nn.Sequential(
+                nn.Conv2d(3, pixel_channels, kernel_size=3, padding=1),
+                nn.GELU(),
+                nn.Conv2d(
+                    pixel_channels,
+                    pixel_channels,
+                    kernel_size=3,
+                    stride=2,
+                    padding=1,
+                ),
+                nn.GELU(),
+                nn.Conv2d(
+                    pixel_channels,
+                    config.ocr_d_model,
+                    kernel_size=3,
+                    stride=2,
+                    padding=1,
+                ),
+                nn.GELU(),
+                nn.AdaptiveAvgPool2d((8, 8)),
+            )
+            self.pixel_position_embedding = nn.Embedding(64, config.ocr_d_model)
+            if config.ocr_pixel_multiscale:
+                scale_hidden = max(config.ocr_d_model // 2, 32)
+                self.pixel_scale_score = nn.Sequential(
+                    nn.Linear(config.ocr_d_model, scale_hidden),
+                    nn.GELU(),
+                    nn.Linear(scale_hidden, 1),
+                )
+                nn.init.zeros_(self.pixel_scale_score[-1].weight)
+                nn.init.zeros_(self.pixel_scale_score[-1].bias)
+            self.blank_classifier = nn.Linear(config.ocr_d_model, 2)
+            self.common_classifier = nn.Linear(
+                config.ocr_d_model,
+                len(OCR_COMMON_LABELS) + 1,
+            )
         self.token_embedding = nn.Embedding(
             config.ocr_vocab_size,
             config.ocr_d_model,
@@ -245,11 +343,91 @@ class ChemOCRHead(nn.Module):
             bias=False,
         )
         self.output_projection.weight = self.token_embedding.weight
+        if config.ocr_residual_adapter:
+            self.memory_adapter = nn.Sequential(
+                nn.LayerNorm(config.ocr_d_model),
+                nn.Linear(config.ocr_d_model, config.ocr_adapter_dim),
+                nn.GELU(),
+                nn.Linear(config.ocr_adapter_dim, config.ocr_d_model),
+            )
+            nn.init.zeros_(self.memory_adapter[-1].weight)
+            nn.init.zeros_(self.memory_adapter[-1].bias)
+        else:
+            self.memory_adapter = None
+        if config.ocr_role_head:
+            self.role_attention = nn.Linear(config.ocr_d_model, 1)
+            self.role_classifier = nn.Sequential(
+                nn.LayerNorm(config.ocr_d_model),
+                nn.Linear(config.ocr_d_model, config.ocr_adapter_dim),
+                nn.GELU(),
+                nn.Linear(config.ocr_adapter_dim, len(OCR_ROLE_LABELS)),
+            )
+        else:
+            self.role_attention = None
+            self.role_classifier = None
         nn.init.normal_(self.token_embedding.weight, mean=0.0, std=0.02)
         nn.init.normal_(self.position_embedding.weight, mean=0.0, std=0.02)
         nn.init.normal_(self.roi_position_embedding.weight, mean=0.0, std=0.02)
         with torch.no_grad():
             self.token_embedding.weight[config.pad_token_id].zero_()
+
+    def extract_pixel_rois(
+        self,
+        pixel_values: torch.Tensor,
+        anchor_points: torch.Tensor,
+        anchor_mask: torch.Tensor,
+        pixel_size: tuple[int, int],
+        *,
+        roi_radius: float | None = None,
+    ) -> torch.Tensor:
+        if anchor_points.ndim != 3 or anchor_points.size(-1) != 2:
+            raise ValueError("OCR anchor_points must have shape [batch, anchors, 2]")
+        if anchor_mask.shape != anchor_points.shape[:2]:
+            raise ValueError("OCR anchor_mask must match anchor_points")
+        if pixel_values.size(0) != anchor_points.size(0):
+            raise ValueError("OCR pixels and anchor batch sizes differ")
+        pixel_height, pixel_width = pixel_size
+        radius = self.config.ocr_roi_radius if roi_radius is None else roi_radius
+        if radius <= 0:
+            raise ValueError("OCR ROI radius must be positive")
+        crop_size = self.config.ocr_pixel_crop_size
+        dtype = pixel_values.dtype
+        device = pixel_values.device
+        x_offsets = torch.linspace(
+            -radius,
+            radius,
+            crop_size,
+            device=device,
+            dtype=dtype,
+        ) * (2.0 / pixel_width)
+        y_offsets = torch.linspace(
+            -radius,
+            radius,
+            crop_size,
+            device=device,
+            dtype=dtype,
+        ) * (2.0 / pixel_height)
+        grid_y, grid_x = torch.meshgrid(y_offsets, x_offsets, indexing="ij")
+        offsets = torch.stack((grid_x, grid_y), dim=-1)
+        centers = anchor_points.to(device=device, dtype=dtype) * 2.0 - 1.0
+        grid = centers[:, :, None, None, :] + offsets[None, None, :, :, :]
+        batch_size, anchors = anchor_points.shape[:2]
+        grid = grid.reshape(batch_size, anchors * crop_size, crop_size, 2)
+        sampled = F.grid_sample(
+            pixel_values,
+            grid,
+            mode="bilinear",
+            padding_mode="zeros",
+            align_corners=False,
+        )
+        sampled = sampled.reshape(
+            batch_size,
+            pixel_values.size(1),
+            anchors,
+            crop_size,
+            crop_size,
+        ).permute(0, 2, 1, 3, 4)
+        return sampled[anchor_mask.to(device=device)]
 
     def extract_rois(
         self,
@@ -324,6 +502,39 @@ class ChemOCRHead(nn.Module):
         *,
         roi_radius: float | None = None,
     ) -> torch.Tensor:
+        if self.config.ocr_pixel_enabled:
+            if self.config.ocr_pixel_multiscale:
+                encoded_scales = []
+                for radius in self.config.ocr_pixel_scale_radii:
+                    crops = self.extract_pixel_rois(
+                        feature_map,
+                        anchor_points,
+                        anchor_mask,
+                        pixel_size,
+                        roi_radius=float(radius),
+                    )
+                    encoded_scales.append(self.pixel_encoder(crops))
+                stacked = torch.stack(encoded_scales, dim=1)
+                pooled = stacked.mean(dim=(-1, -2))
+                scale_logits = self.pixel_scale_score(pooled).squeeze(-1)
+                scale_weights = scale_logits.softmax(dim=1)
+                encoded = (
+                    stacked
+                    * scale_weights[:, :, None, None, None]
+                ).sum(dim=1)
+            else:
+                crops = self.extract_pixel_rois(
+                    feature_map,
+                    anchor_points,
+                    anchor_mask,
+                    pixel_size,
+                    roi_radius=roi_radius,
+                )
+                encoded = self.pixel_encoder(crops)
+            tokens = encoded.flatten(2).transpose(1, 2)
+            positions = torch.arange(tokens.size(1), device=tokens.device)
+            memory = tokens + self.pixel_position_embedding(positions).unsqueeze(0)
+            return self.adapt_memory(memory)
         roi_tokens = self.extract_rois(
             feature_map,
             anchor_points,
@@ -333,7 +544,53 @@ class ChemOCRHead(nn.Module):
         )
         roi_tokens = self.roi_projection(roi_tokens)
         roi_positions = torch.arange(roi_tokens.size(1), device=roi_tokens.device)
-        return roi_tokens + self.roi_position_embedding(roi_positions).unsqueeze(0)
+        memory = roi_tokens + self.roi_position_embedding(roi_positions).unsqueeze(0)
+        return self.adapt_memory(memory)
+
+    def adapt_memory(self, memory: torch.Tensor) -> torch.Tensor:
+        if self.memory_adapter is None:
+            return memory
+        return memory + self.memory_adapter(memory)
+
+    def role_logits(self, memory: torch.Tensor) -> torch.Tensor:
+        if self.role_attention is None or self.role_classifier is None:
+            raise ValueError("OCR role head is not enabled")
+        weights = self.role_attention(memory).squeeze(-1).softmax(dim=-1)
+        pooled = (memory * weights.unsqueeze(-1)).sum(dim=1)
+        return self.role_classifier(pooled)
+
+    @staticmethod
+    def _encoded_text(text: str) -> list[int]:
+        return [1, *(byte + 3 for byte in text.encode("utf-8")), 2]
+
+    def common_targets(self, selected_ids: torch.Tensor) -> torch.Tensor:
+        other_class = len(OCR_COMMON_LABELS)
+        targets = torch.full(
+            (selected_ids.size(0),),
+            other_class,
+            dtype=torch.long,
+            device=selected_ids.device,
+        )
+        for class_id, text in enumerate(OCR_COMMON_LABELS):
+            encoded = self._encoded_text(text)
+            if len(encoded) > selected_ids.size(1):
+                continue
+            expected = torch.tensor(encoded, device=selected_ids.device)
+            prefix_matches = (selected_ids[:, : len(encoded)] == expected).all(dim=1)
+            suffix_matches = (
+                (selected_ids[:, len(encoded) :] == self.config.pad_token_id).all(dim=1)
+                if len(encoded) < selected_ids.size(1)
+                else torch.ones_like(prefix_matches)
+            )
+            targets[prefix_matches & suffix_matches] = class_id
+        return targets
+
+    def auxiliary_logits(
+        self,
+        memory: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        pooled = memory.mean(dim=1)
+        return self.blank_classifier(pooled), self.common_classifier(pooled)
 
     def decode(self, decoder_input_ids: torch.Tensor, memory: torch.Tensor) -> torch.Tensor:
         if decoder_input_ids.size(1) >= self.config.ocr_max_length:
@@ -366,6 +623,8 @@ class ChemOCRHead(nn.Module):
         anchor_mask: torch.Tensor,
         token_ids: torch.Tensor,
         pixel_size: tuple[int, int],
+        *,
+        role_targets: torch.Tensor | None = None,
     ) -> dict[str, torch.Tensor]:
         selected_ids = token_ids.to(device=feature_map.device)[
             anchor_mask.to(device=feature_map.device)
@@ -392,11 +651,89 @@ class ChemOCRHead(nn.Module):
         ).reshape_as(labels)
         valid = labels != self.config.pad_token_id
         loss = token_losses.sum() / valid.sum().clamp_min(1)
-        return {
+        output = {
             "ocr_loss": loss,
             "ocr_logits": logits,
             "ocr_labels": labels,
         }
+        if self.config.ocr_pixel_enabled:
+            blank_logits, common_logits = self.auxiliary_logits(memory)
+            blank_targets = (selected_ids[:, 1] == 2).long()
+            blank_loss = F.cross_entropy(blank_logits, blank_targets)
+            visible = blank_targets == 0
+            common_targets = self.common_targets(selected_ids)
+            if bool(visible.any()):
+                visible_targets = common_targets[visible]
+                class_count = common_logits.size(-1)
+                counts = torch.bincount(
+                    visible_targets,
+                    minlength=class_count,
+                ).to(dtype=common_logits.dtype)
+                present = counts > 0
+                class_weights = torch.zeros_like(counts)
+                class_weights[present] = (
+                    counts[present].float().rsqrt().to(dtype=class_weights.dtype)
+                )
+                class_weights = class_weights * (
+                    present.sum() / class_weights.sum().clamp_min(1e-6)
+                )
+                common_loss = F.cross_entropy(
+                    common_logits[visible],
+                    visible_targets,
+                    weight=class_weights,
+                )
+            else:
+                common_loss = loss.new_zeros(())
+            output.update(
+                {
+                    "ocr_token_loss": loss,
+                    "ocr_blank_loss": blank_loss,
+                    "ocr_common_loss": common_loss,
+                    "ocr_blank_logits": blank_logits,
+                    "ocr_common_logits": common_logits,
+                    "ocr_common_targets": common_targets,
+                    "ocr_loss": loss
+                    + self.config.ocr_blank_loss_weight * blank_loss
+                    + self.config.ocr_common_loss_weight * common_loss,
+                }
+            )
+        if role_targets is not None:
+            if self.role_classifier is None:
+                raise ValueError("OCR role targets require the role head")
+            selected_roles = role_targets.to(device=feature_map.device)[
+                anchor_mask.to(device=feature_map.device)
+            ]
+            logits = self.role_logits(memory)
+            role_loss = F.cross_entropy(logits, selected_roles)
+            output.update(
+                {
+                    "ocr_role_logits": logits,
+                    "ocr_role_targets": selected_roles,
+                    "ocr_role_loss": role_loss,
+                    "ocr_loss": output["ocr_loss"]
+                    + self.config.ocr_role_loss_weight * role_loss,
+                }
+            )
+        return output
+
+    def generate_with_roles(
+        self,
+        feature_map: torch.Tensor,
+        anchor_points: torch.Tensor,
+        anchor_mask: torch.Tensor,
+        pixel_size: tuple[int, int],
+        **kwargs,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        if self.role_classifier is None:
+            raise ValueError("OCR role head is not enabled")
+        memory = self.prepare_memory(
+            feature_map,
+            anchor_points,
+            anchor_mask,
+            pixel_size,
+            roi_radius=kwargs.get("roi_radius"),
+        )
+        return self.generate_from_memory(memory, **kwargs), self.role_logits(memory)
 
     @torch.no_grad()
     def generate(
@@ -409,6 +746,7 @@ class ChemOCRHead(nn.Module):
         bos_token_id: int = 1,
         eos_token_id: int = 2,
         roi_radius: float | None = None,
+        use_auxiliary_routing: bool | None = None,
     ) -> torch.Tensor:
         memory = self.prepare_memory(
             feature_map,
@@ -417,25 +755,80 @@ class ChemOCRHead(nn.Module):
             pixel_size,
             roi_radius=roi_radius,
         )
-        token_ids = torch.full(
-            (memory.size(0), 1),
-            bos_token_id,
+        return self.generate_from_memory(
+            memory,
+            bos_token_id=bos_token_id,
+            eos_token_id=eos_token_id,
+            use_auxiliary_routing=use_auxiliary_routing,
+        )
+
+    @torch.no_grad()
+    def generate_from_memory(
+        self,
+        memory: torch.Tensor,
+        *,
+        bos_token_id: int = 1,
+        eos_token_id: int = 2,
+        use_auxiliary_routing: bool | None = None,
+        **_unused,
+    ) -> torch.Tensor:
+        routed: list[list[int] | None] = [None] * memory.size(0)
+        unknown_indices = torch.arange(memory.size(0), device=memory.device)
+        if use_auxiliary_routing is None:
+            use_auxiliary_routing = self.config.ocr_auxiliary_routing
+        if self.config.ocr_pixel_enabled and use_auxiliary_routing:
+            blank_logits, common_logits = self.auxiliary_logits(memory)
+            blank = blank_logits.argmax(dim=-1) == 1
+            common = common_logits.argmax(dim=-1)
+            other_class = len(OCR_COMMON_LABELS)
+            for index in range(memory.size(0)):
+                if bool(blank[index]):
+                    routed[index] = [eos_token_id]
+                elif int(common[index]) != other_class:
+                    text = OCR_COMMON_LABELS[int(common[index])]
+                    routed[index] = self._encoded_text(text)[1:]
+            unknown_indices = torch.tensor(
+                [index for index, value in enumerate(routed) if value is None],
+                device=memory.device,
+                dtype=torch.long,
+            )
+        if unknown_indices.numel():
+            unknown_memory = memory.index_select(0, unknown_indices)
+            token_ids = torch.full(
+                (unknown_memory.size(0), 1),
+                bos_token_id,
+                dtype=torch.long,
+                device=memory.device,
+            )
+            finished = torch.zeros(
+                unknown_memory.size(0),
+                dtype=torch.bool,
+                device=memory.device,
+            )
+            for _ in range(self.config.ocr_max_length - 1):
+                next_token = self.decode(token_ids, unknown_memory)[:, -1].argmax(dim=-1)
+                next_token = torch.where(
+                    finished,
+                    torch.full_like(next_token, self.config.pad_token_id),
+                    next_token,
+                )
+                token_ids = torch.cat((token_ids, next_token[:, None]), dim=1)
+                finished |= next_token == eos_token_id
+                if bool(finished.all()):
+                    break
+            for result_index, source_index in enumerate(unknown_indices.tolist()):
+                routed[source_index] = token_ids[result_index, 1:].tolist()
+        maximum_length = max(len(value) for value in routed if value is not None)
+        output = torch.full(
+            (len(routed), maximum_length),
+            self.config.pad_token_id,
             dtype=torch.long,
             device=memory.device,
         )
-        finished = torch.zeros(memory.size(0), dtype=torch.bool, device=memory.device)
-        for _ in range(self.config.ocr_max_length - 1):
-            next_token = self.decode(token_ids, memory)[:, -1].argmax(dim=-1)
-            next_token = torch.where(
-                finished,
-                torch.full_like(next_token, self.config.pad_token_id),
-                next_token,
-            )
-            token_ids = torch.cat((token_ids, next_token[:, None]), dim=1)
-            finished |= next_token == eos_token_id
-            if bool(finished.all()):
-                break
-        return token_ids[:, 1:]
+        for index, value in enumerate(routed):
+            if value is not None:
+                output[index, : len(value)] = torch.tensor(value, device=memory.device)
+        return output
 
 
 class ChemStrokeScorer(nn.Module):
@@ -465,6 +858,17 @@ class ChemStrokeScorer(nn.Module):
             nn.Dropout(config.dropout),
             nn.Linear(channels, config.stroke_classes),
         )
+        if config.structure_residual_adapter:
+            self.pair_feature_adapter = nn.Sequential(
+                nn.LayerNorm(channels * 2),
+                nn.Linear(channels * 2, config.structure_adapter_dim),
+                nn.GELU(),
+                nn.Linear(config.structure_adapter_dim, channels),
+            )
+            nn.init.zeros_(self.pair_feature_adapter[-1].weight)
+            nn.init.zeros_(self.pair_feature_adapter[-1].bias)
+        else:
+            self.pair_feature_adapter = None
 
     def extract_line_bands(
         self,
@@ -580,7 +984,10 @@ class ChemStrokeScorer(nn.Module):
         line_features = self.line_encoder(line_bands).flatten(1)
         geometry_features = self.geometry_encoder(geometry)
         hidden = torch.cat((line_features, geometry_features), dim=-1)
-        return self.classifier[:3](hidden)
+        pair_features = self.classifier[:3](hidden)
+        if self.pair_feature_adapter is not None:
+            pair_features = pair_features + self.pair_feature_adapter(hidden)
+        return pair_features
 
     def forward(
         self,
@@ -613,12 +1020,32 @@ class ChemFactorizedRelationHead(nn.Module):
         )
         self.edge = nn.Linear(channels, 1)
         self.bond = nn.Linear(channels, config.relation_bond_classes)
+        if config.structure_residual_adapter:
+            self.logit_adapter = nn.Sequential(
+                nn.LayerNorm(channels),
+                nn.Linear(channels, config.structure_adapter_dim),
+                nn.GELU(),
+                nn.Linear(
+                    config.structure_adapter_dim,
+                    1 + config.relation_bond_classes,
+                ),
+            )
+            nn.init.zeros_(self.logit_adapter[-1].weight)
+            nn.init.zeros_(self.logit_adapter[-1].bias)
+        else:
+            self.logit_adapter = None
 
     def forward(self, pair_features: torch.Tensor) -> dict[str, torch.Tensor]:
         hidden = self.shared(pair_features)
+        edge_logits = self.edge(hidden).squeeze(-1)
+        bond_logits = self.bond(hidden)
+        if self.logit_adapter is not None:
+            residual = self.logit_adapter(pair_features)
+            edge_logits = edge_logits + residual[:, 0]
+            bond_logits = bond_logits + residual[:, 1:]
         return {
-            "edge_logits": self.edge(hidden).squeeze(-1),
-            "bond_logits": self.bond(hidden),
+            "edge_logits": edge_logits,
+            "bond_logits": bond_logits,
         }
 
 
@@ -638,13 +1065,36 @@ class ChemVertexDetector(nn.Module):
         self.offset = nn.Conv2d(channels, 2, kernel_size=1)
         self.aromatic = nn.Conv2d(channels, 1, kernel_size=1)
         nn.init.constant_(self.heatmap.bias, -4.6)
+        if config.structure_residual_adapter:
+            self.output_adapter = nn.Sequential(
+                nn.Conv2d(
+                    config.vision_dims[0],
+                    config.structure_adapter_dim,
+                    kernel_size=3,
+                    padding=1,
+                ),
+                nn.GELU(),
+                nn.Conv2d(config.structure_adapter_dim, 4, kernel_size=1),
+            )
+            nn.init.zeros_(self.output_adapter[-1].weight)
+            nn.init.zeros_(self.output_adapter[-1].bias)
+        else:
+            self.output_adapter = None
 
     def forward(self, feature_map: torch.Tensor) -> dict[str, torch.Tensor]:
         hidden = self.shared(feature_map)
+        heatmap = self.heatmap(hidden)
+        offset = self.offset(hidden)
+        aromatic = self.aromatic(hidden)
+        if self.output_adapter is not None:
+            residual = self.output_adapter(feature_map)
+            heatmap = heatmap + residual[:, 0:1]
+            offset = offset + residual[:, 1:3]
+            aromatic = aromatic + residual[:, 3:4]
         return {
-            "vertex_heatmap_logits": self.heatmap(hidden),
-            "vertex_offset_logits": self.offset(hidden),
-            "vertex_aromatic_logits": self.aromatic(hidden),
+            "vertex_heatmap_logits": heatmap,
+            "vertex_offset_logits": offset,
+            "vertex_aromatic_logits": aromatic,
         }
 
 
@@ -699,7 +1149,22 @@ class ChemVectorModel(nn.Module):
         self,
         pixel_values: torch.Tensor,
     ) -> tuple[torch.Tensor, torch.Tensor]:
+        if self.config.ocr_pixel_enabled:
+            return self.vision_encoder(pixel_values), pixel_values
         return self.vision_encoder.forward_with_high_resolution(pixel_values)
+
+    def ocr_source(
+        self,
+        pixel_values: torch.Tensor,
+        stroke_features: torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        if self.config.ocr_pixel_enabled:
+            return pixel_values
+        if stroke_features is not None:
+            return self.vision_encoder.forward_high_resolution_from_stroke(
+                stroke_features
+            )
+        return self.vision_encoder.forward_high_resolution(pixel_values)
 
     def decode(
         self,

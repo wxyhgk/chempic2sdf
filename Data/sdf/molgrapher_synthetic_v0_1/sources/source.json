@@ -1,0 +1,37 @@
+{
+  "dataset": "docling-project/MolGrapher-Synthetic-300K",
+  "original_dataset_id": "ds4sd/MolGrapher-Synthetic-300K",
+  "revision": "8a13a6a5d29ae40f98c6b92a5ca8b139d0e0a945",
+  "license": "CDLA-Permissive-1.0",
+  "transport": "https://hf-mirror.com",
+  "official_train_examples": 219068,
+  "official_validation_examples": 27383,
+  "official_test_examples": 27384,
+  "files": [
+    {
+      "path": "data/train-00001-of-00022-1ce0d4a51f2c14a0.parquet",
+      "bytes": 474383535,
+      "sha256": "31a5136d01e4651b3fa395c311df52b3717c780e7f68228085a8e700fd3e1451"
+    },
+    {
+      "path": "data/train-00005-of-00022-44651cf451d123f4.parquet",
+      "bytes": 474274493,
+      "sha256": "6ca719cdc9921c3e06157689950e6d256ca2dae9b3064ec77af2ad909d8f7622"
+    },
+    {
+      "path": "data/train-00010-of-00022-54fcc0342d60b3d0.parquet",
+      "bytes": 471403206,
+      "sha256": "bf8285b26cffb88cbfa786d65b1a3a9060b1651722a66515346700fd0b674fb1"
+    },
+    {
+      "path": "data/train-00015-of-00022-ad0ab8937dd570dd.parquet",
+      "bytes": 472780630,
+      "sha256": "8dc07422c82bdfd987b816f0cc45c94f5831b36d7708ba58b30b5edf76c7d1d1"
+    },
+    {
+      "path": "data/validation-00000-of-00003-3d13adab91c1cb05.parquet",
+      "bytes": 436551448,
+      "sha256": "b581f98564334d87282d3c9d139d21da50697ec19866d9bf88c2b42846302c8a"
+    }
+  ]
+}

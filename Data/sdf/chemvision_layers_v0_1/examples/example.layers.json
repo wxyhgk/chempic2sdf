@@ -1,0 +1,69 @@
+{
+  "schema_version": "chemvision-layers-0.1",
+  "sample_key": "train_000001_rdkit_font24",
+  "source": {
+    "dataset": "webdataset_full_v0",
+    "source_sample_key": "train_000001_rdkit",
+    "source_shard": "train-000000.tar"
+  },
+  "molecule_id": "chembl:CHEMBL_EXAMPLE",
+  "split": "train",
+  "variant": "rdkit",
+  "width": 768,
+  "height": 768,
+  "mask_encoding": {
+    "background": 0,
+    "bond": 1,
+    "text": 2,
+    "overlap": 3
+  },
+  "atoms": [
+    {
+      "atom_id": 0,
+      "element": "N",
+      "formal_charge": 0,
+      "aromatic": false,
+      "implicit_h_count": 0,
+      "center": [315.4, 228.1],
+      "visible_text": true,
+      "text": "N",
+      "bbox": [304.2, 216.0, 326.8, 241.5]
+    },
+    {
+      "atom_id": 1,
+      "element": "C",
+      "formal_charge": 0,
+      "aromatic": false,
+      "implicit_h_count": 3,
+      "center": [370.0, 260.0],
+      "visible_text": false,
+      "text": "",
+      "bbox": null
+    }
+  ],
+  "bonds": [
+    {
+      "bond_id": 0,
+      "begin_atom": 0,
+      "end_atom": 1,
+      "begin": [315.4, 228.1],
+      "end": [370.0, 260.0],
+      "chemical_type": "SINGLE",
+      "display_type": "SINGLE",
+      "direction": "NONE",
+      "bbox": [313.0, 226.0, 372.0, 262.0]
+    }
+  ],
+  "render_parameters": {
+    "renderer_id": "rdkit-svg-semantic-0.1",
+    "rdkit_version": "2026.03.3",
+    "font_family_id": "example-font-regular",
+    "font_file_sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    "font_size": 24,
+    "bond_line_width": 2.0,
+    "rotation_degrees": 8.0,
+    "layout": "rdkit",
+    "stress_operation": null,
+    "color_mode": "black_white"
+  }
+}

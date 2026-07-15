@@ -1,0 +1,85 @@
+{
+  "schema_version": "public-ocsr-source-0.1",
+  "dataset_id": "ds4sd/USPTO-30K",
+  "resolved_dataset_id": "docling-project/USPTO-30K",
+  "source_url": "https://huggingface.co/datasets/ds4sd/USPTO-30K",
+  "resolved_source_url": "https://huggingface.co/datasets/docling-project/USPTO-30K",
+  "revision": "58b3a773f01816d62126f11dec4d5e033e8ebf9d",
+  "downloaded_at": "2026-07-15T17:33:26+08:00",
+  "download_tool": "huggingface_hub.snapshot_download",
+  "download_tool_version": "1.7.1",
+  "transport_endpoint": "https://hf-mirror.com",
+  "transport_note": "The canonical Hugging Face endpoint reset connections from the available proxy. hf-mirror.com was used only as a byte-preserving transport mirror for the fixed official revision.",
+  "license_from_dataset_card": null,
+  "license_file": "raw/uspto_30k/LICENSE.txt",
+  "license_file_title": "Community Data License Agreement - Permissive - Version 1.0",
+  "dataset_card_sha256": "f10d5e4852c65132cf25c2b00c9639f20b0ad2ed05137a9bffa296b130085a17",
+  "official_subsets": {
+    "uspto_10k": {
+      "official_split": "clean",
+      "records": 10000,
+      "file": "raw/uspto_30k/data/clean-00000-of-00001-02aa6c7b94ad0558.parquet"
+    },
+    "uspto_10k_l": {
+      "official_split": "large",
+      "records": 10000,
+      "file": "raw/uspto_30k/data/large-00000-of-00001-f5d3831bafd282ee.parquet"
+    },
+    "uspto_10k_abb": {
+      "official_split": "abbreviated",
+      "records": 10000,
+      "file": "raw/uspto_30k/data/abbreviated-00000-of-00001-237521ab94ab0a1a.parquet"
+    }
+  },
+  "field_mapping": {
+    "filename": "source_record_id",
+    "image.bytes": "official_image_bytes",
+    "image.path": "official_image_filename",
+    "mol": "official_v2000_molfile_text"
+  },
+  "parquet_schema": {
+    "filename": "string",
+    "image": "struct<bytes: binary, path: string>",
+    "mol": "string"
+  },
+  "files": [
+    {
+      "path": "raw/uspto_30k/.gitattributes",
+      "bytes": 2307,
+      "sha256": "f4e703ea6e44bbebe53aceed2a89c11e40b88b7ae130c480c89860ab805ffc8f"
+    },
+    {
+      "path": "raw/uspto_30k/LICENSE.txt",
+      "bytes": 10461,
+      "sha256": "2d6f51b40d9b47e2b01e1503e8e16230b5745bc927ae9024f734e36fcee8e7f5"
+    },
+    {
+      "path": "raw/uspto_30k/README.md",
+      "bytes": 2003,
+      "sha256": "f10d5e4852c65132cf25c2b00c9639f20b0ad2ed05137a9bffa296b130085a17"
+    },
+    {
+      "path": "raw/uspto_30k/data/abbreviated-00000-of-00001-237521ab94ab0a1a.parquet",
+      "bytes": 60481527,
+      "sha256": "284d5b92617dc530975629b950b813fc0eb3f49cf369e67ccdebf1078c71efd0"
+    },
+    {
+      "path": "raw/uspto_30k/data/clean-00000-of-00001-02aa6c7b94ad0558.parquet",
+      "bytes": 64408849,
+      "sha256": "bd9951dc3705dad2ef688c8d2c1a8b3c4db3f0e08273577960bf0153b052443b"
+    },
+    {
+      "path": "raw/uspto_30k/data/large-00000-of-00001-f5d3831bafd282ee.parquet",
+      "bytes": 166444372,
+      "sha256": "990a2d87e1d277094b4ff1298f6ec684f48dcea0a6a9c8b7244dd4122e425665"
+    },
+    {
+      "path": "raw/uspto_30k/dataset_explorer.ipynb",
+      "bytes": 48528,
+      "sha256": "c766ca78a1b0525df0206831dc8058365c7eadcfb2c07b727d00d44436d383fa"
+    }
+  ],
+  "lfs_sha256_verified": true,
+  "audit_tool": "pyarrow",
+  "audit_tool_version": "21.0.0"
+}

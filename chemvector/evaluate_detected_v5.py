@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 import time
 
-from rdkit import Chem
+from rdkit import Chem, RDLogger
 import torch
 
 from Data.sdf.chemsvg_sequence_v4 import mol_from_chemsvg_v4, parse_chemsvg_v4
@@ -48,6 +48,7 @@ def main() -> None:
     parser.add_argument("--ocr-roi-radius", type=float, default=20.0)
     parser.add_argument("--vertex-tolerance-pixels", type=float, default=6.0)
     parser.add_argument("--failure-overlays", type=int, default=20)
+    parser.add_argument("--summary-every", type=int, default=10)
     parser.add_argument("--reject-keys-file")
     args = parser.parse_args()
     if args.device == "cuda" and not torch.cuda.is_available():
@@ -58,6 +59,9 @@ def main() -> None:
         raise ValueError("samples must be positive")
     if args.cpu_threads < 1:
         raise ValueError("cpu_threads must be positive")
+    if args.summary_every < 0:
+        raise ValueError("summary-every must be nonnegative")
+    RDLogger.DisableLog("rdApp.*")
     torch.set_num_threads(args.cpu_threads)
 
     output_dir = Path(args.output_dir)
@@ -200,7 +204,9 @@ def main() -> None:
                 encoding="utf-8",
             )
             overlays += 1
-        if len(records) % 10 == 0 or len(records) == args.samples:
+        if args.summary_every and (
+            len(records) % args.summary_every == 0 or len(records) == args.samples
+        ):
             summary = summarize(records)
             (output_dir / "summary.json").write_text(
                 json.dumps(summary, ensure_ascii=False, indent=2) + "\n",

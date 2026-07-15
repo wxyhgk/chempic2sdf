@@ -1,0 +1,6 @@
+font_family_id,font_family,font_style,font_file,font_file_sha256,license,license_url,split
+dejavu-sans,DejaVu Sans,Book,fonts/DejaVuSans.ttf,690243adfefe0ce154b547db6205794bd30ac4277275179517a90994f4980648,Bitstream Vera License / DejaVu public-domain additions,https://dejavu-fonts.github.io/License.html,train
+liberation-sans,Liberation Sans,Regular,fonts/LiberationSans-Regular.ttf,8d91388f1d3604b3b8ae0e3ee2d140e50cd6122f9214514f4aca772540a4076d,SIL Open Font License 1.1,https://openfontlicense.org/open-font-license-official-text/,train
+gnu-free-sans,FreeSans,Regular,fonts/FreeSans.ttf,b59dd5eeab73f77897ae0144a6b443a004efa6a90a5e1a5b550ea28978cd38e8,GPL-3+ with Special Font Exception,https://www.gnu.org/software/freefont/license.html,train
+dejavu-serif,DejaVu Serif,Book,fonts/DejaVuSerif.ttf,3731a19f2b50d86d81dd1a1effcd81492ed1fa44f6ea904792dd98fdae9b3dfe,Bitstream Vera License / DejaVu public-domain additions,https://dejavu-fonts.github.io/License.html,validation
+liberation-serif,Liberation Serif,Regular,fonts/LiberationSerif-Regular.ttf,29d12439831b7f59194efec85872f24f54eff05738933f9a860220d2abff88ba,SIL Open Font License 1.1,https://openfontlicense.org/open-font-license-official-text/,internal_test

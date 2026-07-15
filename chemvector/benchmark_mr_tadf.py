@@ -12,16 +12,25 @@ from pathlib import Path
 import time
 
 from PIL import Image
-from rdkit import Chem, RDLogger
-from rdkit.Chem import rdMolDescriptors
+from rdkit import Chem, DataStructs, RDLogger
+from rdkit.Chem import rdFingerprintGenerator, rdMolDescriptors
 import torch
 
-from Data.sdf.chemsvg_sequence_v4 import mol_from_chemsvg_v4
+from Data.sdf.chemsvg_sequence_v4 import (
+    diagnostic_mol_from_chemsvg_v4,
+    mol_from_chemsvg_v4,
+    parse_chemsvg_v4,
+)
+from chemvector.benchmark_diagnostics import diagnose_chemsvg, summarize_diagnostics
 from chemvector.evaluate import load_model
 from chemvector.image_io import image_tensor
 from chemvector.parallel_v6 import generate_parallel_chemsvg_v6, strip_autoregressive_modules
 from chemvector.repair_v4 import InkGraphRepairConfig, repair_chemsvg_v4_from_image
-from chemvector.sdf_io import write_sdf_v4
+from chemvector.structure_gate import (
+    expert_route_probability,
+    load_packed_structure_expert,
+    load_structure_gate,
+)
 
 
 def failure_category(error: Exception) -> str:
@@ -79,11 +88,27 @@ def summarize_records(records: list[dict]) -> dict:
             },
         }
     )
+    if any(record.get("diagnostics") for record in records):
+        summary["error_diagnostics"] = summarize_diagnostics(records)
     return summary
 
 
-def canonical_smiles(mol: Chem.Mol, *, isomeric: bool) -> str:
-    return Chem.MolToSmiles(mol, canonical=True, isomericSmiles=isomeric)
+def nonstereo_inchikey(mol: Chem.Mol) -> str:
+    copy = Chem.Mol(mol)
+    Chem.RemoveStereochemistry(copy)
+    return Chem.MolToInchiKey(copy)
+
+
+def molecular_similarity(expected: Chem.Mol, predicted: Chem.Mol) -> float:
+    generator = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=2048)
+    expected_fingerprint = generator.GetFingerprint(expected)
+    predicted_fingerprint = generator.GetFingerprint(predicted)
+    return float(
+        DataStructs.TanimotoSimilarity(
+            expected_fingerprint,
+            predicted_fingerprint,
+        )
+    )
 
 
 def sha256_file(path: Path) -> str:
@@ -115,12 +140,185 @@ def ensure_benchmark_config(config_path: Path, config: dict) -> None:
     )
 
 
+def write_prediction_sdf(
+    mol: Chem.Mol,
+    path: Path,
+    *,
+    sanitize: bool,
+) -> Chem.Mol:
+    """Write the delivered SDF and return the molecule read back from that file."""
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f".{path.name}.tmp")
+    try:
+        writer = Chem.SDWriter(str(temporary))
+        if not sanitize:
+            writer.SetKekulize(False)
+        try:
+            writer.write(mol)
+        finally:
+            writer.close()
+        written = Chem.MolFromMolFile(
+            str(temporary),
+            sanitize=sanitize,
+            removeHs=False,
+            strictParsing=False,
+        )
+        if written is None:
+            raise ValueError("RDKit could not read back the generated SDF")
+        temporary.replace(path)
+        return written
+    except Exception:
+        temporary.unlink(missing_ok=True)
+        raise
+
+
+def write_manual_diagnostic_sdf(sequence: str, path: Path) -> tuple[int, int]:
+    """Write a V3000 diagnostic SDF when RDKit cannot serialize an invalid graph."""
+
+    parsed = parse_chemsvg_v4(sequence)
+    coordinate_to_atom = {
+        (vertex.x, vertex.y): index
+        for index, vertex in enumerate(parsed.vertices, start=1)
+    }
+    bond_types = {"SINGLE": 1, "DOUBLE": 2, "TRIPLE": 3, "AROMATIC": 4}
+    lines = [
+        "ChemVector diagnostic prediction",
+        "  ChemVector",
+        "",
+        "  0  0  0  0  0  0  0  0  0  0999 V3000",
+        "M  V30 BEGIN CTAB",
+        f"M  V30 COUNTS {len(parsed.vertices)} {len(parsed.strokes)} 0 0 0",
+        "M  V30 BEGIN ATOM",
+    ]
+    for atom_id, vertex in enumerate(parsed.vertices, start=1):
+        properties = []
+        if vertex.formal_charge:
+            properties.append(f"CHG={vertex.formal_charge}")
+        if vertex.isotope:
+            properties.append(f"MASS={vertex.isotope}")
+        if vertex.radical_electrons:
+            properties.append(f"RAD={min(vertex.radical_electrons + 1, 3)}")
+        suffix = f" {' '.join(properties)}" if properties else ""
+        lines.append(
+            f"M  V30 {atom_id} {vertex.element} {vertex.x / 100.0:.6f} "
+            f"{-vertex.y / 100.0:.6f} 0.000000 0{suffix}"
+        )
+    lines.extend(("M  V30 END ATOM", "M  V30 BEGIN BOND"))
+    for bond_id, stroke in enumerate(parsed.strokes, start=1):
+        lines.append(
+            f"M  V30 {bond_id} {bond_types[stroke.bond_type]} "
+            f"{coordinate_to_atom[stroke.begin]} {coordinate_to_atom[stroke.end]}"
+        )
+    lines.extend(
+        (
+            "M  V30 END BOND",
+            "M  V30 END CTAB",
+            "M  END",
+            ">  <CHEMVECTOR_STATUS>",
+            "invalid",
+            "",
+            ">  <CHEMSVG_SEQUENCE>",
+            sequence.rstrip(),
+            "",
+            "$$$$",
+            "",
+        )
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f".{path.name}.tmp")
+    temporary.write_text("\n".join(lines), encoding="utf-8")
+    temporary.replace(path)
+    return len(parsed.vertices), len(parsed.strokes)
+
+
+def write_invalid_prediction_sdf(sequence: str, path: Path) -> tuple[int, int]:
+    try:
+        diagnostic_mol = diagnostic_mol_from_chemsvg_v4(sequence)
+        written = write_prediction_sdf(diagnostic_mol, path, sanitize=False)
+        return written.GetNumAtoms(), written.GetNumBonds()
+    except Exception:
+        return write_manual_diagnostic_sdf(sequence, path)
+
+
+def backfill_prediction_artifacts(records: list[dict], output_dir: Path) -> bool:
+    """Fill SDF artifacts from saved ChemSVG without rerunning model inference."""
+
+    changed = False
+    sdf_dir = output_dir / "sdf"
+    for record in records:
+        molecule_id = record["molecule_id"]
+        raw_sequence_path = (
+            output_dir / "raw_chemsvg" / f"{molecule_id}.chemsvg.txt"
+        )
+        repaired_sequence_path = (
+            output_dir / "repaired_chemsvg" / f"{molecule_id}.chemsvg.txt"
+        )
+        if raw_sequence_path.is_file() and "raw_strokes" not in record:
+            parsed = parse_chemsvg_v4(raw_sequence_path.read_text(encoding="utf-8"))
+            record["raw_vertices"] = len(parsed.vertices)
+            record["raw_strokes"] = len(parsed.strokes)
+            changed = True
+        if repaired_sequence_path.is_file() and "repaired_strokes" not in record:
+            parsed = parse_chemsvg_v4(
+                repaired_sequence_path.read_text(encoding="utf-8")
+            )
+            record["repaired_vertices"] = len(parsed.vertices)
+            record["repaired_strokes"] = len(parsed.strokes)
+            changed = True
+        relative = record.get("prediction_sdf_file")
+        if relative and (output_dir / relative).is_file():
+            continue
+        if record.get("sdf_valid"):
+            sequence_path = (
+                output_dir / "repaired_chemsvg" / f"{molecule_id}.chemsvg.txt"
+            )
+            prefix = "correct" if record.get("chemical_match") else "wrong"
+            sanitize = True
+        else:
+            sequence_path = (
+                repaired_sequence_path
+                if repaired_sequence_path.is_file()
+                else raw_sequence_path
+            )
+            prefix = "invalid"
+            sanitize = False
+        if not sequence_path.is_file():
+            continue
+        try:
+            sequence = sequence_path.read_text(encoding="utf-8")
+            final_sdf = sdf_dir / f"{prefix}_{molecule_id}.sdf"
+            if sanitize:
+                mol = mol_from_chemsvg_v4(sequence)
+                written = write_prediction_sdf(mol, final_sdf, sanitize=True)
+            else:
+                atom_count, bond_count = write_invalid_prediction_sdf(
+                    sequence,
+                    final_sdf,
+                )
+                written = None
+            record["predicted_atoms"] = (
+                written.GetNumAtoms() if written is not None else atom_count
+            )
+            record["predicted_bonds"] = (
+                written.GetNumBonds() if written is not None else bond_count
+            )
+            record["prediction_sdf_file"] = str(final_sdf.relative_to(output_dir))
+            record.pop("diagnostic_sdf_error", None)
+            changed = True
+        except Exception as error:
+            record["diagnostic_sdf_error"] = str(error)
+    return changed
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--checkpoint",
         default="outputs/checkpoints/chemvector-v5-vertex-10k/last.pt",
     )
+    parser.add_argument("--gate-checkpoint")
+    parser.add_argument("--gate-threshold", type=float, default=0.9)
     parser.add_argument(
         "--benchmark-manifest",
         default="Data/benchmarks/mr_tadf_v1/manifest.csv",
@@ -136,7 +334,17 @@ def main() -> None:
     parser.add_argument("--edge-threshold", type=float, default=0.5)
     parser.add_argument("--ocr-roi-radius", type=float, default=20.0)
     parser.add_argument("--maximum-vertices", type=int, default=128)
-    parser.add_argument("--save-sdf", action="store_true")
+    parser.add_argument(
+        "--no-save-artifacts",
+        action="store_true",
+        help="Do not retain predicted ChemSVG and valid SDF artifacts.",
+    )
+    parser.add_argument("--save-sdf", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument(
+        "--repair-candidate-mode",
+        choices=("all", "model", "model_connect"),
+        default="all",
+    )
     args = parser.parse_args()
 
     if args.device == "cuda" and not torch.cuda.is_available():
@@ -145,6 +353,8 @@ def main() -> None:
         raise ValueError("samples must be positive")
     if args.cpu_threads < 1 or args.maximum_vertices < 1:
         raise ValueError("CPU threads and maximum vertices must be positive")
+    if not 0.0 <= args.gate_threshold <= 1.0:
+        raise ValueError("gate-threshold must be in [0, 1]")
     RDLogger.DisableLog("rdApp.*")
     torch.set_num_threads(args.cpu_threads)
     device = torch.device(args.device)
@@ -166,6 +376,15 @@ def main() -> None:
             for line in records_path.read_text(encoding="utf-8").splitlines()
             if line.strip()
         ]
+    if backfill_prediction_artifacts(records, output_dir):
+        temporary_records = records_path.with_suffix(".jsonl.tmp")
+        temporary_records.write_text(
+            "".join(
+                json.dumps(record, ensure_ascii=False) + "\n" for record in records
+            ),
+            encoding="utf-8",
+        )
+        temporary_records.replace(records_path)
     completed = {record["molecule_id"] for record in records}
     checkpoint_path = Path(args.checkpoint)
     config = {
@@ -178,14 +397,35 @@ def main() -> None:
         "edge_threshold": args.edge_threshold,
         "ocr_roi_radius": args.ocr_roi_radius,
         "maximum_vertices": args.maximum_vertices,
+        "repair_candidate_mode": args.repair_candidate_mode,
+        "gate_checkpoint": args.gate_checkpoint,
+        "gate_threshold": args.gate_threshold if args.gate_checkpoint else None,
     }
     config_path = output_dir / "benchmark_config.json"
     ensure_benchmark_config(config_path, config)
 
     model, _ = load_model(checkpoint_path, device)
     strip_autoregressive_modules(model)
+    gate = None
+    expert_model = None
+    if args.gate_checkpoint:
+        gate, gate_payload = load_structure_gate(args.gate_checkpoint, device)
+        if Path(gate_payload["base_checkpoint"]).resolve() != checkpoint_path.resolve():
+            raise ValueError("Gate base checkpoint does not match --checkpoint")
+        if "expert_structure_tensors" in gate_payload:
+            expert_model = load_packed_structure_expert(model, gate_payload, device)
+        else:
+            expert_model, _ = load_model(
+                Path(gate_payload["expert_checkpoint"]), device
+            )
+            strip_autoregressive_modules(expert_model)
+    raw_sequence_dir = output_dir / "raw_chemsvg"
+    repaired_sequence_dir = output_dir / "repaired_chemsvg"
     sdf_dir = output_dir / "sdf"
-    if args.save_sdf:
+    save_artifacts = not args.no_save_artifacts or args.save_sdf
+    if save_artifacts:
+        raw_sequence_dir.mkdir(parents=True, exist_ok=True)
+        repaired_sequence_dir.mkdir(parents=True, exist_ok=True)
         sdf_dir.mkdir(parents=True, exist_ok=True)
 
     for row in benchmark_rows:
@@ -201,7 +441,10 @@ def main() -> None:
         )
         if expected is None:
             raise ValueError(f"Cannot read benchmark ground truth: {row['sdf_file']}")
-        expected_nonstereo = canonical_smiles(expected, isomeric=False)
+        annotation = json.loads(
+            (benchmark_root / row["annotation_file"]).read_text(encoding="utf-8")
+        )
+        expected_nonstereo_key = nonstereo_inchikey(expected)
         record = {
             "molecule_id": molecule_id,
             "difficulty": row["difficulty"],
@@ -219,47 +462,126 @@ def main() -> None:
             "nonstereo_structure_match": False,
             "chemical_match": False,
         }
+        inference_model = model
+        if gate is not None:
+            route_probability = expert_route_probability(model, gate, pixels)
+            record["expert_route_probability"] = route_probability
+            record["selected_expert"] = route_probability >= args.gate_threshold
+            if record["selected_expert"]:
+                inference_model = expert_model
+        diagnostic_sequence = None
+        pending_sdf = None
         started = time.perf_counter()
         try:
             generated = generate_parallel_chemsvg_v6(
-                model,
+                inference_model,
                 pixels,
                 vertex_threshold=args.vertex_threshold,
                 maximum_vertices=args.maximum_vertices,
                 edge_threshold=args.edge_threshold,
                 ocr_roi_radius=args.ocr_roi_radius,
             )
+            diagnostic_sequence = generated.sequence
+            if save_artifacts:
+                (raw_sequence_dir / f"{molecule_id}.chemsvg.txt").write_text(
+                    generated.sequence,
+                    encoding="utf-8",
+                )
+            record["raw_vertices"] = len(generated.vertices)
+            record["raw_strokes"] = len(generated.strokes)
             repaired = repair_chemsvg_v4_from_image(
                 generated.sequence,
                 image,
-                config=InkGraphRepairConfig(aromatic_vote_source="vertices"),
+                pair_predictions=generated.pair_predictions,
+                config=InkGraphRepairConfig(
+                    aromatic_vote_source="vertices",
+                    candidate_pair_mode=args.repair_candidate_mode,
+                ),
+                validate_chemistry=False,
             )
+            diagnostic_sequence = repaired.sequence
+            if save_artifacts:
+                (
+                    repaired_sequence_dir / f"{molecule_id}.chemsvg.txt"
+                ).write_text(
+                    repaired.sequence,
+                    encoding="utf-8",
+                )
+            record["repaired_vertices"] = repaired.vertices
+            record["repaired_strokes"] = repaired.strokes
+            record["model_bridge_strokes"] = repaired.model_bridge_strokes
             predicted = mol_from_chemsvg_v4(repaired.sequence)
-            actual_smiles = canonical_smiles(predicted, isomeric=True)
-            actual_nonstereo = canonical_smiles(predicted, isomeric=False)
-            actual_inchikey = Chem.MolToInchiKey(predicted)
+            pending_sdf = sdf_dir / f"pending_{molecule_id}.sdf"
+            delivered = (
+                write_prediction_sdf(predicted, pending_sdf, sanitize=True)
+                if save_artifacts
+                else predicted
+            )
+            actual_inchikey = Chem.MolToInchiKey(delivered)
+            actual_nonstereo_key = nonstereo_inchikey(delivered)
             record.update(
                 {
                     "sdf_valid": True,
-                    "predicted_atoms": predicted.GetNumAtoms(),
-                    "predicted_bonds": predicted.GetNumBonds(),
-                    "actual_formula": rdMolDescriptors.CalcMolFormula(predicted),
-                    "actual_smiles": actual_smiles,
+                    "predicted_atoms": delivered.GetNumAtoms(),
+                    "predicted_bonds": delivered.GetNumBonds(),
+                    "actual_formula": rdMolDescriptors.CalcMolFormula(delivered),
                     "actual_inchikey": actual_inchikey,
-                    "formula_match": rdMolDescriptors.CalcMolFormula(predicted)
+                    "fingerprint_similarity": molecular_similarity(
+                        expected,
+                        delivered,
+                    ),
+                    "formula_match": rdMolDescriptors.CalcMolFormula(delivered)
                     == row["formula"],
-                    "atom_count_match": predicted.GetNumAtoms() == int(row["atoms"]),
-                    "bond_count_match": predicted.GetNumBonds() == int(row["bonds"]),
-                    "nonstereo_structure_match": actual_nonstereo
-                    == expected_nonstereo,
+                    "atom_count_match": delivered.GetNumAtoms() == int(row["atoms"]),
+                    "bond_count_match": delivered.GetNumBonds() == int(row["bonds"]),
+                    "nonstereo_structure_match": actual_nonstereo_key
+                    == expected_nonstereo_key,
                     "chemical_match": actual_inchikey == row["inchikey"],
                 }
             )
-            if args.save_sdf:
-                write_sdf_v4(repaired.sequence, sdf_dir / f"{molecule_id}.sdf")
+            if save_artifacts:
+                prefix = "correct" if record["chemical_match"] else "wrong"
+                final_sdf = sdf_dir / f"{prefix}_{molecule_id}.sdf"
+                pending_sdf.replace(final_sdf)
+                record["prediction_sdf_file"] = str(
+                    final_sdf.relative_to(output_dir)
+                )
         except Exception as error:
+            if pending_sdf is not None:
+                pending_sdf.unlink(missing_ok=True)
             record["error"] = str(error)
             record["failure_category"] = failure_category(error)
+            if save_artifacts and diagnostic_sequence is not None:
+                invalid_sdf = sdf_dir / f"invalid_{molecule_id}.sdf"
+                try:
+                    atom_count, bond_count = write_invalid_prediction_sdf(
+                        diagnostic_sequence,
+                        invalid_sdf,
+                    )
+                    record["predicted_atoms"] = atom_count
+                    record["predicted_bonds"] = bond_count
+                    record["prediction_sdf_file"] = str(
+                        invalid_sdf.relative_to(output_dir)
+                    )
+                except Exception as diagnostic_error:
+                    record["diagnostic_sdf_error"] = str(diagnostic_error)
+        if diagnostic_sequence is not None:
+            try:
+                diagnostics = diagnose_chemsvg(
+                    annotation,
+                    diagnostic_sequence,
+                    sdf_valid=bool(record["sdf_valid"]),
+                    chemical_match=bool(record["chemical_match"]),
+                    nonstereo_structure_match=bool(
+                        record["nonstereo_structure_match"]
+                    ),
+                    failure_category=record.get("failure_category"),
+                )
+                record["diagnostics"] = diagnostics
+                record["primary_error"] = diagnostics["primary_error"]
+                record["error_flags"] = diagnostics["error_flags"]
+            except Exception as diagnostic_error:
+                record["graph_diagnostic_error"] = str(diagnostic_error)
         if device.type == "cuda":
             torch.cuda.synchronize(device)
         record["seconds"] = time.perf_counter() - started

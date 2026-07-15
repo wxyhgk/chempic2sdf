@@ -178,7 +178,7 @@ def synthetic_ocr_replay_forward(
     anchor_mask = batch["ocr_anchor_mask"].to(device, non_blocking=True)
     token_ids = batch["ocr_token_ids"].to(device, non_blocking=True)
     with torch.no_grad():
-        features = model.vision_encoder.forward_high_resolution(pixel_values)
+        features = model.ocr_source(pixel_values)
     return model.ocr_head(
         features,
         anchor_points,

@@ -118,7 +118,7 @@ class ChemMolWebDataset:
                 validator(sequence, chemmol["canonical_isomeric_smiles"], chemmol["inchikey"])
             image = Image.open(io.BytesIO(sample["png"])).convert("RGB")
             image.load()
-            yield {
+            record = {
                 "key": sample["__key__"],
                 "image": image,
                 "target_sequence": sequence,
@@ -127,6 +127,9 @@ class ChemMolWebDataset:
                 "render": render,
                 "meta": meta,
             }
+            if "layers.json" in sample:
+                record["layers"] = json.loads(sample["layers.json"])
+            yield record
 
 
 def main() -> None:

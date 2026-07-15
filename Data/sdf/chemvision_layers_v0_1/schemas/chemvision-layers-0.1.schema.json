@@ -1,0 +1,170 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://chempic2sdf.local/schemas/chemvision-layers-0.1.schema.json",
+  "title": "ChemVision Layers 0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "sample_key",
+    "source",
+    "molecule_id",
+    "split",
+    "variant",
+    "width",
+    "height",
+    "mask_encoding",
+    "atoms",
+    "bonds",
+    "render_parameters"
+  ],
+  "properties": {
+    "schema_version": {"const": "chemvision-layers-0.1"},
+    "sample_key": {"type": "string", "minLength": 1},
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dataset", "source_sample_key", "source_shard"],
+      "properties": {
+        "dataset": {"const": "webdataset_full_v0"},
+        "source_sample_key": {"type": "string", "minLength": 1},
+        "source_shard": {"type": "string", "minLength": 1}
+      }
+    },
+    "molecule_id": {"type": "string", "minLength": 1},
+    "split": {"enum": ["train", "validation", "internal_test"]},
+    "variant": {"enum": ["original", "rdkit", "coordgen", "stress"]},
+    "width": {"const": 768},
+    "height": {"const": 768},
+    "mask_encoding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["background", "bond", "text", "overlap"],
+      "properties": {
+        "background": {"const": 0},
+        "bond": {"const": 1},
+        "text": {"const": 2},
+        "overlap": {"const": 3}
+      }
+    },
+    "atoms": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "atom_id",
+          "element",
+          "formal_charge",
+          "aromatic",
+          "implicit_h_count",
+          "center",
+          "visible_text",
+          "text",
+          "bbox"
+        ],
+        "properties": {
+          "atom_id": {"type": "integer", "minimum": 0},
+          "element": {"type": "string", "minLength": 1},
+          "formal_charge": {"type": "integer"},
+          "aromatic": {"type": "boolean"},
+          "implicit_h_count": {"type": "integer", "minimum": 0},
+          "center": {"$ref": "#/$defs/point"},
+          "visible_text": {"type": "boolean"},
+          "text": {"type": "string"},
+          "bbox": {
+            "oneOf": [
+              {"type": "null"},
+              {"$ref": "#/$defs/bbox"}
+            ]
+          }
+        }
+      }
+    },
+    "bonds": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "bond_id",
+          "begin_atom",
+          "end_atom",
+          "begin",
+          "end",
+          "chemical_type",
+          "display_type",
+          "direction",
+          "bbox"
+        ],
+        "properties": {
+          "bond_id": {"type": "integer", "minimum": 0},
+          "begin_atom": {"type": "integer", "minimum": 0},
+          "end_atom": {"type": "integer", "minimum": 0},
+          "begin": {"$ref": "#/$defs/point"},
+          "end": {"$ref": "#/$defs/point"},
+          "chemical_type": {"type": "string", "minLength": 1},
+          "display_type": {"type": "string", "minLength": 1},
+          "direction": {"type": "string", "minLength": 1},
+          "bbox": {"$ref": "#/$defs/bbox"}
+        }
+      }
+    },
+    "render_parameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "renderer_id",
+        "rdkit_version",
+        "font_family_id",
+        "font_file_sha256",
+        "font_size",
+        "bond_line_width",
+        "rotation_degrees",
+        "layout",
+        "stress_operation",
+        "color_mode"
+      ],
+      "properties": {
+        "renderer_id": {"type": "string", "minLength": 1},
+        "rdkit_version": {"const": "2026.03.3"},
+        "font_family_id": {"type": "string", "minLength": 1},
+        "font_file_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "font_size": {"type": "integer", "minimum": 8, "maximum": 36},
+        "bond_line_width": {"type": "number", "minimum": 1.4, "maximum": 2.6},
+        "rotation_degrees": {"type": "number", "minimum": -12, "maximum": 12},
+        "layout": {"type": "string", "minLength": 1},
+        "stress_operation": {"type": ["string", "null"]},
+        "color_mode": {"const": "black_white"}
+      }
+    }
+  },
+  "$defs": {
+    "point": {
+      "type": "array",
+      "prefixItems": [
+        {"type": "number", "minimum": 0, "maximum": 768},
+        {"type": "number", "minimum": 0, "maximum": 768}
+      ],
+      "items": false,
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "bbox": {
+      "type": "array",
+      "prefixItems": [
+        {"type": "number", "minimum": 0, "maximum": 768},
+        {"type": "number", "minimum": 0, "maximum": 768},
+        {"type": "number", "minimum": 0, "maximum": 768},
+        {"type": "number", "minimum": 0, "maximum": 768}
+      ],
+      "items": false,
+      "minItems": 4,
+      "maxItems": 4
+    }
+  }
+}

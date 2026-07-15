@@ -24,6 +24,10 @@ class ParallelChemSVGResult:
     sequence: str
     vertices: tuple[VertexRecordV4, ...]
     strokes: tuple[StrokeRecordV4, ...]
+    pair_predictions: dict[
+        tuple[tuple[int, int], tuple[int, int]],
+        tuple[float, str],
+    ]
     vertex_ocr_seconds: float
     pair_seconds: float
 
@@ -173,12 +177,25 @@ def generate_parallel_chemsvg_v6(
         probabilities,
         edge_threshold=edge_threshold,
     )
+    pair_predictions = {}
+    for (begin_index, end_index), row in zip(pairs, probabilities.cpu()):
+        begin = vertices[begin_index]
+        end = vertices[end_index]
+        coordinate_pair = tuple(
+            sorted(((begin.x, begin.y), (end.x, end.y)))
+        )
+        class_id = int(row[1:].argmax()) + 1
+        pair_predictions[coordinate_pair] = (
+            1.0 - float(row[0]),
+            STROKE_CLASSES[class_id],
+        )
     _synchronize(device)
     pair_seconds = time.perf_counter() - started
     return ParallelChemSVGResult(
         sequence=sequence,
         vertices=tuple(vertices),
         strokes=strokes,
+        pair_predictions=pair_predictions,
         vertex_ocr_seconds=vertex_ocr_seconds,
         pair_seconds=pair_seconds,
     )

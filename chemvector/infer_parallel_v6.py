@@ -38,6 +38,11 @@ def main() -> None:
     parser.add_argument("--vertex-threshold", type=float, default=0.3)
     parser.add_argument("--edge-threshold", type=float, default=0.5)
     parser.add_argument("--ocr-roi-radius", type=float, default=20.0)
+    parser.add_argument(
+        "--repair-candidate-mode",
+        choices=("all", "model", "model_connect"),
+        default="all",
+    )
     args = parser.parse_args()
     if args.cpu_threads < 1:
         raise ValueError("cpu_threads must be positive")
@@ -79,7 +84,11 @@ def main() -> None:
     repaired = repair_chemsvg_v4_from_image(
         parallel.sequence,
         image,
-        config=InkGraphRepairConfig(aromatic_vote_source="vertices"),
+        pair_predictions=parallel.pair_predictions,
+        config=InkGraphRepairConfig(
+            aromatic_vote_source="vertices",
+            candidate_pair_mode=args.repair_candidate_mode,
+        ),
     )
     repair_seconds = time.perf_counter() - repair_started
     inference_seconds = time.perf_counter() - started
@@ -117,6 +126,9 @@ def main() -> None:
         "vertices": repaired.vertices,
         "candidate_strokes": len(parallel.strokes),
         "repaired_strokes": repaired.strokes,
+        "model_bridge_strokes": repaired.model_bridge_strokes,
+        "edge_threshold": args.edge_threshold,
+        "repair_candidate_mode": args.repair_candidate_mode,
         "formula": rdMolDescriptors.CalcMolFormula(mol),
         "smiles": Chem.MolToSmiles(mol, canonical=True, isomericSmiles=True),
         "inchikey": Chem.MolToInchiKey(mol),
