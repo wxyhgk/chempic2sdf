@@ -83,6 +83,31 @@ def load_partition_records(
     return records
 
 
+def count_partition_records(
+    domain: str,
+    *,
+    partition: str,
+    config,
+    data_seed: int,
+    limit: int | None = None,
+) -> int:
+    if limit is not None and limit < 1:
+        raise ValueError("Chemical partition count limit must be positive")
+    return sum(
+        1
+        for _ in itertools.islice(
+            partitioned_domain_stream(
+                domain,
+                partition=partition,
+                config=config,
+                data_seed=data_seed,
+                shuffle_buffer=0,
+            ),
+            limit,
+        )
+    )
+
+
 def balanced_fit_batches(
     *,
     samples_per_domain: int,

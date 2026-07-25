@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import unittest
 
-from chemvector.train_atom_pair_chemical_retype import selection_key
+from chemvector.train_atom_pair_chemical_retype import (
+    selection_key,
+    validation_checkpoint_due,
+)
 
 
 class TrainAtomPairChemicalRetypeTest(unittest.TestCase):
@@ -31,6 +34,15 @@ class TrainAtomPairChemicalRetypeTest(unittest.TestCase):
         }
         riskier = {**safer, "breaks": 2, "rescues": 10}
         self.assertGreater(selection_key(safer), selection_key(riskier))
+
+    def test_validation_checkpoints_trigger_on_crossed_intervals_and_final(self) -> None:
+        self.assertFalse(validation_checkpoint_due(4496, 0, 4500))
+        self.assertTrue(validation_checkpoint_due(4504, 0, 4500))
+        self.assertFalse(validation_checkpoint_due(8996, 4504, 4500))
+        self.assertTrue(validation_checkpoint_due(9000, 4504, 4500))
+        self.assertTrue(
+            validation_checkpoint_due(17932, 13504, 4500, final=True)
+        )
 
 
 if __name__ == "__main__":

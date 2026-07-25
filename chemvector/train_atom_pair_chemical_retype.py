@@ -20,6 +20,7 @@ import torch
 from chemvector.atom_bond_scene import AtomBondSceneConfig
 from chemvector.atom_pair_chemical_data import (
     balanced_fit_batches,
+    count_partition_records,
     load_partition_records,
     sample_molecule_id,
 )
@@ -60,9 +61,11 @@ from chemvector.atom_pair_one_move import (
     load_atom_pair_one_move_head,
 )
 from chemvector.audit_atom_pair_chemical_reachability import (
+    ABSENT_STATE,
     target_typed_states,
     typed_states,
 )
+from chemvector.bond_object import BOND_TYPES
 from chemvector.predicted_incidence import PredictedProposalConfig
 from chemvector.train_atom_bond_scene import AtomBondSceneCollator, stack_targets
 from chemvector.train_atom_pair_bond_group import TRAIN_DOMAINS
@@ -114,6 +117,20 @@ def selection_key(metrics: dict) -> tuple:
     )
 
 
+def validation_checkpoint_due(
+    total_seen: int,
+    last_validated_seen: int,
+    interval: int,
+    *,
+    final: bool = False,
+) -> bool:
+    if min(total_seen, last_validated_seen, interval) < 0:
+        raise ValueError("Validation checkpoint counts must be non-negative")
+    if final:
+        return total_seen != last_validated_seen
+    return interval > 0 and total_seen // interval > last_validated_seen // interval
+
+
 @torch.no_grad()
 def validate(
     vision,
@@ -136,6 +153,7 @@ def validate(
     thresholds: tuple[float, ...] | None = None,
     objective: str = "separate",
     verifier_head=None,
+    collect_sample_details: bool = False,
 ) -> dict:
     if objective not in {"separate", "joint", "safety", "verifier"}:
         raise ValueError(f"Unknown retype objective: {objective}")
@@ -163,6 +181,7 @@ def validate(
     diagnostic_counts = Counter()
     action_target_ranks = []
     verifier_target_ranks = []
+    sample_details = {threshold: [] for threshold in thresholds}
     for domain, rows in records.items():
         for start in range(0, len(rows), batch_size):
             batch = collator(rows[start : start + batch_size])
@@ -227,7 +246,7 @@ def validate(
                 expected_states = target_typed_states(
                     expected_presence, groups["chemical_targets"][sample]
                 )
-                _, baseline_exact = _update_totals(
+                baseline_presence_exact, baseline_exact = _update_totals(
                     baseline_raw[domain],
                     states=current_states,
                     expected_states=expected_states,
@@ -302,7 +321,7 @@ def validate(
                             gate_threshold=threshold,
                         )
                     revised = apply_retype_action(current_states, action)
-                    _, revised_exact = _update_totals(
+                    revised_presence_exact, revised_exact = _update_totals(
                         threshold_raw[threshold][domain],
                         states=revised,
                         expected_states=expected_states,
@@ -311,6 +330,95 @@ def validate(
                     action_counts[threshold]["keep" if action is None else "retype"] += 1
                     rescues[threshold] += int(not baseline_exact and revised_exact)
                     breaks[threshold] += int(baseline_exact and not revised_exact)
+                    if collect_sample_details:
+                        row = rows[start + batch_index]
+                        render_parameters = row["render"].get("render_parameters", {})
+                        state_counts = {
+                            name: int((revised == state).sum())
+                            for state, name in enumerate(BOND_TYPES)
+                        }
+                        sample_details[threshold].append(
+                            {
+                                "domain": domain,
+                                "sample_key": str(row["key"]),
+                                "molecule_id": str(row["chemmol"]["molecule_id"]),
+                                "variant": str(row["render"]["variant"]),
+                                "style": {
+                                    "font_family_id": render_parameters.get(
+                                        "font_family_id"
+                                    ),
+                                    "font_size": render_parameters.get("font_size"),
+                                    "bond_line_width": render_parameters.get(
+                                        "bond_line_width"
+                                    ),
+                                    "rotation_degrees": render_parameters.get(
+                                        "rotation_degrees"
+                                    ),
+                                    "multiple_bond_offset": render_parameters.get(
+                                        "multiple_bond_offset"
+                                    ),
+                                    "layout": render_parameters.get("layout"),
+                                    "kekulize": render_parameters.get("kekulize"),
+                                    "stress_operation": render_parameters.get(
+                                        "stress_operation"
+                                    ),
+                                },
+                                "representable": bool(representable),
+                                "baseline_presence_exact": bool(
+                                    baseline_presence_exact
+                                ),
+                                "baseline_chemical_exact": bool(baseline_exact),
+                                "baseline_false_positive": int(
+                                    (
+                                        (current_states != ABSENT_STATE)
+                                        & (expected_states == ABSENT_STATE)
+                                    ).sum()
+                                ),
+                                "baseline_false_negative": int(
+                                    (
+                                        (current_states == ABSENT_STATE)
+                                        & (expected_states != ABSENT_STATE)
+                                    ).sum()
+                                ),
+                                "baseline_wrong_type": int(
+                                    (
+                                        (current_states != ABSENT_STATE)
+                                        & (expected_states != ABSENT_STATE)
+                                        & (current_states != expected_states)
+                                    ).sum()
+                                ),
+                                "presence_exact": bool(revised_presence_exact),
+                                "chemical_exact": bool(revised_exact),
+                                "false_positive": int(
+                                    (
+                                        (revised != ABSENT_STATE)
+                                        & (expected_states == ABSENT_STATE)
+                                    ).sum()
+                                ),
+                                "false_negative": int(
+                                    (
+                                        (revised == ABSENT_STATE)
+                                        & (expected_states != ABSENT_STATE)
+                                    ).sum()
+                                ),
+                                "wrong_type": int(
+                                    (
+                                        (revised != ABSENT_STATE)
+                                        & (expected_states != ABSENT_STATE)
+                                        & (revised != expected_states)
+                                    ).sum()
+                                ),
+                                "predicted_type_counts": state_counts,
+                                "action": (
+                                    None
+                                    if action is None
+                                    else {
+                                        "group_index": int(action.group_index),
+                                        "target_type": BOND_TYPES[action.target_state],
+                                    }
+                                ),
+                            }
+                        )
     baseline = summarize_domains(_finalize_domains(baseline_raw))
     candidates = {}
     for threshold in thresholds:
@@ -324,7 +432,7 @@ def validate(
     )
     retype_targets = diagnostic_counts["retype"]
     action_top1 = diagnostic_counts["action_top1_correct"]
-    return {
+    result = {
         "baseline": baseline,
         "thresholds": candidates,
         "best_threshold": best_threshold,
@@ -357,6 +465,9 @@ def validate(
             ),
         },
     }
+    if collect_sample_details:
+        result["samples"] = sample_details[best_threshold]
+    return result
 
 
 def parse_args() -> argparse.Namespace:
@@ -382,6 +493,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--evaluate-checkpoint")
     parser.add_argument("--evaluate-verifier-checkpoint")
     parser.add_argument("--retype-init-checkpoint")
+    parser.add_argument("--validation-interval-total", type=int, default=0)
     return parser.parse_args()
 
 
@@ -391,6 +503,8 @@ def main() -> None:
         raise RuntimeError("Chemical retype training requires CUDA")
     if args.batch_size % len(TRAIN_DOMAINS):
         raise ValueError("Batch size must be divisible by the domain count")
+    if args.validation_interval_total < 0:
+        raise ValueError("Validation interval must be non-negative")
     random.seed(args.seed)
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
@@ -445,6 +559,34 @@ def main() -> None:
         raise ValueError("Only one evaluation checkpoint may be supplied")
     if evaluation_modes and args.retype_init_checkpoint:
         raise ValueError("Evaluation and training initialization are mutually exclusive")
+    fit_capacity = {}
+    if not evaluation_modes:
+        for domain in TRAIN_DOMAINS:
+            fit_capacity[domain] = count_partition_records(
+                domain,
+                partition="train_fit",
+                config=scene_config,
+                data_seed=args.data_seed,
+                limit=args.samples_per_domain,
+            )
+            if fit_capacity[domain] < args.samples_per_domain:
+                raise RuntimeError(
+                    "Requested samples-per-domain exceeds strict train_fit capacity: "
+                    f"requested={args.samples_per_domain}, available={fit_capacity}"
+                )
+        (output_dir / "fit_capacity.json").write_text(
+            json.dumps(
+                {
+                    "requested_samples_per_domain": args.samples_per_domain,
+                    "probed_train_fit_samples": fit_capacity,
+                    "probe_limit": args.samples_per_domain,
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
     if args.evaluate_verifier_checkpoint:
         verifier_head, verifier_payload = load_atom_pair_chemical_retype_verifier(
             args.evaluate_verifier_checkpoint, device
@@ -570,6 +712,127 @@ def main() -> None:
     total_seen = 0
     fit_ids: set[str] = set()
     started = time.perf_counter()
+    last_validated_seen = 0
+    best_checkpoint_key = None
+    best_metrics = None
+    validation_history = []
+
+    def partition_audit() -> dict:
+        overlap = fit_ids & dev_ids
+        if overlap:
+            raise RuntimeError(f"train_fit/train_dev molecule overlap: {len(overlap)}")
+        return {
+            "protocol": "sha256(molecule_id) modulo 5; bucket 0 is train_dev",
+            "data_seed": args.data_seed,
+            "fit_unique_molecules": len(fit_ids),
+            "dev_unique_molecules": len(dev_ids),
+            "overlap": 0,
+            "fit_sha256": _identity_sha256(fit_ids),
+            "dev_sha256": _identity_sha256(dev_ids),
+        }
+
+    def validate_and_checkpoint(stage: str) -> dict:
+        nonlocal last_validated_seen, best_checkpoint_key, best_metrics
+        audit = partition_audit()
+        metrics = validate(
+            vision,
+            atom,
+            bond,
+            set_head,
+            group_head,
+            context_head,
+            context_payload,
+            first_head,
+            float(first_payload["minimum_margin"]),
+            retype_head,
+            relation_config,
+            dev_records,
+            collator,
+            proposal_config,
+            device,
+            args.batch_size,
+            objective=objective,
+            verifier_head=verifier_head,
+        )
+        metrics.update(
+            {
+                "total_seen": total_seen,
+                "elapsed_seconds": time.perf_counter() - started,
+            }
+        )
+        checkpoint = {
+            "checkpoint_schema_version": (
+                "atom-pair-chemical-retype-verifier-0.1"
+                if objective == "verifier"
+                else "atom-pair-chemical-retype-0.1"
+            ),
+            "head": trainable_head.state_dict(),
+            "config": asdict(
+                verifier_config if objective == "verifier" else retype_config
+            ),
+            "relation_config": asdict(relation_config),
+            "first_move_checkpoint": args.first_move_checkpoint,
+            "base_context_checkpoint": first_payload["base_context_checkpoint"],
+            "group_checkpoint": context_payload["group_checkpoint"],
+            "source_checkpoint": group_payload["source_checkpoint"],
+            "retype_init_checkpoint": args.retype_init_checkpoint,
+            "samples_seen": total_seen,
+            "objective": objective,
+            "gate_threshold": metrics["best_threshold"],
+            "train_dev": metrics,
+            "partition_audit": audit,
+            "fit_capacity": fit_capacity,
+            "training_args": vars(args),
+            "selection_stage": stage,
+        }
+        step_name = f"step-{total_seen:06d}"
+        torch.save(checkpoint, output_dir / f"{step_name}.pt")
+        (output_dir / f"{step_name}-metrics.json").write_text(
+            json.dumps(metrics, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        current_key = selection_key(metrics["best"])
+        selected = best_checkpoint_key is None or current_key > best_checkpoint_key
+        if selected:
+            best_checkpoint_key = current_key
+            best_metrics = metrics
+            torch.save(checkpoint, output_dir / "best.pt")
+            (output_dir / "metrics.json").write_text(
+                json.dumps(metrics, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+        validation_history.append(
+            {
+                "stage": stage,
+                "total_seen": total_seen,
+                "selected_best": selected,
+                "best_threshold": metrics["best_threshold"],
+                "minimum_domain_chemical_exact_rate": metrics["best"][
+                    "minimum_domain_chemical_exact_rate"
+                ],
+                "pooled_chemical_exact": metrics["best"]["pooled_chemical_exact"],
+                "rescues": metrics["best"]["rescues"],
+                "breaks": metrics["best"]["breaks"],
+            }
+        )
+        (output_dir / "validation_history.json").write_text(
+            json.dumps(validation_history, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        print(
+            json.dumps(
+                {
+                    "validation_stage": stage,
+                    "selected_best": selected,
+                    "train_dev": metrics,
+                },
+                separators=(",", ":"),
+            ),
+            flush=True,
+        )
+        last_validated_seen = total_seen
+        return metrics
+
     for samples, domain_seen in balanced_fit_batches(
         samples_per_domain=args.samples_per_domain,
         batch_size=args.batch_size,
@@ -782,75 +1045,27 @@ def main() -> None:
             running.clear()
             running_counts.clear()
             running_eligible = 0
+        if validation_checkpoint_due(
+            total_seen,
+            last_validated_seen,
+            args.validation_interval_total,
+        ):
+            validate_and_checkpoint("interval")
 
-    overlap = fit_ids & dev_ids
-    if overlap:
-        raise RuntimeError(f"train_fit/train_dev molecule overlap: {len(overlap)}")
-    partition_audit = {
-        "protocol": "sha256(molecule_id) modulo 5; bucket 0 is train_dev",
-        "data_seed": args.data_seed,
-        "fit_unique_molecules": len(fit_ids),
-        "dev_unique_molecules": len(dev_ids),
-        "overlap": 0,
-        "fit_sha256": _identity_sha256(fit_ids),
-        "dev_sha256": _identity_sha256(dev_ids),
-    }
+    if validation_checkpoint_due(
+        total_seen,
+        last_validated_seen,
+        args.validation_interval_total,
+        final=True,
+    ):
+        validate_and_checkpoint("final")
+    final_audit = partition_audit()
     (output_dir / "partition_audit.json").write_text(
-        json.dumps(partition_audit, ensure_ascii=False, indent=2) + "\n",
+        json.dumps(final_audit, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
-    metrics = validate(
-        vision,
-        atom,
-        bond,
-        set_head,
-        group_head,
-        context_head,
-        context_payload,
-        first_head,
-        float(first_payload["minimum_margin"]),
-        retype_head,
-        relation_config,
-        dev_records,
-        collator,
-        proposal_config,
-        device,
-        args.batch_size,
-        objective=objective,
-        verifier_head=verifier_head,
-    )
-    metrics.update(
-        {"total_seen": total_seen, "elapsed_seconds": time.perf_counter() - started}
-    )
-    checkpoint = {
-        "checkpoint_schema_version": (
-            "atom-pair-chemical-retype-verifier-0.1"
-            if objective == "verifier"
-            else "atom-pair-chemical-retype-0.1"
-        ),
-        "head": trainable_head.state_dict(),
-        "config": asdict(
-            verifier_config if objective == "verifier" else retype_config
-        ),
-        "relation_config": asdict(relation_config),
-        "first_move_checkpoint": args.first_move_checkpoint,
-        "base_context_checkpoint": first_payload["base_context_checkpoint"],
-        "group_checkpoint": context_payload["group_checkpoint"],
-        "source_checkpoint": group_payload["source_checkpoint"],
-        "retype_init_checkpoint": args.retype_init_checkpoint,
-        "samples_seen": total_seen,
-        "objective": objective,
-        "gate_threshold": metrics["best_threshold"],
-        "train_dev": metrics,
-        "partition_audit": partition_audit,
-        "training_args": vars(args),
-    }
-    torch.save(checkpoint, output_dir / "best.pt")
-    (output_dir / "metrics.json").write_text(
-        json.dumps(metrics, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
-    print(json.dumps({"train_dev": metrics}, separators=(",", ":")), flush=True)
+    if best_metrics is None:
+        raise RuntimeError("Training completed without a validation checkpoint")
 
 
 if __name__ == "__main__":

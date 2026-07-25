@@ -1,14 +1,30 @@
 from __future__ import annotations
 
 import unittest
+from unittest.mock import patch
 
 from chemvector.atom_pair_chemical_data import (
+    count_partition_records,
     molecule_partition,
     sample_molecule_id,
 )
 
 
 class AtomPairChemicalDataTest(unittest.TestCase):
+    def test_count_partition_records_stops_at_probe_limit(self) -> None:
+        with patch(
+            "chemvector.atom_pair_chemical_data.partitioned_domain_stream",
+            return_value=iter(range(10)),
+        ):
+            count = count_partition_records(
+                "chemvision",
+                partition="train_fit",
+                config=object(),
+                data_seed=1,
+                limit=3,
+            )
+        self.assertEqual(count, 3)
+
     def test_partition_is_deterministic_and_has_two_values(self) -> None:
         values = {molecule_partition(f"chembl:{index}") for index in range(100)}
         self.assertEqual(values, {"train_fit", "train_dev"})

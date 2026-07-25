@@ -494,3 +494,10 @@ action margin。三个 4.5k seed 中 seed20260725 在 train-dev 达到 `551→55
 locked internal `527→533`，ChemVision/full-v0 分别 `239→244`、`288→289`，presence
 完全不变。正式 GO，默认前端切换到 `structure-v0992-carbon`。详见
 `20260725-v0.9.92-chemical-retype-verifier.md`。
+
+v0.9.93 扩大候选级 verifier 数据量，9k 阶段 train-dev chemical exact 达到 `551→558`，
+但 official validation 仍为 `532→537`，未超过 v0.9.92，因此未运行 locked internal，默认
+前端不变。新增 paired style audit：124 个完整四渲染分子中，presence mixed outcome 为
+67.7%，chemical 为 56.5%；layout chemical gap 为 43.0pp，multiple-bond offset 为 13.8pp，
+字体家族为 6.3pp。扩量同风格 verifier 无法修复上游风格敏感，实验 NO-GO。详见
+`20260725-v0.9.93-style-sensitivity-audit.md`。
