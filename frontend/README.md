@@ -30,9 +30,9 @@
 ## 上传测试
 
 页面右上角“上传测试”只使用服务端预定义的推理 profile，浏览器不能提交任意
-checkpoint 路径或命令。当前默认 profile 是 `structure-v0989-carbon`。它按顺序执行
-v0.9.83 AtomPair group、v0.9.87 图上下文和 v0.9.89 整图 one-move，在每张图的
-`KEEP / ADD / DELETE / SWAP` 候选动作中联合选择一次结构编辑。它默认关闭
+checkpoint 路径或命令。当前默认 profile 是 `structure-v0992-carbon`。它按顺序执行
+v0.9.83 AtomPair group、v0.9.87 图上下文、v0.9.89 整图 one-move 和 v0.9.92 候选级
+Chemical RETYPE verifier。verifier 只允许对一条已存在键改型，不增加或删除连接。它默认关闭
 v0.9.84/85 长键 rescue，而且 OCR 尚未接入，所有文字原子仍按 C 占位。因此这里的
 “推荐”仅表示当前结构识别主线，不表示已经具备完整元素、基团或分子式识别能力。
 
@@ -59,6 +59,10 @@ Bond proposal。它不使用绝对键长，仍把双键/三键作为两个语义
 validation 的 presence/chemical exact 从 `710/527` 提高到 `720/532`，固定 checkpoint 和
 margin 后，locked internal test 从 `717/523` 提高到 `730/527`。两个域的 presence 都有净
 提升，因此它成为当前默认结构 profile。
+`v0.9.92 候选级 Chemical RETYPE` 冻结 v0.9.89 的 presence，只对具体“某条边改成目标
+键型”的动作训练整图 exact verifier。validation chemical exact `532→537`，locked internal
+test `527→533`，internal 两域分别 `239→244` 和 `288→289`，presence 完全不变。该 profile
+替换 v0.9.89 成为当前默认结构 profile；OCR 仍未接入，文字原子继续按 C 占位。
 
 运行时模型注册表位于 `frontend/inference_profiles.json`。服务端每次读取 profile API、
 浏览器每次打开上传面板时都会重新加载该文件，因此新增或更新 profile 后不需要重启

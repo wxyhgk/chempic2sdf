@@ -37,6 +37,15 @@ from chemvector.atom_pair_chemical_retype import (
     load_atom_pair_chemical_retype_head,
     target_retype_action_index,
 )
+from chemvector.atom_pair_chemical_retype_verifier import (
+    AtomPairChemicalRetypeVerifier,
+    AtomPairChemicalRetypeVerifierConfig,
+    candidate_exact_labels,
+    chemical_retype_verifier_loss,
+    choose_verified_retype_action,
+    initialize_verifier_from_retype,
+    load_atom_pair_chemical_retype_verifier,
+)
 from chemvector.atom_pair_deletion_veto import (
     AtomPairDeletionVetoConfig,
     build_atom_pair_relation_features,
@@ -87,6 +96,13 @@ DEFAULT_THRESHOLDS = (
     3.0,
     4.0,
 )
+DEFAULT_VERIFIER_THRESHOLDS = (
+    *(round(-5.0 + 0.25 * index, 2) for index in range(25)),
+    1.5,
+    2.0,
+    3.0,
+    4.0,
+)
 
 
 def selection_key(metrics: dict) -> tuple:
@@ -117,12 +133,23 @@ def validate(
     device,
     batch_size,
     *,
-    thresholds: tuple[float, ...] = DEFAULT_THRESHOLDS,
+    thresholds: tuple[float, ...] | None = None,
     objective: str = "separate",
+    verifier_head=None,
 ) -> dict:
-    if objective not in {"separate", "joint", "safety"}:
+    if objective not in {"separate", "joint", "safety", "verifier"}:
         raise ValueError(f"Unknown retype objective: {objective}")
+    if objective == "verifier" and verifier_head is None:
+        raise ValueError("Verifier objective requires a candidate verifier")
+    if thresholds is None:
+        thresholds = (
+            DEFAULT_VERIFIER_THRESHOLDS
+            if objective == "verifier"
+            else DEFAULT_THRESHOLDS
+        )
     retype_head.eval()
+    if verifier_head is not None:
+        verifier_head.eval()
     baseline_raw = {domain: _new_totals() for domain in records}
     threshold_raw = {
         threshold: {domain: _new_totals() for domain in records}
@@ -135,6 +162,7 @@ def validate(
     gate_values_by_target = {"keep": [], "retype": []}
     diagnostic_counts = Counter()
     action_target_ranks = []
+    verifier_target_ranks = []
     for domain, rows in records.items():
         for start in range(0, len(rows), batch_size):
             batch = collator(rows[start : start + batch_size])
@@ -205,13 +233,24 @@ def validate(
                     expected_states=expected_states,
                     representable=representable,
                 )
+                retype_features = build_retype_features(
+                    relation[sample], sample_logits, chemical_logits, selected
+                )
                 gate, action_scores, actions = retype_head.score_sample(
-                    build_retype_features(
-                        relation[sample], sample_logits, chemical_logits, selected
-                    ),
+                    retype_features,
                     chemical_logits,
                     selected,
                 )
+                verifier_scores = None
+                if objective == "verifier":
+                    verifier_scores = verifier_head.score_sample(
+                        retype_features,
+                        chemical_logits,
+                        selected,
+                        gate,
+                        action_scores,
+                        actions,
+                    )
                 gate_values.append(float(gate))
                 target = target_retype_action_index(
                     actions, current_states, expected_states
@@ -230,8 +269,25 @@ def validate(
                         rank = int(torch.where(ranking == action_target)[0][0]) + 1
                         action_target_ranks.append(rank)
                         diagnostic_counts["action_top1_correct"] += int(rank == 1)
+                        if verifier_scores is not None:
+                            verifier_ranking = torch.argsort(
+                                verifier_scores, descending=True, stable=True
+                            )
+                            verifier_rank = int(
+                                torch.where(verifier_ranking == action_target)[0][0]
+                            ) + 1
+                            verifier_target_ranks.append(verifier_rank)
+                            diagnostic_counts["verifier_top1_correct"] += int(
+                                verifier_rank == 1
+                            )
                 for threshold in thresholds:
-                    if objective in {"joint", "safety"}:
+                    if objective == "verifier":
+                        action = choose_verified_retype_action(
+                            verifier_scores,
+                            actions,
+                            minimum_margin=threshold,
+                        )
+                    elif objective in {"joint", "safety"}:
                         action = choose_joint_retype_action(
                             gate,
                             action_scores,
@@ -289,6 +345,16 @@ def validate(
             "oracle_gate_with_predicted_action_chemical_exact": (
                 baseline["pooled_chemical_exact"] + action_top1
             ),
+            "verifier_retype_action_top1_correct": diagnostic_counts[
+                "verifier_top1_correct"
+            ],
+            "verifier_retype_action_top1_rate": diagnostic_counts[
+                "verifier_top1_correct"
+            ]
+            / max(retype_targets, 1),
+            "mean_verifier_action_target_rank": (
+                sum(verifier_target_ranks) / max(len(verifier_target_ranks), 1)
+            ),
         },
     }
 
@@ -306,12 +372,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--learning-rate", type=float, default=2e-4)
     parser.add_argument("--gate-positive-weight", type=float, default=6.0)
     parser.add_argument("--action-weight", type=float, default=1.0)
-    parser.add_argument("--objective", choices=("separate", "joint", "safety"))
+    parser.add_argument(
+        "--objective", choices=("separate", "joint", "safety", "verifier")
+    )
     parser.add_argument("--shuffle-buffer", type=int, default=1024)
     parser.add_argument("--data-seed", type=int, default=20260725)
     parser.add_argument("--seed", type=int, default=20260725)
     parser.add_argument("--output-dir", default=DEFAULT_OUTPUT)
     parser.add_argument("--evaluate-checkpoint")
+    parser.add_argument("--evaluate-verifier-checkpoint")
     parser.add_argument("--retype-init-checkpoint")
     return parser.parse_args()
 
@@ -366,9 +435,30 @@ def main() -> None:
     )
     collator = AtomBondSceneCollator(scene_config)
     relation_config = AtomPairDeletionVetoConfig(**first_payload["relation_config"])
-    if args.evaluate_checkpoint and args.retype_init_checkpoint:
+    verifier_head = None
+    verifier_config = None
+    evaluation_modes = sum(
+        bool(value)
+        for value in (args.evaluate_checkpoint, args.evaluate_verifier_checkpoint)
+    )
+    if evaluation_modes > 1:
+        raise ValueError("Only one evaluation checkpoint may be supplied")
+    if evaluation_modes and args.retype_init_checkpoint:
         raise ValueError("Evaluation and training initialization are mutually exclusive")
-    if args.evaluate_checkpoint:
+    if args.evaluate_verifier_checkpoint:
+        verifier_head, verifier_payload = load_atom_pair_chemical_retype_verifier(
+            args.evaluate_verifier_checkpoint, device
+        )
+        verifier_config = verifier_head.config
+        retype_path = verifier_payload["retype_init_checkpoint"]
+        retype_head, initialization_payload = load_atom_pair_chemical_retype_head(
+            retype_path, device
+        )
+        retype_config = retype_head.config
+        if initialization_payload["first_move_checkpoint"] != args.first_move_checkpoint:
+            raise ValueError("Verifier checkpoint uses a different first-move model")
+        objective = "verifier"
+    elif args.evaluate_checkpoint:
         retype_head, evaluation_payload = load_atom_pair_chemical_retype_head(
             args.evaluate_checkpoint, device
         )
@@ -395,6 +485,14 @@ def main() -> None:
         if objective == "safety":
             retype_head.requires_grad_(False)
             retype_head.gate_head.requires_grad_(True)
+        elif objective == "verifier":
+            retype_head.eval().requires_grad_(False)
+            verifier_config = AtomPairChemicalRetypeVerifierConfig(
+                hidden_dim=args.hidden_dim,
+                type_embedding_dim=args.type_embedding_dim,
+            )
+            verifier_head = AtomPairChemicalRetypeVerifier(verifier_config).to(device)
+            initialize_verifier_from_retype(verifier_head, retype_head)
     else:
         retype_config = AtomPairChemicalRetypeConfig(
             hidden_dim=args.hidden_dim,
@@ -404,6 +502,10 @@ def main() -> None:
         retype_head = AtomPairChemicalRetypeHead(retype_config).to(device)
         initialize_retype_encoder_from_one_move(retype_head, first_head)
         objective = args.objective or "joint"
+        if objective == "verifier":
+            raise ValueError("Verifier training requires --retype-init-checkpoint")
+
+    trainable_head = verifier_head if objective == "verifier" else retype_head
 
     dev_records = {
         domain: load_partition_records(
@@ -439,10 +541,13 @@ def main() -> None:
         device,
         args.batch_size,
         objective=objective,
+        verifier_head=verifier_head,
     )
-    if args.evaluate_checkpoint:
+    if evaluation_modes:
         result = {
-            "evaluation_checkpoint": args.evaluate_checkpoint,
+            "evaluation_checkpoint": (
+                args.evaluate_verifier_checkpoint or args.evaluate_checkpoint
+            ),
             "metrics": initial,
         }
         (output_dir / "metrics.json").write_text(
@@ -457,7 +562,7 @@ def main() -> None:
     print(json.dumps({"initial_train_dev": initial}, separators=(",", ":")), flush=True)
 
     optimizer = torch.optim.AdamW(
-        retype_head.parameters(), lr=args.learning_rate, weight_decay=0.0
+        trainable_head.parameters(), lr=args.learning_rate, weight_decay=0.0
     )
     running = defaultdict(float)
     running_counts = Counter()
@@ -473,7 +578,9 @@ def main() -> None:
         shuffle_buffer=args.shuffle_buffer,
     ):
         fit_ids.update(sample_molecule_id(sample) for sample in samples)
-        retype_head.train()
+        trainable_head.train()
+        if objective == "verifier":
+            retype_head.eval()
         batch = collator(samples)
         pixels = batch["pixel_values"].to(device)
         targets = stack_targets(batch, device)
@@ -545,13 +652,45 @@ def main() -> None:
                     expected_states = target_typed_states(
                         expected_presence, groups["chemical_targets"][sample]
                     )
-                gate, action_scores, actions = retype_head.score_sample(
-                    build_retype_features(
-                        relation[sample], sample_logits, chemical_logits, selected
-                    ),
-                    chemical_logits,
-                    selected,
+                retype_features = build_retype_features(
+                    relation[sample], sample_logits, chemical_logits, selected
                 )
+                if objective == "verifier":
+                    with torch.no_grad():
+                        gate, action_scores, actions = retype_head.score_sample(
+                            retype_features,
+                            chemical_logits,
+                            selected,
+                        )
+                    if not actions:
+                        batch_counts["no_retype_action"] += 1
+                        continue
+                    verifier_scores = verifier_head.score_sample(
+                        retype_features,
+                        chemical_logits,
+                        selected,
+                        gate,
+                        action_scores,
+                        actions,
+                    )
+                    labels = candidate_exact_labels(
+                        actions, current_states, expected_states
+                    )
+                    has_exact_action = bool((labels > 0.5).any())
+                    batch_counts[
+                        "exact_candidate" if has_exact_action else "keep_only"
+                    ] += 1
+                    losses = chemical_retype_verifier_loss(
+                        verifier_scores,
+                        labels,
+                        ranking_margin=verifier_config.ranking_margin,
+                    )
+                else:
+                    gate, action_scores, actions = retype_head.score_sample(
+                        retype_features,
+                        chemical_logits,
+                        selected,
+                    )
                 if objective == "safety":
                     if not actions:
                         batch_counts["no_retype_action"] += 1
@@ -569,7 +708,7 @@ def main() -> None:
                         safe_target,
                         positive_weight=args.gate_positive_weight,
                     )
-                else:
+                elif objective != "verifier":
                     target = target_retype_action_index(
                         actions, current_states, expected_states
                     )
@@ -600,15 +739,19 @@ def main() -> None:
             loss = torch.stack([values["loss"] for values in sample_losses]).mean()
             optimizer.zero_grad(set_to_none=True)
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(retype_head.parameters(), 1.0)
+            torch.nn.utils.clip_grad_norm_(trainable_head.parameters(), 1.0)
             optimizer.step()
             loss_names = (
-                ("loss", "safety_loss")
-                if objective == "safety"
+                ("loss", "positive_loss", "negative_loss", "ranking_loss")
+                if objective == "verifier"
                 else (
-                    ("loss", "joint_loss")
-                    if objective == "joint"
-                    else ("loss", "gate_loss", "action_loss")
+                    ("loss", "safety_loss")
+                    if objective == "safety"
+                    else (
+                        ("loss", "joint_loss")
+                        if objective == "joint"
+                        else ("loss", "gate_loss", "action_loss")
+                    )
                 )
             )
             for name in loss_names:
@@ -674,14 +817,21 @@ def main() -> None:
         device,
         args.batch_size,
         objective=objective,
+        verifier_head=verifier_head,
     )
     metrics.update(
         {"total_seen": total_seen, "elapsed_seconds": time.perf_counter() - started}
     )
     checkpoint = {
-        "checkpoint_schema_version": "atom-pair-chemical-retype-0.1",
-        "head": retype_head.state_dict(),
-        "config": asdict(retype_config),
+        "checkpoint_schema_version": (
+            "atom-pair-chemical-retype-verifier-0.1"
+            if objective == "verifier"
+            else "atom-pair-chemical-retype-0.1"
+        ),
+        "head": trainable_head.state_dict(),
+        "config": asdict(
+            verifier_config if objective == "verifier" else retype_config
+        ),
         "relation_config": asdict(relation_config),
         "first_move_checkpoint": args.first_move_checkpoint,
         "base_context_checkpoint": first_payload["base_context_checkpoint"],

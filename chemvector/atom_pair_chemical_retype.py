@@ -228,6 +228,19 @@ def apply_retype_action(
     return output
 
 
+def apply_retype_to_chemical_logits(
+    chemical_logits: torch.Tensor,
+    action: AtomPairRetypeAction | None,
+) -> torch.Tensor:
+    if chemical_logits.ndim != 2 or chemical_logits.size(-1) != len(BOND_TYPES):
+        raise ValueError("Chemical retype logits have an unsupported shape")
+    output = chemical_logits.clone()
+    if action is not None:
+        output[action.group_index] = -1e4
+        output[action.group_index, action.target_state] = 1e4
+    return output
+
+
 def choose_retype_action(
     gate_logit: torch.Tensor,
     action_scores: torch.Tensor,

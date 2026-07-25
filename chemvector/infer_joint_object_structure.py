@@ -39,6 +39,15 @@ from chemvector.atom_pair_one_move import (
     choose_atom_pair_action,
     load_atom_pair_one_move_head,
 )
+from chemvector.atom_pair_chemical_retype import (
+    apply_retype_to_chemical_logits,
+    build_retype_features,
+    load_atom_pair_chemical_retype_head,
+)
+from chemvector.atom_pair_chemical_retype_verifier import (
+    choose_verified_retype_action,
+    load_atom_pair_chemical_retype_verifier,
+)
 from chemvector.line_segment_group_rescue import (
     LineSegmentGroupRescueConfig,
     rescue_disconnected_atom_pair_groups,
@@ -142,6 +151,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--atom-pair-group-checkpoint")
     parser.add_argument("--atom-pair-graph-context-checkpoint")
     parser.add_argument("--atom-pair-one-move-checkpoint")
+    parser.add_argument("--atom-pair-chemical-retype-verifier-checkpoint")
     parser.add_argument("--atom-pair-group-threshold", type=float, default=0.0)
     parser.add_argument("--line-segment-group-rescue", action="store_true")
     parser.add_argument("--line-rescue-minimum-support", type=int, default=2)
@@ -215,6 +225,34 @@ def main() -> None:
         atom_pair_one_move_relation_config = AtomPairDeletionVetoConfig(
             **atom_pair_one_move_payload["relation_config"]
         )
+    atom_pair_chemical_retype_head = None
+    atom_pair_chemical_retype_payload = None
+    atom_pair_chemical_retype_verifier_head = None
+    atom_pair_chemical_retype_verifier_payload = None
+    if args.atom_pair_chemical_retype_verifier_checkpoint:
+        if atom_pair_one_move_head is None:
+            raise ValueError("Chemical RETYPE verifier requires AtomPair one-move")
+        (
+            atom_pair_chemical_retype_verifier_head,
+            atom_pair_chemical_retype_verifier_payload,
+        ) = load_atom_pair_chemical_retype_verifier(
+            args.atom_pair_chemical_retype_verifier_checkpoint, device
+        )
+        (
+            atom_pair_chemical_retype_head,
+            atom_pair_chemical_retype_payload,
+        ) = load_atom_pair_chemical_retype_head(
+            atom_pair_chemical_retype_verifier_payload["retype_init_checkpoint"],
+            device,
+        )
+        if Path(atom_pair_chemical_retype_payload["first_move_checkpoint"]) != Path(
+            args.atom_pair_one_move_checkpoint
+        ):
+            raise ValueError("Chemical RETYPE verifier uses another one-move model")
+        if atom_pair_chemical_retype_verifier_payload["relation_config"] != (
+            atom_pair_one_move_payload["relation_config"]
+        ):
+            raise ValueError("Chemical RETYPE verifier uses another relation protocol")
     pixels = _image_tensor(image)[None].to(device)
     proposal_config = PredictedProposalConfig(maximum_atoms=128, maximum_bonds=192)
     with torch.no_grad(), torch.autocast(
@@ -270,6 +308,7 @@ def main() -> None:
                         )
                     )
                 one_move_diagnostics = None
+                chemical_retype_diagnostics = None
                 if atom_pair_one_move_head is not None:
                     pairs = flatten_atom_pairs(groups["atom_pairs"], device=device)
                     relation = build_atom_pair_relation_features(
@@ -300,9 +339,10 @@ def main() -> None:
                             atom_pair_one_move_payload["minimum_margin"]
                         ),
                     )
-                    selected_before = group_output["presence_logits"] >= 0.0
+                    base_presence_logits = group_output["presence_logits"]
+                    selected_before = base_presence_logits >= 0.0
                     selected_after = apply_atom_pair_action(selected_before, action)
-                    refined_logits = group_output["presence_logits"].clone()
+                    refined_logits = base_presence_logits.clone()
                     changed = selected_after != selected_before
                     refined_logits[changed & selected_after] = 1e-4
                     refined_logits[changed & ~selected_after] = -1e-4
@@ -327,6 +367,78 @@ def main() -> None:
                         ),
                         "candidate_actions": len(actions),
                     }
+                    if atom_pair_chemical_retype_verifier_head is not None:
+                        retype_features = build_retype_features(
+                            relation,
+                            base_presence_logits,
+                            group_output["chemical_logits"],
+                            selected_after,
+                        )
+                        (
+                            retype_gate,
+                            retype_prior_scores,
+                            retype_actions,
+                        ) = atom_pair_chemical_retype_head.score_sample(
+                            retype_features,
+                            group_output["chemical_logits"],
+                            selected_after,
+                        )
+                        verifier_scores = (
+                            atom_pair_chemical_retype_verifier_head.score_sample(
+                                retype_features,
+                                group_output["chemical_logits"],
+                                selected_after,
+                                retype_gate,
+                                retype_prior_scores,
+                                retype_actions,
+                            )
+                        )
+                        retype_action = choose_verified_retype_action(
+                            verifier_scores,
+                            retype_actions,
+                            minimum_margin=float(
+                                atom_pair_chemical_retype_verifier_payload[
+                                    "gate_threshold"
+                                ]
+                            ),
+                        )
+                        group_output = {
+                            **group_output,
+                            "chemical_logits": apply_retype_to_chemical_logits(
+                                group_output["chemical_logits"], retype_action
+                            ),
+                        }
+                        chemical_retype_diagnostics = {
+                            "action": (
+                                "KEEP" if retype_action is None else "RETYPE"
+                            ),
+                            "group_index": (
+                                retype_action.group_index
+                                if retype_action is not None
+                                else None
+                            ),
+                            "atom_pair": (
+                                pairs[retype_action.group_index].tolist()
+                                if retype_action is not None
+                                else None
+                            ),
+                            "target_state": (
+                                retype_action.target_state
+                                if retype_action is not None
+                                else None
+                            ),
+                            "score": (
+                                float(verifier_scores.max())
+                                if len(verifier_scores)
+                                else None
+                            ),
+                            "minimum_margin": float(
+                                atom_pair_chemical_retype_verifier_payload[
+                                    "gate_threshold"
+                                ]
+                            ),
+                            "candidate_actions": len(retype_actions),
+                        }
                 plain_proposals, plain_output, plain_grouping = (
                     collapse_atom_pair_group_outputs(
                         proposals, model_output, group_output, groups
@@ -336,6 +448,10 @@ def main() -> None:
                     plain_grouping[0]["graph_context"] = graph_context_diagnostics
                 if one_move_diagnostics is not None:
                     plain_grouping[0]["one_move"] = one_move_diagnostics
+                if chemical_retype_diagnostics is not None:
+                    plain_grouping[0]["chemical_retype"] = (
+                        chemical_retype_diagnostics
+                    )
                 sample_line_candidates = None
                 if args.line_segment_group_rescue or line_atom_pair_head is not None:
                     predicted_pixels = (
@@ -547,6 +663,19 @@ def main() -> None:
         "atom_pair_one_move_minimum_margin": (
             float(atom_pair_one_move_payload["minimum_margin"])
             if atom_pair_one_move_payload is not None
+            else None
+        ),
+        "atom_pair_chemical_retype_verifier_checkpoint": (
+            args.atom_pair_chemical_retype_verifier_checkpoint
+        ),
+        "atom_pair_chemical_retype_verifier_samples_seen": (
+            atom_pair_chemical_retype_verifier_payload["samples_seen"]
+            if atom_pair_chemical_retype_verifier_payload is not None
+            else None
+        ),
+        "atom_pair_chemical_retype_verifier_minimum_margin": (
+            float(atom_pair_chemical_retype_verifier_payload["gate_threshold"])
+            if atom_pair_chemical_retype_verifier_payload is not None
             else None
         ),
         "line_segment_group_rescue": args.line_segment_group_rescue,

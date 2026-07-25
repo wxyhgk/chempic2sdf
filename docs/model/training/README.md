@@ -26,7 +26,7 @@
 
 ## 训练时间线
 
-当前已完成：[v0.9.91 Chemical RETYPE 整图修复](20260725-v0.9.91-chemical-retype.md)。
+当前已完成：[v0.9.92 候选级 Chemical RETYPE Verifier](20260725-v0.9.92-chemical-retype-verifier.md)。
 
 | 编号 | 阶段 | 主要结论 | 状态 |
 |---|---|---|---|
@@ -487,3 +487,10 @@ KEEP+RETYPE 联合 softmax、累计 9k 和 global safety gate 均未超过固定
 仍无净 rescue，说明下一步必须改成候选级 verifier，而不是继续训练纯 global gate。正式
 NO-GO，未运行 official validation 或 locked internal。详见
 `20260725-v0.9.91-chemical-retype.md`。
+
+v0.9.92 将 global gate 改为候选级 exact verifier，直接读取被修改 group、当前/目标键型和
+action margin。三个 4.5k seed 中 seed20260725 在 train-dev 达到 `551→555`、双域各 +2、
+4 rescue/0 break。锁定阈值 `-1.75` 后，official validation chemical `532→537`；一次性
+locked internal `527→533`，ChemVision/full-v0 分别 `239→244`、`288→289`，presence
+完全不变。正式 GO，默认前端切换到 `structure-v0992-carbon`。详见
+`20260725-v0.9.92-chemical-retype-verifier.md`。

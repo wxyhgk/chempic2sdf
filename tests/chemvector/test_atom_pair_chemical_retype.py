@@ -9,6 +9,7 @@ from chemvector.atom_pair_chemical_retype import (
     AtomPairChemicalRetypeHead,
     AtomPairRetypeAction,
     apply_retype_action,
+    apply_retype_to_chemical_logits,
     build_retype_features,
     chemical_retype_joint_loss,
     chemical_retype_loss,
@@ -48,6 +49,14 @@ class AtomPairChemicalRetypeTest(unittest.TestCase):
             (output != ABSENT_STATE).tolist(),
             (states != ABSENT_STATE).tolist(),
         )
+
+    def test_apply_retype_logits_changes_only_target_group_type(self) -> None:
+        logits = torch.tensor(((2.0, 1.0, 0.0, -1.0), (1.0, 0.0, -1.0, -2.0)))
+        output = apply_retype_to_chemical_logits(
+            logits, AtomPairRetypeAction(1, 2)
+        )
+        self.assertTrue(torch.equal(output[0], logits[0]))
+        self.assertEqual(int(output[1].argmax()), 2)
 
     def test_zero_initialized_gate_keeps_at_zero_threshold(self) -> None:
         head = AtomPairChemicalRetypeHead(

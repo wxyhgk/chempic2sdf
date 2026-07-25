@@ -1,12 +1,41 @@
 {
   "profiles": {
+    "structure-v0992-carbon": {
+      "version": "v0.9.92",
+      "label": "候选级 Chemical RETYPE v0.9.92（文字按 C 占位）",
+      "checkpoint": "outputs/checkpoints/chemvector-v0992-chemical-retype-verifier-final/best.pt",
+      "protocol": "v0.9.89 one-move 后冻结 presence；候选级 verifier 只允许对一条已存在键执行 SINGLE/DOUBLE/TRIPLE/AROMATIC RETYPE；validation 与 locked internal 双域提升；不启用长键 rescue；未接 OCR",
+      "available": true,
+      "recommended": true,
+      "module": "chemvector.infer_joint_object_structure",
+      "arguments": [
+        "--model-version",
+        "v0.9.92-structure-carbon",
+        "--primary-checkpoint",
+        "outputs/checkpoints/chemvector-v0972-bond-presence-calibration-10k/exported/set.pt",
+        "--fallback-checkpoint",
+        "outputs/checkpoints/chemvector-v0972-bond-presence-calibration-10k/exported/set.pt",
+        "--atom-checkpoint",
+        "outputs/checkpoints/chemvector-v0972-bond-presence-calibration-10k/exported/atom.pt",
+        "--bond-checkpoint",
+        "outputs/checkpoints/chemvector-v0972-bond-presence-calibration-10k/exported/bond.pt",
+        "--atom-pair-group-checkpoint",
+        "outputs/checkpoints/chemvector-v0983-atom-pair-bond-group-types-two-domain18k/best-chemical.pt",
+        "--atom-pair-graph-context-checkpoint",
+        "outputs/checkpoints/chemvector-v0987-atom-pair-graph-context-positive-margin-calibrated/best.pt",
+        "--atom-pair-one-move-checkpoint",
+        "outputs/checkpoints/chemvector-v0989-atom-pair-one-move-final/best.pt",
+        "--atom-pair-chemical-retype-verifier-checkpoint",
+        "outputs/checkpoints/chemvector-v0992-chemical-retype-verifier-final/best.pt"
+      ]
+    },
     "structure-v0989-carbon": {
       "version": "v0.9.89",
       "label": "AtomPair 集合动作 v0.9.89（文字按 C 占位）",
       "checkpoint": "outputs/checkpoints/chemvector-v0989-atom-pair-one-move-final/best.pt",
       "protocol": "v0.9.87 图上下文 + 整图 KEEP/ADD/DELETE/SWAP one-move；validation 与 locked internal test 双域门控；不启用长键 rescue；未接 OCR",
       "available": true,
-      "recommended": true,
+      "recommended": false,
       "module": "chemvector.infer_joint_object_structure",
       "arguments": [
         "--model-version",

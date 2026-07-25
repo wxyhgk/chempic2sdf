@@ -7,7 +7,7 @@ Junction、TextObject 和 BondObject 组成的 ChemScene，再通过确定性编
 当前端到端 shadow 仍为 `v0.7.38`；v0.8.33 是冻结 geometry 的 presence selector
 实验 checkpoint，默认推理尚未替换。
 
-当前研究实验为 `v0.9.91`。从 v0.9.86 开始，版本门控重新以 ChemVision/full-v0 普通结构的
+当前研究实验为 `v0.9.92`。从 v0.9.86 开始，版本门控重新以 ChemVision/full-v0 普通结构的
 双域 validation 和 locked internal test 为主；MR-TADF 长键只保留为专项诊断，不再主导模型方向。
 此前的 locked internal100 继续作为历史回归护栏。MR-TADF 仍然只测不训，不参与阈值拟合或
 hard replay。
@@ -85,6 +85,11 @@ v0.9.91 冻结 v0.9.89 的 presence，只允许对已存在的一条键执行 RE
 exact 从 `551/996` 提高；累计 9,000 张后 action top-1 从 32.50% 提到 43.75%，但实际最佳
 仍是 rescue/break `0/0`。该版 NO-GO，未运行 official validation 或 locked internal，默认
 前端继续使用 v0.9.89；下一版改为读取具体候选边与目标键型的候选级 verifier。
+v0.9.92 对每个具体 RETYPE 候选直接预测“执行后整图是否 exact”，并用最强错误动作作
+hard negative。固定 seed 和阈值后，official validation chemical exact `532→537`，locked
+internal `527→533`；internal ChemVision/full-v0 分别 `239→244`、`288→289`，presence
+完全不变，`rescue=6, break=0`。该版 GO，默认前端切换到 `structure-v0992-carbon`；OCR
+仍未接入，文字原子继续按 C 占位。
 
 版本管理规则：每个产生正式 checkpoint 的模型版本都必须提交可复现代码和中文训练记录，并创建
 与模型版本名完全一致的 annotated Git tag。tag 注释记录 checkpoint 路径、SHA256、训练样本数和
