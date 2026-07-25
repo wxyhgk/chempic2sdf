@@ -11,10 +11,13 @@ from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
 
-from chemvector.layer_ocr import ChemVisionLayerOCRDataset
+from chemvector.layer_ocr import (
+    ChemVisionLayerOCRConfig,
+    ChemVisionLayerOCRDataset,
+    collate_layer_ocr,
+)
 from chemvector.ocr import OCRTextCodec
 from chemvector.pretrain_ocr import load_ocr_model, validate
-from chemvector.replacement_ocr import collate_replacement_ocr
 
 
 def main() -> None:
@@ -26,6 +29,8 @@ def main() -> None:
     parser.add_argument("--batch-size", type=int, default=4)
     parser.add_argument("--workers", type=int, default=0)
     parser.add_argument("--device", choices=("cpu", "cuda"), default="cuda")
+    parser.add_argument("--color-probability", type=float, default=0.0)
+    parser.add_argument("--auxiliary-routing", action="store_true")
     args = parser.parse_args()
     if min(args.samples, args.batch_size) < 1 or args.workers < 0:
         raise ValueError("Evaluation sizes must be positive")
@@ -37,6 +42,9 @@ def main() -> None:
     dataset = ChemVisionLayerOCRDataset(
         args.shards,
         seed=20260715 + 1_000_000_007,
+        config=ChemVisionLayerOCRConfig(
+            color_probability=args.color_probability,
+        ),
         sample_limit=args.samples,
     )
     loader = DataLoader(
@@ -45,9 +53,15 @@ def main() -> None:
         num_workers=args.workers,
         pin_memory=args.device == "cuda",
         persistent_workers=args.workers > 0,
-        collate_fn=partial(collate_replacement_ocr, codec=codec),
+        collate_fn=partial(collate_layer_ocr, codec=codec),
     )
-    metrics = validate(model, loader, device, codec)
+    metrics = validate(
+        model,
+        loader,
+        device,
+        codec,
+        use_auxiliary_routing=args.auxiliary_routing,
+    )
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(

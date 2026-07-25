@@ -170,3 +170,136 @@ outputs/evaluations/uspto-clean-1k-v0710-probability-bridge/
 断图减少 50 个，有效 SDF 增加 15 个，完全一致没有回退。价态失败增加是断图被
 连接后暴露出的下一层错误，不代表新增了 35 个原本正确的结构。详细实现和门控见
 [v0.7.10 独立实验档案](../model/training/20260715-v0.7.10-probability-bridge.md)。
+
+## v0.7.18 联合 Proposal Graph
+
+v0.7.18 固定 v0.7.10 主权重和现有 relation/repair，只把顶点选择替换为联合
+node-edge proposal graph。graph threshold `0.87` 只在 MolGrapher validation 选择，
+USPTO clean 1k 未参与训练、checkpoint 或阈值选择。
+
+| 指标 | v0.7.10 | v0.7.17 keep | v0.7.18 graph |
+|---|---:|---:|---:|
+| SDF 有效 | 192 | 226 | 241 |
+| SDF 图完全一致 | 22 | 19 | 29 |
+| 原子数一致 | 87 | 101 | 115 |
+| 键数一致 | 87 | 67 | 84 |
+| 平均指纹相似度 | 0.0980 | 0.0964 | 0.1140 |
+| 价态失败 | 567 | 393 | 436 |
+| 断图失败 | 192 | 320 | 254 |
+
+相对 v0.7.17 的 paired 结果为：保留 17 个旧正确、救回 12 个、破坏 2 个，净增
+10 个完全一致。结果目录：
+
+```text
+outputs/evaluations/uspto-clean-1k-v0718-proposal-graph-t087/
+```
+
+该结果接受为 shadow 候选，但断图仍高于稳定 v0.7.10，尚不直接替换默认推理。
+
+## v0.7.19 Graph Edge Prior
+
+固定 v0.7.18 的节点和全部阈值，只在 `model_connect` 补桥时对 graph score 不低于
+`0.85` 的点对使用 `max(relation_score, graph_score)`。结果只有 2/1000 个样本改变：
+
+| 指标 | v0.7.18 | v0.7.19 prior |
+|---|---:|---:|
+| SDF 有效 | 241 | 242 |
+| SDF 图完全一致 | 29 | 29 |
+| 断图失败 | 254 | 252 |
+| 价态失败 | 436 | 437 |
+
+一个样本由断图变成 fingerprint similarity 为 0 的有效错误，另一个由断图变成价态
+失败。该方案判定 NO-GO，不在本公开集上继续降低阈值。
+
+## v0.7.20 跨字体全局 Proposal Graph
+
+v0.7.20 的 checkpoint 和统一 node threshold `0.90` 只由 held-out 字体 validation
+与 MolGrapher retention validation 选择。USPTO clean 1k 仅在内部选择冻结后运行。
+
+| 指标 | v0.7.18 | v0.7.20 |
+|---|---:|---:|
+| SDF 有效 | 241 | 258 |
+| SDF 图完全一致 | 29 | 30 |
+| 原子数一致 | 115 | 131 |
+| 键数一致 | 84 | 92 |
+| 平均指纹相似度 | 0.1140 | 0.1268 |
+| 有效预测平均相似度 | 0.4730 | 0.4916 |
+| 断图失败 | 254 | 230 |
+| 价态失败 | 436 | 433 |
+
+输出：
+
+```text
+outputs/evaluations/uspto-clean-1k-v0720-style-global-t090/
+```
+
+公开域有小幅一致提升和明显断图减少，但 MR-TADF 外部回归失败，因此该 graph 仍不
+替换稳定默认。完整决策见
+[v0.7.20 训练档案](../model/training/20260716-v0.7.20-style-global-proposal.md)。
+
+## v0.8.16 语义 Bond Endpoint Junction
+
+v0.8.16 不再由平行 stroke 或旧隐式顶点检测器生成结构点。每个 Bond Object 固定
+两个语义端点，端点聚合为 Junction；OCR 只能附着标签。
+
+| 指标 | v0.7.10 | v0.7.20 | v0.8.16 |
+|---|---:|---:|---:|
+| SDF 有效 | 192 | 258 | 730 |
+| SDF 图完全一致 | 22 | 30 | 131 |
+| 原子数一致 | 87 | 131 | 600 |
+| 键数一致 | 87 | 92 | 584 |
+| 平均指纹相似度 | 0.0980 | 0.1268 | 0.4051 |
+
+v0.8.16 将完全一致提高到 13.10%，说明语义端点骨架路线有效；但 216 个价态失败、
+大量芳香键转单键以及元素标签错误表明端到端仍未过门槛。结果目录：
+
+```text
+outputs/evaluations/uspto-clean-1k-v0816-bond-endpoints/
+```
+
+## v0.9.39 BondObject 风格 MoE
+
+v0.9.39 保留原 BondObject 专家和 MolGrapher 风格专家。gate 只用内部 MolGrapher/
+ChemVision 来源标签训练，阈值 `0.90` 也只由内部验证选择；USPTO 不参与训练或调参。
+
+同代码、同 checkpoint、同 1,000 张图片的 paired 结果：
+
+| 指标 | v0.9.36 基线重跑 | v0.9.39 MoE |
+|---|---:|---:|
+| SDF 有效 | 69.1% | 68.5% |
+| 化学完全一致 | 15.7% | 15.4% |
+| 纯骨架 exact | 70.5% | 69.3% |
+| 原子类型+骨架 | 28.9% | 28.5% |
+| 键级+骨架 | 57.3% | 56.7% |
+
+gate 将 56 张图片送入风格专家。纯骨架只救回 1 张、破坏 13 张；未路由的 944 张
+纯骨架和化学 exact 全部不变。说明运行时回退正确，但“图片像哪个数据来源”不能
+替代“哪个专家更可能正确”。该 gate 判定 NO-GO，不使用 USPTO 标签反向训练。
+
+结果：
+
+```text
+outputs/evaluations/uspto-clean-1k-v0936-predicted-junction-relations-rerun/
+outputs/evaluations/uspto-clean-1k-v0939-bond-style-moe/
+```
+
+## v0.9.41 Bond 专家收益路由
+
+v0.9.41 不使用来源风格作为路由目标，只读取两个 BondObject 专家的预测数量、置信度、
+端点聚类图、自环/重复 pair 和专家分歧。router 训练与阈值选择只使用内部数据，
+USPTO 标签未参与。
+
+| 指标 | v0.9.36 同代码基线 | v0.9.41 |
+|---|---:|---:|
+| SDF 有效 | 69.1% | 70.4% |
+| 化学完全一致 | 15.7% | 16.0% |
+| 纯骨架 exact | 70.5% | 72.7% |
+| 原子类型+骨架 | 28.9% | 29.3% |
+| 键级+骨架 | 57.3% | 59.1% |
+
+纯骨架 paired 为救回 29、破坏 7，净增 22；化学完全一致救回 4、破坏 1，净增 3。
+该结果接受为 shadow GO。输出：
+
+```text
+outputs/evaluations/uspto-clean-1k-v0941-bond-utility-router/
+```

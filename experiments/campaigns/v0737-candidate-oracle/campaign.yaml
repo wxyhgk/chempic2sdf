@@ -1,0 +1,66 @@
+schema_version: chemvector-campaign-0.1
+campaign_id: v0737-dual-candidate-oracle
+objective: 判断 v0.7.34 双分支低阈值候选是否足以支持全局 Count 和集合选择
+status: active
+stable_baseline: v0.7.10
+max_trials: 1
+max_gpu_hours: 1.0
+
+source_paths:
+  - chemvector/experiment_loop
+  - chemvector/evaluate_dual_vertex_candidates.py
+  - chemvector/evaluate_node_conditioned_bond.py
+  - tests/chemvector/test_evaluate_dual_vertex_candidates.py
+
+input_artifacts:
+  - outputs/checkpoints/chemvector-v0733-text-object-9k-45k/best.pt
+  - outputs/checkpoints/chemvector-v0734-implicit-vertex-9k-45k/calibrated_best.pt
+  - Data/sdf/chemvision_layers_v0_1/pilot_10k/shards/validation-000000.tar
+
+trials:
+  - id: low-threshold-oracle
+    hypothesis: 低阈值和256候选已覆盖至少80%的完整真实顶点集合
+    stages:
+      - id: preflight
+        command:
+          - .venv-train/bin/python
+          - -m
+          - unittest
+          - tests.chemvector.test_evaluate_dual_vertex_candidates
+          - -v
+        gates:
+          - metric: return_code
+            operator: eq
+            value: 0
+
+      - id: validation-498
+        requires_gpu: true
+        timeout_seconds: 1800
+        command:
+          - .venv-train/bin/python
+          - -m
+          - chemvector.evaluate_dual_vertex_candidates
+          - --text-object-checkpoint
+          - outputs/checkpoints/chemvector-v0733-text-object-9k-45k/best.pt
+          - --implicit-vertex-checkpoint
+          - outputs/checkpoints/chemvector-v0734-implicit-vertex-9k-45k/calibrated_best.pt
+          - --validation-shards
+          - Data/sdf/chemvision_layers_v0_1/pilot_10k/shards/validation-000000.tar
+          - --output-dir
+          - "{stage_dir}/evaluation"
+          - --samples
+          - "498"
+          - --batch-size
+          - "8"
+          - --implicit-thresholds
+          - 0.01,0.03,0.05,0.1,0.2,0.3,0.52
+          - --candidate-limits
+          - 128,256
+        result_file: "{stage_dir}/evaluation/summary.json"
+        gates:
+          - metric: configs.t0.05-k256.merged.candidate_recall
+            operator: ge
+            value: 0.98
+          - metric: configs.t0.05-k256.merged.candidate_oracle_exact
+            operator: ge
+            value: 0.80

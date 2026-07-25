@@ -1,0 +1,17 @@
+{
+  "schema_version": "chemscene-validation-0.1",
+  "created_at": "2026-07-17T22:10:59.461139+00:00",
+  "archive": "Data/sdf/chemvision_layers_v0_1/pilot_10k/shards/validation-000000.tar",
+  "status": "passed",
+  "counts": {
+    "total": 500,
+    "passed": 498,
+    "skipped_coordinate_collision": 2
+  },
+  "mean_bytes": {
+    "chemscene_json": 13874.596385542169,
+    "chemsvg": 3370.098393574297,
+    "sdf": 2939.3092369477913
+  },
+  "failures": []
+}

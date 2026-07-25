@@ -27,6 +27,8 @@ from chemvector.benchmark_mr_tadf import (
 from chemvector.evaluate import load_model
 from chemvector.image_io import image_tensor, prepare_input_image
 from chemvector.parallel_v6 import generate_parallel_chemsvg_v6, strip_autoregressive_modules
+from chemvector.proposal_keep import load_proposal_keep_checkpoint
+from chemvector.proposal_graph import load_proposal_graph_checkpoint
 from chemvector.repair_v4 import InkGraphRepairConfig, repair_chemsvg_v4_from_image
 from chemvector.structure_gate import (
     expert_route_probability,
@@ -178,6 +180,12 @@ def main() -> None:
     parser.add_argument("--image-size", type=int, default=768)
     parser.add_argument("--content-size", type=int, default=548)
     parser.add_argument("--vertex-threshold", type=float, default=0.3)
+    parser.add_argument("--vertex-nms-kernel-size", type=int, default=3)
+    parser.add_argument("--proposal-keep-checkpoint")
+    parser.add_argument("--proposal-keep-threshold", type=float, default=0.74)
+    parser.add_argument("--proposal-graph-checkpoint")
+    parser.add_argument("--proposal-graph-threshold", type=float, default=0.87)
+    parser.add_argument("--proposal-graph-edge-prior-threshold", type=float)
     parser.add_argument("--edge-threshold", type=float, default=0.5)
     parser.add_argument("--ocr-roi-radius", type=float, default=20.0)
     parser.add_argument("--maximum-vertices", type=int, default=128)
@@ -194,6 +202,19 @@ def main() -> None:
         raise ValueError("samples 必须大于 0")
     if args.cpu_threads < 1 or args.maximum_vertices < 1:
         raise ValueError("cpu-threads 和 maximum-vertices 必须大于 0")
+    if args.vertex_nms_kernel_size < 1 or args.vertex_nms_kernel_size % 2 == 0:
+        raise ValueError("vertex-nms-kernel-size 必须是正奇数")
+    if not 0.0 < args.proposal_keep_threshold < 1.0:
+        raise ValueError("proposal-keep-threshold 必须位于 0 到 1 之间")
+    if not 0.0 < args.proposal_graph_threshold < 1.0:
+        raise ValueError("proposal-graph-threshold 必须位于 0 到 1 之间")
+    if (
+        args.proposal_graph_edge_prior_threshold is not None
+        and not 0.0 < args.proposal_graph_edge_prior_threshold < 1.0
+    ):
+        raise ValueError("proposal-graph-edge-prior-threshold 必须位于 0 到 1 之间")
+    if args.proposal_graph_edge_prior_threshold is not None and not args.proposal_graph_checkpoint:
+        raise ValueError("proposal graph edge prior 需要 proposal graph checkpoint")
     if not 1 <= args.content_size <= args.image_size:
         raise ValueError("content-size 必须位于 1 到 image-size 之间")
     if not 0.0 <= args.gate_threshold <= 1.0:
@@ -231,6 +252,30 @@ def main() -> None:
         "image_size": args.image_size,
         "content_size": args.content_size,
         "vertex_threshold": args.vertex_threshold,
+        "vertex_nms_kernel_size": args.vertex_nms_kernel_size,
+        "proposal_keep_checkpoint": args.proposal_keep_checkpoint,
+        "proposal_keep_checkpoint_sha256": (
+            sha256_file(Path(args.proposal_keep_checkpoint))
+            if args.proposal_keep_checkpoint
+            else None
+        ),
+        "proposal_keep_threshold": (
+            args.proposal_keep_threshold if args.proposal_keep_checkpoint else None
+        ),
+        "proposal_graph_checkpoint": args.proposal_graph_checkpoint,
+        "proposal_graph_checkpoint_sha256": (
+            sha256_file(Path(args.proposal_graph_checkpoint))
+            if args.proposal_graph_checkpoint
+            else None
+        ),
+        "proposal_graph_threshold": (
+            args.proposal_graph_threshold if args.proposal_graph_checkpoint else None
+        ),
+        "proposal_graph_edge_prior_threshold": (
+            args.proposal_graph_edge_prior_threshold
+            if args.proposal_graph_checkpoint
+            else None
+        ),
         "edge_threshold": args.edge_threshold,
         "ocr_roi_radius": args.ocr_roi_radius,
         "maximum_vertices": args.maximum_vertices,
@@ -243,6 +288,29 @@ def main() -> None:
 
     model, _ = load_model(checkpoint_path, device)
     strip_autoregressive_modules(model)
+    proposal_keep_head = None
+    if args.proposal_keep_checkpoint:
+        proposal_keep_head, proposal_payload = load_proposal_keep_checkpoint(
+            args.proposal_keep_checkpoint,
+            device,
+        )
+        if Path(proposal_payload["dense_checkpoint"]).resolve() != checkpoint_path.resolve():
+            raise ValueError("Proposal keep dense checkpoint does not match --checkpoint")
+    proposal_graph_head = None
+    if args.proposal_graph_checkpoint:
+        proposal_graph_head, graph_payload = load_proposal_graph_checkpoint(
+            args.proposal_graph_checkpoint,
+            device,
+        )
+        if Path(graph_payload["dense_checkpoint"]).resolve() != checkpoint_path.resolve():
+            raise ValueError("Proposal graph dense checkpoint does not match --checkpoint")
+        expected_keep = graph_payload.get("proposal_keep_checkpoint")
+        if expected_keep and not args.proposal_keep_checkpoint:
+            raise ValueError("Proposal graph checkpoint requires proposal keep checkpoint")
+        if expected_keep and Path(expected_keep).resolve() != Path(
+            args.proposal_keep_checkpoint
+        ).resolve():
+            raise ValueError("Proposal graph and keep checkpoints do not match")
     gate = None
     expert_model = None
     if args.gate_checkpoint:
@@ -314,6 +382,14 @@ def main() -> None:
                 inference_model,
                 pixels,
                 vertex_threshold=args.vertex_threshold,
+                vertex_nms_kernel_size=args.vertex_nms_kernel_size,
+                proposal_keep_head=proposal_keep_head,
+                proposal_keep_threshold=args.proposal_keep_threshold,
+                proposal_graph_head=proposal_graph_head,
+                proposal_graph_threshold=args.proposal_graph_threshold,
+                proposal_graph_edge_prior_threshold=(
+                    args.proposal_graph_edge_prior_threshold
+                ),
                 maximum_vertices=args.maximum_vertices,
                 edge_threshold=args.edge_threshold,
                 ocr_roi_radius=args.ocr_roi_radius,

@@ -7,6 +7,8 @@ import torch
 from PIL import Image
 from torch.nn import functional as F
 
+from chemvector.data import rendered_atom_labels
+
 
 class VertexCollator:
     def __init__(self, *, image_size: int = 768) -> None:
@@ -23,8 +25,10 @@ class VertexCollator:
         anchors = torch.zeros((len(samples), maximum_atoms, 2), dtype=torch.float32)
         mask = torch.zeros((len(samples), maximum_atoms), dtype=torch.bool)
         aromatic = torch.zeros((len(samples), maximum_atoms), dtype=torch.float32)
+        roles = torch.zeros((len(samples), maximum_atoms), dtype=torch.long)
         for sample_index, sample in enumerate(samples):
             render = sample["render"]
+            rendered_labels = rendered_atom_labels(sample)
             for position in render["atoms"]:
                 atom_id = position["atom_id"]
                 anchors[sample_index, atom_id] = torch.tensor(
@@ -37,6 +41,7 @@ class VertexCollator:
                 aromatic[sample_index, atom_id] = float(
                     sample["chemmol"]["atoms"][atom_id]["aromatic"]
                 )
+                roles[sample_index, atom_id] = int(rendered_labels[atom_id][1])
         return {
             "pixel_values": torch.stack(
                 [self._image_tensor(sample["image"]) for sample in samples]
@@ -44,6 +49,7 @@ class VertexCollator:
             "anchor_points": anchors,
             "anchor_mask": mask,
             "aromatic_targets": aromatic,
+            "role_targets": roles,
             "keys": [sample["key"] for sample in samples],
         }
 
@@ -53,7 +59,10 @@ def build_vertex_heatmap(
     anchor_mask: torch.Tensor,
     height: int,
     width: int,
+    radius_cells: int = 0,
 ) -> torch.Tensor:
+    if radius_cells < 0:
+        raise ValueError("Heatmap radius must be nonnegative")
     target = torch.zeros(
         (anchor_points.size(0), 1, height, width),
         device=anchor_points.device,
@@ -64,7 +73,73 @@ def build_vertex_heatmap(
     batch = torch.arange(anchor_points.size(0), device=anchor_points.device)[:, None]
     batch = batch.expand_as(anchor_mask)
     target[batch[anchor_mask], 0, cell_y[anchor_mask], cell_x[anchor_mask]] = 1.0
+    if radius_cells:
+        sigma = max(radius_cells / 3.0, 1e-6)
+        for batch_index, x, y in zip(
+            batch[anchor_mask].tolist(),
+            cell_x[anchor_mask].tolist(),
+            cell_y[anchor_mask].tolist(),
+        ):
+            left = max(0, x - radius_cells)
+            right = min(width, x + radius_cells + 1)
+            top = max(0, y - radius_cells)
+            bottom = min(height, y + radius_cells + 1)
+            grid_y, grid_x = torch.meshgrid(
+                torch.arange(top, bottom, device=target.device),
+                torch.arange(left, right, device=target.device),
+                indexing="ij",
+            )
+            gaussian = torch.exp(
+                -((grid_x - x).square() + (grid_y - y).square())
+                / (2.0 * sigma * sigma)
+            ).to(target.dtype)
+            target[batch_index, 0, top:bottom, left:right] = torch.maximum(
+                target[batch_index, 0, top:bottom, left:right],
+                gaussian,
+            )
     return target
+
+
+def build_vertex_role_heatmap(
+    anchor_points: torch.Tensor,
+    anchor_mask: torch.Tensor,
+    role_targets: torch.Tensor,
+    height: int,
+    width: int,
+) -> torch.Tensor:
+    target = torch.zeros(
+        (anchor_points.size(0), 2, height, width),
+        device=anchor_points.device,
+        dtype=anchor_points.dtype,
+    )
+    cell_x = (anchor_points[..., 0] * width).clamp(0, width - 1e-4).long()
+    cell_y = (anchor_points[..., 1] * height).clamp(0, height - 1e-4).long()
+    batch = torch.arange(anchor_points.size(0), device=anchor_points.device)[:, None]
+    batch = batch.expand_as(anchor_mask)
+    target[
+        batch[anchor_mask],
+        role_targets[anchor_mask].long(),
+        cell_y[anchor_mask],
+        cell_x[anchor_mask],
+    ] = 1.0
+    return target
+
+
+def focal_heatmap_loss(
+    logits: torch.Tensor,
+    targets: torch.Tensor,
+) -> torch.Tensor:
+    probabilities = logits.float().sigmoid().clamp(1e-5, 1.0 - 1e-5)
+    positive = targets == 1
+    negative = targets < 1
+    positive_loss = -torch.log(probabilities) * (1.0 - probabilities) ** 2 * positive
+    negative_loss = (
+        -torch.log(1.0 - probabilities)
+        * probabilities**2
+        * (1.0 - targets) ** 4
+        * negative
+    )
+    return (positive_loss.sum() + negative_loss.sum()) / positive.sum().clamp_min(1)
 
 
 def vertex_detection_loss(
@@ -72,7 +147,12 @@ def vertex_detection_loss(
     anchor_points: torch.Tensor,
     anchor_mask: torch.Tensor,
     aromatic_targets: torch.Tensor,
+    role_targets: torch.Tensor | None = None,
+    role_loss_weight: float = 0.0,
+    heatmap_radius_cells: int = 0,
 ) -> dict[str, torch.Tensor]:
+    if role_loss_weight < 0:
+        raise ValueError("Role loss weight must be nonnegative")
     heatmap_logits = output["vertex_heatmap_logits"]
     height, width = heatmap_logits.shape[-2:]
     heatmap_targets = build_vertex_heatmap(
@@ -80,19 +160,22 @@ def vertex_detection_loss(
         anchor_mask,
         height,
         width,
+        heatmap_radius_cells,
     )
-    probabilities = heatmap_logits.float().sigmoid().clamp(1e-5, 1.0 - 1e-5)
-    positive = heatmap_targets == 1
-    negative = heatmap_targets < 1
-    positive_loss = -torch.log(probabilities) * (1.0 - probabilities) ** 2 * positive
-    negative_loss = (
-        -torch.log(1.0 - probabilities)
-        * probabilities**2
-        * (1.0 - heatmap_targets) ** 4
-        * negative
-    )
-    positive_count = positive.sum().clamp_min(1)
-    heatmap_loss = (positive_loss.sum() + negative_loss.sum()) / positive_count
+    heatmap_loss = focal_heatmap_loss(heatmap_logits, heatmap_targets)
+    role_heatmap_loss = heatmap_loss * 0.0
+    if role_targets is not None and role_loss_weight:
+        role_heatmap_targets = build_vertex_role_heatmap(
+            anchor_points,
+            anchor_mask,
+            role_targets,
+            height,
+            width,
+        )
+        role_heatmap_loss = focal_heatmap_loss(
+            output["vertex_role_heatmap_logits"],
+            role_heatmap_targets,
+        )
 
     cell_x = (anchor_points[..., 0] * width).clamp(0, width - 1e-4)
     cell_y = (anchor_points[..., 1] * height).clamp(0, height - 1e-4)
@@ -115,10 +198,16 @@ def vertex_detection_loss(
         aromatic_targets[anchor_mask],
     )
     return {
-        "loss": heatmap_loss + offset_loss + 0.5 * aromatic_loss,
+        "loss": (
+            heatmap_loss
+            + offset_loss
+            + 0.5 * aromatic_loss
+            + role_loss_weight * role_heatmap_loss
+        ),
         "heatmap_loss": heatmap_loss,
         "offset_loss": offset_loss,
         "aromatic_loss": aromatic_loss,
+        "role_heatmap_loss": role_heatmap_loss,
     }
 
 
@@ -182,13 +271,35 @@ def decode_vertices(
     *,
     threshold: float = 0.3,
     maximum_vertices: int = 128,
+    role_aware: bool = False,
+    nms_kernel_size: int = 3,
 ) -> list[list[dict[str, float | bool]]]:
-    heatmap = output["vertex_heatmap_logits"].sigmoid()
-    peaks = heatmap == F.max_pool2d(heatmap, kernel_size=3, stride=1, padding=1)
-    heatmap = heatmap * peaks
+    if nms_kernel_size < 1 or nms_kernel_size % 2 == 0:
+        raise ValueError("NMS kernel size must be a positive odd integer")
+    if role_aware:
+        role_probabilities = output["vertex_role_heatmap_logits"].sigmoid()
+        heatmap, role_ids = role_probabilities.max(dim=1, keepdim=True)
+    else:
+        heatmap = output["vertex_heatmap_logits"].sigmoid()
+        role_ids = None
+    raw_heatmap = heatmap
+    peaks = raw_heatmap == F.max_pool2d(
+        raw_heatmap,
+        kernel_size=nms_kernel_size,
+        stride=1,
+        padding=nms_kernel_size // 2,
+    )
+    heatmap = raw_heatmap * peaks
+    peak3 = raw_heatmap == F.max_pool2d(
+        raw_heatmap, kernel_size=3, stride=1, padding=1
+    )
+    peak5 = raw_heatmap == F.max_pool2d(
+        raw_heatmap, kernel_size=5, stride=1, padding=2
+    )
     offsets = output["vertex_offset_logits"].sigmoid()
     aromatic = output["vertex_aromatic_logits"].sigmoid()
     height, width = heatmap.shape[-2:]
+    padded_heatmap = F.pad(raw_heatmap, (2, 2, 2, 2))
     decoded = []
     for batch_index in range(heatmap.size(0)):
         scores, indices = heatmap[batch_index, 0].flatten().topk(
@@ -201,12 +312,29 @@ def decode_vertices(
             y, x = divmod(index, width)
             offset_x = float(offsets[batch_index, 0, y, x])
             offset_y = float(offsets[batch_index, 1, y, x])
+            local_patch = padded_heatmap[
+                batch_index, 0, y : y + 5, x : x + 5
+            ].flatten()
             vertices.append(
                 {
                     "x": (x + offset_x) / width,
                     "y": (y + offset_y) / height,
                     "score": score,
                     "aromatic": bool(aromatic[batch_index, 0, y, x] >= 0.5),
+                    "grid_x": int(x),
+                    "grid_y": int(y),
+                    "offset_x": offset_x,
+                    "offset_y": offset_y,
+                    "nms3_peak": bool(peak3[batch_index, 0, y, x]),
+                    "nms5_peak": bool(peak5[batch_index, 0, y, x]),
+                    "local_heatmap_patch": tuple(
+                        float(value) for value in local_patch
+                    ),
+                    "role": (
+                        "visible_text"
+                        if role_ids is not None and int(role_ids[batch_index, 0, y, x]) == 1
+                        else "implicit_junction"
+                    ),
                 }
             )
         decoded.append(vertices)

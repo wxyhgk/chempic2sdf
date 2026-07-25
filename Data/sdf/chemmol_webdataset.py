@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import io
 import json
+import random
 from collections.abc import Iterator
 
 import webdataset as wds
@@ -57,6 +58,7 @@ class ChemMolWebDataset:
         validate_target_roundtrip: bool = False,
         shardshuffle: bool = False,
         sample_shuffle_buffer: int = 0,
+        sample_shuffle_seed: int | None = None,
         sequence_version: str = "0.2",
         reject_keys: set[str] | None = None,
     ) -> None:
@@ -65,6 +67,7 @@ class ChemMolWebDataset:
         self.validate_target_roundtrip = validate_target_roundtrip
         self.shardshuffle = shardshuffle
         self.sample_shuffle_buffer = sample_shuffle_buffer
+        self.sample_shuffle_seed = sample_shuffle_seed
         if sequence_version not in {"0.2", "0.3", "0.4"}:
             raise ValueError(f"Unsupported ChemMolSeq version: {sequence_version}")
         self.sequence_version = sequence_version
@@ -77,7 +80,14 @@ class ChemMolWebDataset:
             empty_check=False,
         )
         if self.sample_shuffle_buffer:
-            dataset = dataset.shuffle(self.sample_shuffle_buffer)
+            dataset = dataset.shuffle(
+                self.sample_shuffle_buffer,
+                rng=(
+                    random.Random(self.sample_shuffle_seed)
+                    if self.sample_shuffle_seed is not None
+                    else None
+                ),
+            )
         for sample in dataset:
             if sample["__key__"] in self.reject_keys:
                 continue
@@ -129,6 +139,16 @@ class ChemMolWebDataset:
             }
             if "layers.json" in sample:
                 record["layers"] = json.loads(sample["layers.json"])
+            for member, key, mode in (
+                ("text.png", "text_layer", "L"),
+                ("bond.png", "bond_layer", "L"),
+                ("semantic.png", "semantic_layer", "L"),
+            ):
+                if member not in sample:
+                    continue
+                layer = Image.open(io.BytesIO(sample[member])).convert(mode)
+                layer.load()
+                record[key] = layer
             yield record
 
 

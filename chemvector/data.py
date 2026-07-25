@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -13,6 +14,118 @@ from Data.sdf.chemmol_webdataset import ChemMolWebDataset
 from chemvector.ocr import OCRTextCodec, atom_display_text
 
 
+def synthesize_structure_labels(sample: dict) -> dict:
+    """Build structural supervision from ChemMol and Render JSON.
+
+    Text and rendered primitive bounding boxes are intentionally unavailable in
+    the base WebDataset and must not be inferred from endpoint geometry.
+    """
+
+    chemmol = sample["chemmol"]
+    render = sample["render"]
+    atoms_by_id = {int(atom["id"]): atom for atom in chemmol["atoms"]}
+    positions_by_id = {
+        int(position["atom_id"]): position for position in render["atoms"]
+    }
+    if set(atoms_by_id) != set(positions_by_id):
+        raise ValueError(f"Atom IDs differ between ChemMol and Render in {sample['key']}")
+    bonds_by_id = {int(bond["id"]): bond for bond in chemmol["bonds"]}
+    rendered_bonds_by_id = {
+        int(bond["bond_id"]): bond for bond in render["bonds"]
+    }
+    if set(bonds_by_id) != set(rendered_bonds_by_id):
+        raise ValueError(f"Bond IDs differ between ChemMol and Render in {sample['key']}")
+
+    atoms = []
+    for atom_id in sorted(atoms_by_id):
+        atom = atoms_by_id[atom_id]
+        position = positions_by_id[atom_id]
+        atoms.append(
+            {
+                "atom_id": atom_id,
+                "element": str(atom["element"]),
+                "formal_charge": int(atom.get("formal_charge", 0)),
+                "aromatic": bool(atom.get("aromatic", False)),
+                "implicit_h_count": int(atom.get("implicit_h_count", 0)),
+                "center": [float(position["image_x"]), float(position["image_y"])],
+            }
+        )
+
+    bonds = []
+    for bond_id in sorted(bonds_by_id):
+        chemical = bonds_by_id[bond_id]
+        rendered = rendered_bonds_by_id[bond_id]
+        begin = [
+            float(rendered["begin_image_x"]),
+            float(rendered["begin_image_y"]),
+        ]
+        end = [float(rendered["end_image_x"]), float(rendered["end_image_y"])]
+        bonds.append(
+            {
+                "bond_id": bond_id,
+                "begin_atom": int(chemical["begin_atom"]),
+                "end_atom": int(chemical["end_atom"]),
+                "begin": begin,
+                "end": end,
+                "chemical_type": str(chemical["type"]),
+                "display_type": str(rendered["display_type"]),
+                "direction": str(rendered.get("direction", "NONE")),
+                "bbox": None,
+            }
+        )
+
+    return {
+        "schema_version": "chemvector-structure-labels-0.1",
+        "sample_key": sample["key"],
+        "molecule_id": chemmol["molecule_id"],
+        "split": sample.get("meta", {}).get("split"),
+        "variant": render["variant"],
+        "width": int(render["width"]),
+        "height": int(render["height"]),
+        "atoms": atoms,
+        "bonds": bonds,
+        "render_parameters": dict(render.get("render_parameters", {})),
+        "text_supervision_available": False,
+        "text_bbox_supervision_available": False,
+        "bond_bbox_supervision_available": False,
+    }
+
+
+def structure_labels(sample: dict) -> dict:
+    """Return semantic layers when present, otherwise synthesize structural labels."""
+
+    return sample["layers"] if "layers" in sample else synthesize_structure_labels(sample)
+
+
+def rendered_atom_labels(sample: dict) -> dict[int, tuple[str, bool]]:
+    """Return what is actually drawn, falling back only for legacy samples."""
+
+    layer_atoms = sample.get("layers", {}).get("atoms")
+    if layer_atoms is not None:
+        labels = {}
+        for atom in layer_atoms:
+            atom_id = int(atom["atom_id"])
+            visible = bool(atom["visible_text"])
+            labels[atom_id] = (str(atom.get("text", "")) if visible else "", visible)
+        return labels
+    labels = {}
+    for index, atom in enumerate(sample["chemmol"]["atoms"]):
+        text = atom_display_text(atom)
+        if text is not None:
+            labels[int(atom.get("id", index))] = (text, bool(text))
+    return labels
+
+
+def load_reject_keys(path: str | Path | None) -> set[str]:
+    if path is None:
+        return set()
+    return {
+        line.strip()
+        for line in Path(path).read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    }
+
+
 class ChemVectorIterableDataset(IterableDataset):
     def __init__(
         self,
@@ -20,25 +133,36 @@ class ChemVectorIterableDataset(IterableDataset):
         *,
         shardshuffle: bool = False,
         sample_shuffle_buffer: int = 0,
+        sample_shuffle_seed: int | None = None,
         sequence_version: str = "0.2",
         reject_keys: set[str] | None = None,
+        allowed_variants: set[str] | None = None,
     ) -> None:
         super().__init__()
         self.shards = shards
         self.shardshuffle = shardshuffle
         self.sample_shuffle_buffer = sample_shuffle_buffer
+        self.sample_shuffle_seed = sample_shuffle_seed
         self.sequence_version = sequence_version
         self.reject_keys = reject_keys or set()
+        self.allowed_variants = allowed_variants
 
     def __iter__(self) -> Iterator[dict]:
-        yield from ChemMolWebDataset(
+        for sample in ChemMolWebDataset(
             self.shards,
             validate_legacy_hash=False,
             shardshuffle=self.shardshuffle,
             sample_shuffle_buffer=self.sample_shuffle_buffer,
+            sample_shuffle_seed=self.sample_shuffle_seed,
             sequence_version=self.sequence_version,
             reject_keys=self.reject_keys,
-        )
+        ):
+            if (
+                self.allowed_variants is not None
+                and sample["meta"].get("variant") not in self.allowed_variants
+            ):
+                continue
+            yield sample
 
 
 class ChemVectorCollator:
@@ -111,10 +235,11 @@ class ChemVectorCollator:
         maximum_text_length = 2
         for sample in samples:
             positions = sorted(sample["render"]["atoms"], key=lambda item: item["atom_id"])
+            rendered_labels = rendered_atom_labels(sample)
             encoded_atoms = []
             for position in positions:
-                atom = sample["chemmol"]["atoms"][position["atom_id"]]
-                text = atom_display_text(atom)
+                atom_id = int(position["atom_id"])
+                text, _ = rendered_labels[atom_id]
                 encoded = self.ocr_codec.encode(text)
                 maximum_text_length = max(maximum_text_length, len(encoded))
                 encoded_atoms.append((position, text, encoded))

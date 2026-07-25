@@ -11,8 +11,10 @@ from chemvector.model import ChemVectorConfig, ChemVectorModel
 from chemvector.parallel_v6 import score_vertex_pairs_parallel
 from chemvector.pretrain_relation import set_relation_trainable
 from chemvector.relation import (
+    apply_safe_hydrogen_constraints,
     factorized_relation_loss,
     factorized_relation_probabilities,
+    hard_mined_factorized_relation_loss,
     relation_teacher_consistency_loss,
 )
 
@@ -42,6 +44,43 @@ def small_config(
 
 
 class FactorizedRelationTests(unittest.TestCase):
+    def test_high_confidence_hydrogen_allows_one_single_bond_only(self) -> None:
+        pairs = torch.tensor([[0, 1], [0, 2], [1, 2]])
+        edge_logits = torch.tensor([[3.0, 8.0, 2.0]])
+        bond_logits = torch.zeros(1, 3, 3)
+        hydrogen_like = torch.tensor([[True, False, False]])
+        confidences = torch.tensor([[0.99, 1.0, 1.0]])
+
+        edges, bonds = apply_safe_hydrogen_constraints(
+            edge_logits,
+            bond_logits,
+            pairs,
+            hydrogen_like,
+            confidences,
+        )
+
+        self.assertLess(edges[0, 0].item(), -20.0)
+        self.assertEqual(edges[0, 1].item(), 8.0)
+        self.assertLess(bonds[0, 0, 1].item(), -20.0)
+        self.assertLess(bonds[0, 1, 2].item(), -20.0)
+        self.assertEqual(bonds[0, 2, 2].item(), 0.0)
+
+    def test_uncertain_hydrogen_does_not_change_predictions(self) -> None:
+        pairs = torch.tensor([[0, 1]])
+        edge_logits = torch.tensor([[3.0]])
+        bond_logits = torch.randn(1, 1, 3)
+
+        edges, bonds = apply_safe_hydrogen_constraints(
+            edge_logits,
+            bond_logits,
+            pairs,
+            torch.tensor([[True, False]]),
+            torch.tensor([[0.7, 1.0]]),
+        )
+
+        self.assertTrue(torch.equal(edges, edge_logits))
+        self.assertTrue(torch.equal(bonds, bond_logits))
+
     def test_relation_head_output_shapes(self) -> None:
         model = ChemVectorModel(small_config())
         output = model.relation_head(torch.randn(7, 16))
@@ -121,6 +160,29 @@ class FactorizedRelationTests(unittest.TestCase):
 
         self.assertEqual(probabilities.shape, (3, 5))
         self.assertTrue(torch.allclose(probabilities.sum(dim=-1), torch.ones(3)))
+
+    def test_hard_negative_mining_keeps_highest_scoring_non_edges(self) -> None:
+        edge_logits = torch.tensor(
+            [3.0, -4.0, 2.0, 0.5, -2.0],
+            requires_grad=True,
+        )
+        bond_logits = torch.randn(5, 3, requires_grad=True)
+        labels = torch.tensor([1, 0, 0, 0, 0])
+
+        losses = hard_mined_factorized_relation_loss(
+            edge_logits,
+            bond_logits,
+            labels,
+            negative_ratio=1,
+            minimum_negatives=1,
+            ranking_weight=0.5,
+        )
+        losses["loss"].backward()
+
+        self.assertEqual(float(losses["selected_pairs"]), 2.0)
+        self.assertEqual(float(losses["selected_negatives"]), 1.0)
+        self.assertNotEqual(float(edge_logits.grad[2]), 0.0)
+        self.assertEqual(float(edge_logits.grad[1]), 0.0)
 
     def test_relation_disabled_keeps_legacy_five_class_scoring(self) -> None:
         model = ChemVectorModel(small_config(relation_enabled=False)).eval()

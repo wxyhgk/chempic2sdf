@@ -16,7 +16,8 @@ import time
 import torch
 from torch.utils.data import DataLoader
 
-from chemvector.data import ChemVectorIterableDataset
+from chemvector.data import ChemVectorIterableDataset, load_reject_keys
+from chemvector.atom_query import apply_atom_query_vision_updates
 from chemvector.model import ChemVectorConfig, ChemVectorModel
 from chemvector.train import expand_shards, iter_mixed_batches
 from chemvector.vertex import (
@@ -66,10 +67,19 @@ def set_vertex_trainable(
     *,
     adapter_only: bool = False,
     unfreeze_stroke_blocks: int = 0,
+    role_head_only: bool = False,
 ) -> list[torch.nn.Parameter]:
     for parameter in model.parameters():
         parameter.requires_grad_(False)
-    module = model.vertex_head.output_adapter if adapter_only else model.vertex_head
+    if role_head_only and (adapter_only or unfreeze_stroke_blocks):
+        raise ValueError("Role-head-only training cannot unfreeze other modules")
+    module = (
+        model.vertex_head.role_heatmap
+        if role_head_only
+        else model.vertex_head.output_adapter
+        if adapter_only
+        else model.vertex_head
+    )
     if module is None:
         raise ValueError("Adapter-only vertex training requires a structure adapter")
     for parameter in module.parameters():
@@ -92,18 +102,29 @@ def forward_vertex_batch(
     *,
     teacher_head: torch.nn.Module | None = None,
     teacher_consistency_weight: float = 0.0,
+    role_loss_weight: float = 0.0,
+    heatmap_radius_cells: int = 0,
 ) -> tuple[dict[str, torch.Tensor], dict[str, torch.Tensor]]:
     pixels = batch["pixel_values"].to(device, non_blocking=True)
     anchors = batch["anchor_points"].to(device, non_blocking=True)
     mask = batch["anchor_mask"].to(device, non_blocking=True)
     aromatic = batch["aromatic_targets"].to(device, non_blocking=True)
+    roles = batch["role_targets"].to(device, non_blocking=True)
     vision_trainable = any(
         parameter.requires_grad for parameter in model.vision_encoder.parameters()
     )
     with torch.set_grad_enabled(vision_trainable):
         features = model.vision_encoder.forward_stroke_resolution(pixels)
     output = model.vertex_head(features)
-    losses = vertex_detection_loss(output, anchors, mask, aromatic)
+    losses = vertex_detection_loss(
+        output,
+        anchors,
+        mask,
+        aromatic,
+        roles,
+        role_loss_weight=role_loss_weight,
+        heatmap_radius_cells=heatmap_radius_cells,
+    )
     if teacher_head is not None:
         with torch.no_grad():
             teacher_output = teacher_head(features)
@@ -192,6 +213,15 @@ def new_detection_totals() -> dict[str, float]:
     }
 
 
+def vertex_metric_key(metrics: dict[str, float]) -> tuple[float, float, float, float]:
+    return (
+        metrics["vertex_exact_rate"],
+        metrics["count_exact_rate"],
+        metrics["f1"],
+        -metrics["count_mae"],
+    )
+
+
 def save_vertex_checkpoint(
     path: Path,
     model: ChemVectorModel,
@@ -225,15 +255,39 @@ def validate(
     max_batches: int,
     threshold: float,
     tolerance_pixels: float,
+    role_loss_weight: float = 0.0,
+    role_aware: bool = False,
+    heatmap_radius_cells: int = 0,
+    nms_kernel_size: int = 3,
 ) -> dict[str, float]:
     model.eval()
     totals = new_detection_totals()
-    loss_totals = {name: 0.0 for name in ("loss", "heatmap_loss", "offset_loss", "aromatic_loss")}
+    loss_totals = {
+        name: 0.0
+        for name in (
+            "loss",
+            "heatmap_loss",
+            "offset_loss",
+            "aromatic_loss",
+            "role_heatmap_loss",
+        )
+    }
     batches = 0
     for batch in loader:
         with torch.autocast(device_type="cuda", dtype=torch.bfloat16):
-            output, losses = forward_vertex_batch(model, batch, device)
-        decoded = decode_vertices(output, threshold=threshold)
+            output, losses = forward_vertex_batch(
+                model,
+                batch,
+                device,
+                role_loss_weight=role_loss_weight,
+                heatmap_radius_cells=heatmap_radius_cells,
+            )
+        decoded = decode_vertices(
+            output,
+            threshold=threshold,
+            role_aware=role_aware,
+            nms_kernel_size=nms_kernel_size,
+        )
         update_detection_metrics(
             totals,
             decoded,
@@ -257,8 +311,11 @@ def validate(
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--init-checkpoint", required=True)
+    parser.add_argument("--atom-query-checkpoint")
     parser.add_argument("--train-shards", nargs="+", default=["Data/sdf/webdataset_full_v0/shards/train-*.tar"])
     parser.add_argument("--validation-shards", nargs="+", default=["Data/sdf/webdataset_full_v0/shards/validation-000000.tar"])
+    parser.add_argument("--train-reject-keys-file")
+    parser.add_argument("--validation-reject-keys-file")
     parser.add_argument("--replay-shards", nargs="+")
     parser.add_argument("--replay-probability", type=float, default=0.0)
     parser.add_argument("--output-dir", default="outputs/checkpoints/chemvector-v5-vertex-10k")
@@ -280,6 +337,11 @@ def main() -> None:
     parser.add_argument("--freeze-base-head", action="store_true")
     parser.add_argument("--teacher-consistency-weight", type=float, default=0.0)
     parser.add_argument("--unfreeze-stroke-blocks", type=int, default=0)
+    parser.add_argument("--role-loss-weight", type=float, default=0.0)
+    parser.add_argument("--role-aware-decode", action="store_true")
+    parser.add_argument("--role-head-only", action="store_true")
+    parser.add_argument("--heatmap-radius-cells", type=int, default=0)
+    parser.add_argument("--nms-kernel-size", type=int, default=3)
     args = parser.parse_args()
 
     if not torch.cuda.is_available():
@@ -296,6 +358,12 @@ def main() -> None:
         raise ValueError("teacher-consistency-weight must be nonnegative")
     if args.teacher_consistency_weight and not args.replay_shards:
         raise ValueError("Teacher consistency requires replay shards")
+    if args.role_loss_weight < 0:
+        raise ValueError("role-loss-weight must be nonnegative")
+    if args.heatmap_radius_cells < 0:
+        raise ValueError("heatmap-radius-cells must be nonnegative")
+    if args.nms_kernel_size < 1 or args.nms_kernel_size % 2 == 0:
+        raise ValueError("nms-kernel-size must be a positive odd integer")
     if args.epochs < 1:
         raise ValueError("epochs must be positive")
     torch.manual_seed(args.seed)
@@ -309,6 +377,13 @@ def main() -> None:
         residual_adapter=args.residual_adapter,
         adapter_dim=args.adapter_dim,
     )
+    if args.atom_query_checkpoint:
+        atom_query_payload = torch.load(
+            args.atom_query_checkpoint,
+            map_location="cpu",
+            weights_only=False,
+        )
+        apply_atom_query_vision_updates(model, atom_query_payload)
     teacher_head = None
     if args.teacher_consistency_weight:
         teacher_head = deepcopy(model.vertex_head).eval().requires_grad_(False)
@@ -316,13 +391,21 @@ def main() -> None:
         model,
         adapter_only=args.freeze_base_head,
         unfreeze_stroke_blocks=args.unfreeze_stroke_blocks,
+        role_head_only=args.role_head_only,
     )
     optimizer = torch.optim.AdamW(trainable, lr=args.learning_rate, weight_decay=args.weight_decay)
+    train_reject_keys = load_reject_keys(args.train_reject_keys_file)
+    validation_reject_keys = load_reject_keys(args.validation_reject_keys_file)
+    print(
+        f"train_reject_keys={len(train_reject_keys)} "
+        f"validation_reject_keys={len(validation_reject_keys)}"
+    )
     train_loader = DataLoader(
         ChemVectorIterableDataset(
             expand_shards(args.train_shards),
             sample_shuffle_buffer=args.sample_shuffle_buffer,
             sequence_version="0.4",
+            reject_keys=train_reject_keys,
         ),
         batch_size=args.batch_size,
         num_workers=args.workers,
@@ -343,7 +426,11 @@ def main() -> None:
             collate_fn=VertexCollator(),
         )
     validation_loader = DataLoader(
-        ChemVectorIterableDataset(expand_shards(args.validation_shards), sequence_version="0.4"),
+        ChemVectorIterableDataset(
+            expand_shards(args.validation_shards),
+            sequence_version="0.4",
+            reject_keys=validation_reject_keys,
+        ),
         batch_size=args.batch_size,
         num_workers=args.workers,
         pin_memory=True,
@@ -368,6 +455,8 @@ def main() -> None:
         block.train()
     samples = 0
     running_names = ["loss", "heatmap_loss", "offset_loss", "aromatic_loss"]
+    if args.role_loss_weight:
+        running_names.append("role_heatmap_loss")
     if teacher_head is not None:
         running_names.extend(
             (
@@ -379,7 +468,7 @@ def main() -> None:
         )
     running = {name: 0.0 for name in running_names}
     interval_batches = 0
-    best_f1 = -1.0
+    best_score = (-1.0, -1.0, -1.0, float("-inf"))
     replay_batches = 0
     started = time.perf_counter()
     def training_batches():
@@ -400,6 +489,8 @@ def main() -> None:
                 device,
                 teacher_head=teacher_head if is_replay else None,
                 teacher_consistency_weight=args.teacher_consistency_weight,
+                role_loss_weight=args.role_loss_weight,
+                heatmap_radius_cells=args.heatmap_radius_cells,
             )
         if not torch.isfinite(losses["loss"]):
             failure = {
@@ -444,6 +535,10 @@ def main() -> None:
                 args.validation_batches,
                 args.threshold,
                 args.tolerance_pixels,
+                args.role_loss_weight,
+                args.role_aware_decode,
+                args.heatmap_radius_cells,
+                args.nms_kernel_size,
             )
             print(
                 f"validation_step={step} "
@@ -459,8 +554,9 @@ def main() -> None:
                 samples=samples,
                 metrics=metrics,
             )
-            if metrics["f1"] > best_f1:
-                best_f1 = metrics["f1"]
+            current_score = vertex_metric_key(metrics)
+            if current_score > best_score:
+                best_score = current_score
                 shutil.copy2(checkpoint_path, output_dir / "best.pt")
             model.eval()
             model.vertex_head.train()
@@ -478,6 +574,10 @@ def main() -> None:
         args.validation_batches,
         args.threshold,
         args.tolerance_pixels,
+        args.role_loss_weight,
+        args.role_aware_decode,
+        args.heatmap_radius_cells,
+        args.nms_kernel_size,
     )
     print("validation=" + json.dumps(metrics, ensure_ascii=False))
     (output_dir / "validation.json").write_text(json.dumps(metrics, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

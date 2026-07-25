@@ -1,8 +1,82 @@
 # SDF 原始数据
 
-当前保留 ChemMolSeq v0.2、空间顺序 ChemMolSeq v0.3，以及坐标图元路线
-ChemSVG v0.4。v0.4 协议见 [`CHEMSVG_V0_4.md`](CHEMSVG_V0_4.md)。训练加载器
-可直接从现有 JSON 动态生成三种标签，不需要重建 75GB WebDataset。
+当前保留 ChemMolSeq v0.2、空间顺序 ChemMolSeq v0.3、坐标图元 ChemSVG v0.4、
+对象场景协议 ChemScene v0.1/v0.2，以及 v0.9 使用的可见物理图元协议 Visual SVG v0.1/v0.2。
+训练加载器可直接从现有 JSON 动态生成旧序列标签；Visual SVG 容量集使用独立的
+确定性构建器生成，不需要重建 75GB WebDataset。
+
+## Visual SVG v0.1
+
+[Visual SVG v0.1](visual_svg_v0_1/README.md) 分成两层：`visual-primitives-0.1`
+保留完整图元、文字框、owner 和 bond group 审计信息；模型目标 `visual-svg-0.1`
+只生成 q2047 坐标下的 `LINE`、`TRIANGLE`、`QUAD` 和 `TEXT_BOX` 序列。
+
+物理图元不等于化学拓扑。双键的两条线和三键的三条线仍分别只对应两个化学端点，
+交叉线内部不会自动成为 Junction，多边形顶点也不是额外原子。本阶段不输出文字内容、
+元素、键级、价态、化学图或 SDF；这些由后续 OCR、primitive grouping 和 ChemScene
+编译阶段处理。
+
+`visual_svg_v0_1/capacity_100` 已通过数据验收：100 张图对应 100 个唯一分子，
+`original/rdkit/coordgen/stress` 各 25 张，平均/最长目标序列为 375.22/1,191 token，
+目标 bond mask IoU mean/min 为 95.292%/93.799%。MR-TADF、USPTO 和公开 holdout
+均未进入该容量集。
+
+v0.9.0 先验证旧 cross-attention，1,000 step 后错配损失比仍为 0.999985，判定
+视觉未接地。v0.9.1 的 Visual Prefix 使用 raw-ink content-only value 支路后获得稳定
+视觉梯度；最终 clean checkpoint 在完整 100 图上得到：
+
+| 指标 | 结果 |
+|---|---:|
+| teacher token / sequence exact | 99.976% / 99% |
+| mismatch loss ratio | 834.72 |
+| free completed / grammar valid | 100% / 100% |
+| primitive exact | 99% |
+| LINE / 结构图元 / TRIANGLE / QUAD 数量 exact | 均为 100% |
+| TEXT_BOX 数量 exact | 100% |
+| line / text-box / polygon F1 | 99.867% / 100% / 100% |
+| bond IoU mean / min | 94.825% / 49.138% |
+
+训练决策见 [v0.9.0](../../docs/model/training/20260721-v0.9.0-raster-to-visual-primitives-capacity.md)
+和 [v0.9.1](../../docs/model/training/20260721-v0.9.1-visual-prefix-grounding-and-capacity.md)。
+这些数字只说明固定 100 图的视觉接地与模型容量，不是未见分子泛化结果，也不替换
+当前稳定生产推理 `v0.7.10`。
+
+## Visual SVG v0.2 Bond Group
+
+[Visual SVG v0.2](visual_svg_v0_2/README.md) 在 v0.1 精确 physical primitive 之上保留
+真实 group partition，把单线、双平行线、三平行线、虚楔键和实心楔键作为一等视觉
+对象。每个 group 内嵌完整 q2047 members，因此可以无损展开回 v0.1 模型目标；target
+不包含 bond ID、atom ID、键级或其他化学语义。
+
+capacity100 已完成 100/100 结构往返：6,320 个 physical primitives 聚合为 3,493 个
+bond groups 和 976 个 text boxes，单图最大 group-set 对象数为 132。v0.2 当前只用于
+group set predictor 容量实验，尚未生成 pilot 全量 tar，也没有读取 `internal_test`。
+
+## ChemScene v0.1
+
+ChemScene 把图片表示为 `Junction`、`TextObject` 和 `BondObject`。双键和三键各自
+仍是一个 BondObject，内部平行线端点不会成为额外顶点。对象端点直接引用坐标，
+不使用最近邻、键长阈值或隐藏 atom ID。
+
+```bash
+.venv-train/bin/python -m Data.sdf.validate_chemscene_v0_1 \
+  Data/sdf/chemvision_layers_v0_1/pilot_10k/shards/validation-000000.tar \
+  --output Data/sdf/chemscene_v0_1_validation.json
+```
+
+## ChemScene v0.2
+
+[ChemScene v0.2](CHEMSCENE_V0_2.md) 删除独立 Junction 与末端最近邻 OCR 附着，改为
+联合 `AtomObject + BondObject`。AtomObject 同时拥有 chemical anchor、文字区域和全部
+incident bond ports；BondObject 的两个端口必须逐项引用对应 AtomObject。现有 WebDataset
+可动态构建 v0.2，无需重渲染图片。
+
+```bash
+.venv-train/bin/python -m Data.sdf.validate_chemscene_v0_2 \
+  Data/sdf/chemvision_layers_v0_1/pilot_10k/shards/validation-000000.tar \
+  --limit 500 \
+  --output Data/sdf/chemscene_v0_2_validation.json
+```
 
 ## ChemSVG v0.4
 

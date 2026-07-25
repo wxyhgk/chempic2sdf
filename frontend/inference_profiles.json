@@ -1,0 +1,191 @@
+{
+  "profiles": {
+    "structure-v0989-carbon": {
+      "version": "v0.9.89",
+      "label": "AtomPair 集合动作 v0.9.89（文字按 C 占位）",
+      "checkpoint": "outputs/checkpoints/chemvector-v0989-atom-pair-one-move-final/best.pt",
+      "protocol": "v0.9.87 图上下文 + 整图 KEEP/ADD/DELETE/SWAP one-move；validation 与 locked internal test 双域门控；不启用长键 rescue；未接 OCR",
+      "available": true,
+      "recommended": true,
+      "module": "chemvector.infer_joint_object_structure",
+      "arguments": [
+        "--model-version",
+        "v0.9.89-structure-carbon",
+        "--primary-checkpoint",
+        "outputs/checkpoints/chemvector-v0972-bond-presence-calibration-10k/exported/set.pt",
+        "--fallback-checkpoint",
+        "outputs/checkpoints/chemvector-v0972-bond-presence-calibration-10k/exported/set.pt",
+        "--atom-checkpoint",
+        "outputs/checkpoints/chemvector-v0972-bond-presence-calibration-10k/exported/atom.pt",
+        "--bond-checkpoint",
+        "outputs/checkpoints/chemvector-v0972-bond-presence-calibration-10k/exported/bond.pt",
+        "--atom-pair-group-checkpoint",
+        "outputs/checkpoints/chemvector-v0983-atom-pair-bond-group-types-two-domain18k/best-chemical.pt",
+        "--atom-pair-graph-context-checkpoint",
+        "outputs/checkpoints/chemvector-v0987-atom-pair-graph-context-positive-margin-calibrated/best.pt",
+        "--atom-pair-one-move-checkpoint",
+        "outputs/checkpoints/chemvector-v0989-atom-pair-one-move-final/best.pt"
+      ]
+    },
+    "stable-v0710": {
+      "recommended": false
+    },
+    "structure-v0987-carbon": {
+      "version": "v0.9.87",
+      "label": "AtomPair 正 Margin 图上下文 v0.9.87（文字按 C 占位）",
+      "checkpoint": "outputs/checkpoints/chemvector-v0987-atom-pair-graph-context-positive-margin-calibrated/best.pt",
+      "protocol": "v0.9.86 整图上下文 + 真键绝对正 margin；validation 固定 residual scale=0.8；locked internal test 双域提升；不启用长键 rescue；未接 OCR",
+      "available": true,
+      "recommended": false,
+      "module": "chemvector.infer_joint_object_structure",
+      "arguments": [
+        "--model-version",
+        "v0.9.87-structure-carbon",
+        "--primary-checkpoint",
+        "outputs/checkpoints/chemvector-v0972-bond-presence-calibration-10k/exported/set.pt",
+        "--fallback-checkpoint",
+        "outputs/checkpoints/chemvector-v0972-bond-presence-calibration-10k/exported/set.pt",
+        "--atom-checkpoint",
+        "outputs/checkpoints/chemvector-v0972-bond-presence-calibration-10k/exported/atom.pt",
+        "--bond-checkpoint",
+        "outputs/checkpoints/chemvector-v0972-bond-presence-calibration-10k/exported/bond.pt",
+        "--atom-pair-group-checkpoint",
+        "outputs/checkpoints/chemvector-v0983-atom-pair-bond-group-types-two-domain18k/best-chemical.pt",
+        "--atom-pair-graph-context-checkpoint",
+        "outputs/checkpoints/chemvector-v0987-atom-pair-graph-context-positive-margin-calibrated/best.pt"
+      ]
+    },
+    "structure-v0986-carbon": {
+      "version": "v0.9.86",
+      "label": "AtomPair 整图上下文结构实验 v0.9.86（文字按 C 占位）",
+      "checkpoint": "outputs/checkpoints/chemvector-v0986-atom-pair-graph-context-deterministic-4k5/best.pt",
+      "protocol": "v0.9.83 AtomPair group + 两端邻接和整图集合上下文 residual；普通双域训练与 locked internal test 门控；不启用长键 rescue；未接 OCR",
+      "available": true,
+      "recommended": false,
+      "module": "chemvector.infer_joint_object_structure",
+      "arguments": [
+        "--model-version",
+        "v0.9.86-structure-carbon",
+        "--primary-checkpoint",
+        "outputs/checkpoints/chemvector-v0972-bond-presence-calibration-10k/exported/set.pt",
+        "--fallback-checkpoint",
+        "outputs/checkpoints/chemvector-v0972-bond-presence-calibration-10k/exported/set.pt",
+        "--atom-checkpoint",
+        "outputs/checkpoints/chemvector-v0972-bond-presence-calibration-10k/exported/atom.pt",
+        "--bond-checkpoint",
+        "outputs/checkpoints/chemvector-v0972-bond-presence-calibration-10k/exported/bond.pt",
+        "--atom-pair-group-checkpoint",
+        "outputs/checkpoints/chemvector-v0983-atom-pair-bond-group-types-two-domain18k/best-chemical.pt",
+        "--atom-pair-graph-context-checkpoint",
+        "outputs/checkpoints/chemvector-v0986-atom-pair-graph-context-deterministic-4k5/best.pt"
+      ]
+    },
+    "structure-v0985-carbon": {
+      "version": "v0.9.85",
+      "label": "一等 Line-Only AtomPair 结构实验 v0.9.85（文字按 C 占位）",
+      "checkpoint": "outputs/checkpoints/chemvector-v0985-line-atom-pair-head-scale-invariant/best.pt",
+      "protocol": "v0.9.84 全图线段 rescue + 尺度不变 line-only AtomPair learned presence/type；没有旧 AtomPair group 的线段也可成为一等 Bond proposal；invalid 时回退 v0.9.83 稳定栈；未接 OCR",
+      "available": true,
+      "recommended": false,
+      "module": "chemvector.infer_joint_object_structure",
+      "arguments": [
+        "--model-version",
+        "v0.9.85-structure-carbon",
+        "--primary-checkpoint",
+        "outputs/checkpoints/chemvector-v0972-bond-presence-calibration-10k/exported/set.pt",
+        "--fallback-checkpoint",
+        "outputs/checkpoints/chemvector-v0972-bond-presence-calibration-10k/exported/set.pt",
+        "--atom-checkpoint",
+        "outputs/checkpoints/chemvector-v0972-bond-presence-calibration-10k/exported/atom.pt",
+        "--bond-checkpoint",
+        "outputs/checkpoints/chemvector-v0972-bond-presence-calibration-10k/exported/bond.pt",
+        "--atom-pair-group-checkpoint",
+        "outputs/checkpoints/chemvector-v0983-atom-pair-bond-group-types-two-domain18k/best-chemical.pt",
+        "--line-segment-group-rescue",
+        "--line-atom-pair-checkpoint",
+        "outputs/checkpoints/chemvector-v0985-line-atom-pair-head-scale-invariant/best.pt"
+      ]
+    },
+    "structure-v0984-carbon": {
+      "version": "v0.9.84",
+      "label": "全图线段 AtomPair 结构实验 v0.9.84（文字按 C 占位）",
+      "checkpoint": "outputs/checkpoints/chemvector-v0983-atom-pair-bond-group-types-two-domain18k/best-chemical.pt",
+      "protocol": "v0.9.83 AtomPair group + 长度无关全图 LSD 线段证据；仅连接不同预测分量，键型仍由 learned group head 输出；invalid 时回退无 rescue group 与 v0.9.72；未接 OCR",
+      "available": true,
+      "recommended": false,
+      "module": "chemvector.infer_joint_object_structure",
+      "arguments": [
+        "--model-version",
+        "v0.9.84-structure-carbon",
+        "--primary-checkpoint",
+        "outputs/checkpoints/chemvector-v0972-bond-presence-calibration-10k/exported/set.pt",
+        "--fallback-checkpoint",
+        "outputs/checkpoints/chemvector-v0972-bond-presence-calibration-10k/exported/set.pt",
+        "--atom-checkpoint",
+        "outputs/checkpoints/chemvector-v0972-bond-presence-calibration-10k/exported/atom.pt",
+        "--bond-checkpoint",
+        "outputs/checkpoints/chemvector-v0972-bond-presence-calibration-10k/exported/bond.pt",
+        "--atom-pair-group-checkpoint",
+        "outputs/checkpoints/chemvector-v0983-atom-pair-bond-group-types-two-domain18k/best-chemical.pt",
+        "--line-segment-group-rescue"
+      ]
+    },
+    "structure-v0983-carbon": {
+      "version": "v0.9.83",
+      "label": "AtomPair 组级结构实验 v0.9.83（文字按 C 占位）",
+      "checkpoint": "outputs/checkpoints/chemvector-v0983-atom-pair-bond-group-types-two-domain18k/best-chemical.pt",
+      "protocol": "ChemVision/full-v0 双域 AtomPair group presence + chemical type；组级 SDF invalid 时回退 v0.9.72；未接 OCR，文字原子统一按 C 占位",
+      "available": true,
+      "recommended": false,
+      "module": "chemvector.infer_joint_object_structure",
+      "arguments": [
+        "--model-version",
+        "v0.9.83-structure-carbon",
+        "--primary-checkpoint",
+        "outputs/checkpoints/chemvector-v0972-bond-presence-calibration-10k/exported/set.pt",
+        "--fallback-checkpoint",
+        "outputs/checkpoints/chemvector-v0972-bond-presence-calibration-10k/exported/set.pt",
+        "--atom-checkpoint",
+        "outputs/checkpoints/chemvector-v0972-bond-presence-calibration-10k/exported/atom.pt",
+        "--bond-checkpoint",
+        "outputs/checkpoints/chemvector-v0972-bond-presence-calibration-10k/exported/bond.pt",
+        "--atom-pair-group-checkpoint",
+        "outputs/checkpoints/chemvector-v0983-atom-pair-bond-group-types-two-domain18k/best-chemical.pt"
+      ]
+    },
+    "structure-v0972-carbon": {
+      "version": "v0.9.72",
+      "label": "联合扩量结构实验 v0.9.72（文字按 C 占位）",
+      "checkpoint": "outputs/checkpoints/chemvector-v0972-bond-presence-calibration-10k/exported/set.pt",
+      "protocol": "30k Atom/Bond/Incidence 联合训练 + 5k Bond presence 校准；未接开放 OCR，文字原子统一按 C 占位",
+      "available": true,
+      "recommended": false,
+      "module": "chemvector.infer_joint_object_structure",
+      "arguments": [
+        "--model-version",
+        "v0.9.72-structure-carbon",
+        "--primary-checkpoint",
+        "outputs/checkpoints/chemvector-v0972-bond-presence-calibration-10k/exported/set.pt",
+        "--fallback-checkpoint",
+        "outputs/checkpoints/chemvector-v0972-bond-presence-calibration-10k/exported/set.pt",
+        "--atom-checkpoint",
+        "outputs/checkpoints/chemvector-v0972-bond-presence-calibration-10k/exported/atom.pt",
+        "--bond-checkpoint",
+        "outputs/checkpoints/chemvector-v0972-bond-presence-calibration-10k/exported/bond.pt"
+      ]
+    },
+    "structure-v0967-carbon": {
+      "version": "v0.9.67",
+      "label": "新版结构实验 v0.9.67（文字按 C 占位）",
+      "checkpoint": "outputs/checkpoints/chemvector-v0967-atom-object-full8967-step2000-rerun/step-000250.pt",
+      "protocol": "Atom/Bond/Incidence 联合结构识别；未接开放 OCR，文字原子统一按 C 占位",
+      "available": true,
+      "recommended": false,
+      "module": "chemvector.infer_joint_object_structure",
+      "arguments": [
+        "--model-version",
+        "v0.9.67-structure-carbon"
+      ]
+    }
+  }
+}

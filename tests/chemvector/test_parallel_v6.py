@@ -9,6 +9,7 @@ import torch
 from Data.sdf.chemsvg_sequence_v4 import VertexRecordV4, parse_chemsvg_v4
 from chemvector.model import ChemVectorConfig, ChemVectorModel
 from chemvector.parallel_v6 import (
+    add_proposal_graph_edge_prior,
     build_parallel_sequence,
     deployment_parameter_count,
     strip_autoregressive_modules,
@@ -16,6 +17,31 @@ from chemvector.parallel_v6 import (
 
 
 class ParallelV6Tests(unittest.TestCase):
+    def test_graph_prior_only_raises_connectivity_score(self) -> None:
+        pair = ((10, 20), (30, 40))
+        predictions = {pair: (0.2, "DOUBLE")}
+
+        fused = add_proposal_graph_edge_prior(
+            predictions,
+            {pair: 0.9},
+            threshold=0.85,
+        )
+
+        self.assertEqual(fused[pair], (0.9, "DOUBLE"))
+        self.assertEqual(predictions[pair], (0.2, "DOUBLE"))
+
+    def test_graph_prior_ignores_subthreshold_evidence(self) -> None:
+        pair = ((10, 20), (30, 40))
+        predictions = {pair: (0.2, "SINGLE")}
+
+        fused = add_proposal_graph_edge_prior(
+            predictions,
+            {pair: 0.8},
+            threshold=0.85,
+        )
+
+        self.assertEqual(fused, predictions)
+
     @staticmethod
     def _vertex(x: int) -> VertexRecordV4:
         return VertexRecordV4(

@@ -182,8 +182,11 @@ def analyze_sample(sample: dict, dark_threshold: int) -> tuple[dict, np.ndarray]
     if unexplained_fraction > 0.08:
         warnings.append("unexplained_ink")
     probable_index_threshold = max(4, math.ceil(len(render["atoms"]) * 0.45))
-    if len(annotation_components) >= probable_index_threshold:
-        flags.append("probable_atom_indices")
+    if (
+        len(render["atoms"]) <= 12
+        and len(annotation_components) >= probable_index_threshold
+    ):
+        warnings.append("possible_atom_indices_low_precision")
     if any(
         not 0 <= item[axis] < render["width" if axis == "image_x" else "height"]
         for item in anchor_records
@@ -315,9 +318,15 @@ def copy_subset(shards: list[str], keys: set[str], output: Path) -> None:
     temporary.replace(output)
 
 
-def write_index(output: Path, records: list[dict]) -> None:
+def write_index(
+    output: Path,
+    records: list[dict],
+    overlay_keys: set[str],
+) -> None:
     cards = []
     for record in records:
+        if record["key"] not in overlay_keys:
+            continue
         flags = ", ".join(record["flags"]) or "none"
         warnings = ", ".join(record["warnings"]) or "none"
         cards.append(
@@ -339,7 +348,7 @@ body{font-family:system-ui,sans-serif;margin:20px;color:#202124}nav{position:sti
 main{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
 article{border:1px solid #bbb;padding:8px}img{display:block;width:100%;height:auto}code{overflow-wrap:anywhere}
 body[data-mode="clean"] article[data-flag="flagged"],body[data-mode="flagged"] article[data-flag="clean"]{display:none}
-</style><h1>MolGrapher 500 张标签审计</h1>
+</style><h1>MolGrapher 标签审计预览</h1>
 <p>青线是标注键，绿圈是隐式碳/交点，红圈是可见文字原子，洋红色是宽松几何覆盖之外的墨迹。</p>
 <nav><button onclick="document.body.dataset.mode='all'">全部</button>
 <button onclick="document.body.dataset.mode='flagged'">仅异常</button>
@@ -355,17 +364,27 @@ def main() -> None:
     parser.add_argument("--dark-threshold", type=int, default=220)
     parser.add_argument("--subset-output")
     parser.add_argument("--subset-size", type=int, default=100)
+    parser.add_argument(
+        "--overlay-mode",
+        choices=("all", "flagged", "suspect", "none"),
+        default="all",
+    )
+    parser.add_argument("--overlay-limit", type=int)
     args = parser.parse_args()
     if args.samples < 1 or args.subset_size < 1:
         raise ValueError("sample counts must be positive")
     if not 1 <= args.dark_threshold <= 254:
         raise ValueError("dark-threshold must be in [1, 254]")
+    if args.overlay_limit is not None and args.overlay_limit < 0:
+        raise ValueError("overlay-limit must be nonnegative")
 
     shards = expand_shards(args.shards)
     output = Path(args.output_dir)
     overlays = output / "overlays"
     overlays.mkdir(parents=True, exist_ok=True)
     records = []
+    overlay_keys = set()
+    overlay_limit = args.samples if args.overlay_limit is None else args.overlay_limit
     dataset = ChemMolWebDataset(
         shards,
         validate_legacy_hash=False,
@@ -375,9 +394,23 @@ def main() -> None:
         if len(records) >= args.samples:
             break
         record, unexplained = analyze_sample(sample, args.dark_threshold)
-        render_overlay(sample, record, unexplained).save(
-            overlays / f'{sample["key"]}.png'
+        should_write_overlay = (
+            len(overlay_keys) < overlay_limit
+            and args.overlay_mode != "none"
+            and (
+                args.overlay_mode == "all"
+                or (args.overlay_mode == "flagged" and bool(record["flags"]))
+                or (
+                    args.overlay_mode == "suspect"
+                    and "possible_atom_indices_low_precision" in record["warnings"]
+                )
+            )
         )
+        if should_write_overlay:
+            render_overlay(sample, record, unexplained).save(
+                overlays / f'{sample["key"]}.png'
+            )
+            overlay_keys.add(sample["key"])
         records.append(record)
     if len(records) != args.samples:
         raise ValueError(f"Requested {args.samples} samples, found {len(records)}")
@@ -388,11 +421,34 @@ def main() -> None:
             f"Only {len(selected)} clean samples available for subset of {args.subset_size}"
         )
     selected_keys = {record["key"] for record in selected}
+    rejected_keys = {
+        record["key"] for record in records if record["flags"]
+    }
+    accepted_keys = {
+        record["key"] for record in records if not record["flags"]
+    }
     with (output / "records.jsonl").open("w", encoding="utf-8") as handle:
         for record in records:
             row = dict(record)
             row["selected_for_overfit"] = record["key"] in selected_keys
             handle.write(json.dumps(row, ensure_ascii=False) + "\n")
+    (output / "reject_keys.txt").write_text(
+        "".join(f"{key}\n" for key in sorted(rejected_keys)),
+        encoding="utf-8",
+    )
+    (output / "accepted_keys.txt").write_text(
+        "".join(f"{key}\n" for key in sorted(accepted_keys)),
+        encoding="utf-8",
+    )
+    annotation_suspect_keys = {
+        record["key"]
+        for record in records
+        if "possible_atom_indices_low_precision" in record["warnings"]
+    }
+    (output / "annotation_suspect_keys.txt").write_text(
+        "".join(f"{key}\n" for key in sorted(annotation_suspect_keys)),
+        encoding="utf-8",
+    )
     flag_counts: dict[str, int] = defaultdict(int)
     warning_counts: dict[str, int] = defaultdict(int)
     for record in records:
@@ -404,6 +460,11 @@ def main() -> None:
         "samples": len(records),
         "flagged_samples": sum(bool(record["flags"]) for record in records),
         "flagged_rate": sum(bool(record["flags"]) for record in records) / len(records),
+        "accepted_samples": len(accepted_keys),
+        "annotation_suspect_samples": len(annotation_suspect_keys),
+        "annotation_suspect_policy": (
+            "manual_review_only; low-precision heuristic must not filter training"
+        ),
         "flag_counts": dict(sorted(flag_counts.items())),
         "warning_counts": dict(sorted(warning_counts.items())),
         "maximum_anchor_dark_distance": max(
@@ -413,6 +474,8 @@ def main() -> None:
             np.mean([record["unexplained_ink_fraction"] for record in records])
         ),
         "selected_overfit_samples": len(selected),
+        "overlay_samples": len(overlay_keys),
+        "overlay_mode": args.overlay_mode,
         "selected_keys": [record["key"] for record in selected],
         "shards": shards,
     }
@@ -420,7 +483,7 @@ def main() -> None:
         json.dumps(summary, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
-    write_index(output, records)
+    write_index(output, records, overlay_keys)
     if args.subset_output:
         subset_output = Path(args.subset_output)
         copy_subset(shards, selected_keys, subset_output)

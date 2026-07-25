@@ -1,0 +1,73 @@
+schema_version: chemvector-campaign-0.1
+campaign_id: v0737-vertex-set-baseline
+objective: 建立 v0.7.37 顶点集合实验的可恢复基线和双键伪顶点诊断
+status: active
+stable_baseline: v0.7.10
+max_trials: 1
+max_gpu_hours: 1.0
+
+source_paths:
+  - chemvector/experiment_loop
+  - chemvector/evaluate_node_conditioned_bond.py
+  - chemvector/node_conditioned_bond.py
+  - tests/chemvector/test_experiment_loop.py
+  - tests/chemvector/test_node_conditioned_bond.py
+
+input_artifacts:
+  - outputs/checkpoints/chemvector-v0736-node-conditioned-bond-9k-45k/best.pt
+  - outputs/checkpoints/chemvector-v0733-text-object-9k-45k/best.pt
+  - outputs/checkpoints/chemvector-v0734-implicit-vertex-9k-45k/calibrated_best.pt
+  - Data/sdf/chemvision_layers_v0_1/pilot_10k/shards/validation-000000.tar
+
+trials:
+  - id: baseline-audit
+    hypothesis: 修正后的指标和坐标诊断能够稳定复现 v0.7.36 基线
+    stages:
+      - id: preflight
+        command:
+          - .venv-train/bin/python
+          - -m
+          - unittest
+          - tests.chemvector.test_experiment_loop
+          - tests.chemvector.test_node_conditioned_bond
+          - -v
+        gates:
+          - metric: return_code
+            operator: eq
+            value: 0
+
+      - id: predicted-validation-498
+        requires_gpu: true
+        timeout_seconds: 1800
+        command:
+          - .venv-train/bin/python
+          - -m
+          - chemvector.evaluate_node_conditioned_bond
+          - --bond-checkpoint
+          - outputs/checkpoints/chemvector-v0736-node-conditioned-bond-9k-45k/best.pt
+          - --text-object-checkpoint
+          - outputs/checkpoints/chemvector-v0733-text-object-9k-45k/best.pt
+          - --implicit-vertex-checkpoint
+          - outputs/checkpoints/chemvector-v0734-implicit-vertex-9k-45k/calibrated_best.pt
+          - --validation-shards
+          - Data/sdf/chemvision_layers_v0_1/pilot_10k/shards/validation-000000.tar
+          - --output-dir
+          - "{stage_dir}/evaluation"
+          - --samples
+          - "498"
+          - --batch-size
+          - "4"
+        result_file: "{stage_dir}/evaluation/summary.json"
+        gates:
+          - metric: vertex.exact
+            operator: ge
+            value: 0.09
+          - metric: edge.recall_given_matched_endpoints
+            operator: ge
+            value: 0.98
+          - metric: edge.edge_recall_by_gt_display_type.DOUBLE
+            operator: ge
+            value: 0.80
+          - metric: edge.display_type_accuracy_on_recovered_true_edges
+            operator: ge
+            value: 0.70

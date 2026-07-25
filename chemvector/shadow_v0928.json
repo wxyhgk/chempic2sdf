@@ -1,0 +1,36 @@
+{
+  "id": "shadow-v0928",
+  "version": "v0.9.28",
+  "label": "可用 Object Shadow v0.9.28",
+  "checkpoint": "outputs/checkpoints/chemvector-v0821-junction-aware-bond-selector-9k/best.pt",
+  "protocol": "完整 BondObject + visual endpoint Junction + bbox CTC OCR + structured invalid-only atom decode + ChemScene SDF",
+  "available": true,
+  "recommended": false,
+  "recommended_shadow": true,
+  "module": "chemvector.infer_chemscene_hybrid",
+  "arguments": [
+    "--selector-checkpoint", "outputs/checkpoints/chemvector-v0739-boundary-group-selector-9k-15k/best.pt",
+    "--bond-checkpoint", "outputs/checkpoints/chemvector-v082-multiscale-joint-9k-1epoch/best.pt",
+    "--bond-set-selector-checkpoint", "outputs/checkpoints/chemvector-v0821-junction-aware-bond-selector-9k/best.pt",
+    "--endpoint-grouper-checkpoint", "outputs/checkpoints/chemvector-v0820-visual-endpoint-junction-grouper-capacity500/best.pt",
+    "--line-band-checkpoint", "outputs/checkpoints/chemvector-v0738-node-conditioned-bond-jitter-9k-15k/end-to-end-best.pt",
+    "--graph-corrector-checkpoint", "outputs/checkpoints/chemvector-v085-chemscene-graph-corrector-2k/best.pt",
+    "--graph-correction-mode", "type_only",
+    "--ctc-ocr-checkpoint", "outputs/checkpoints/chemvector-v088-pretrained-bbox-ctc-10k/best.pt",
+    "--text-bbox-checkpoint", "outputs/checkpoints/chemvector-v089-text-bbox-offset-9k-45k/best.pt",
+    "--ctc-anchor-fallback-margin", "0.25",
+    "--junction-source", "junction_aware_bonds",
+    "--text-attach-radius-pixels", "24",
+    "--atom-decode-mode", "structured_invalid_only"
+  ],
+  "checkpoint_manifest": [
+    {"path": "outputs/checkpoints/chemvector-v0739-boundary-group-selector-9k-15k/best.pt", "sha256": "f8274f51643a8e11903c2dee31ce564571a941ac4d38952714f87cf0cb6dbc65"},
+    {"path": "outputs/checkpoints/chemvector-v082-multiscale-joint-9k-1epoch/best.pt", "sha256": "ed7d7403192d448ee2e9e17adef3305c3aff17e835bb747bcd69a023985a0ece"},
+    {"path": "outputs/checkpoints/chemvector-v0821-junction-aware-bond-selector-9k/best.pt", "sha256": "bc563997e89553be04882542a5dd25be7cdc844a8e84f01503a448b56a665168"},
+    {"path": "outputs/checkpoints/chemvector-v0820-visual-endpoint-junction-grouper-capacity500/best.pt", "sha256": "8d100e8c52007c366282e715248d27bce44a35f24708373f221e4c5b7db888e0"},
+    {"path": "outputs/checkpoints/chemvector-v0738-node-conditioned-bond-jitter-9k-15k/end-to-end-best.pt", "sha256": "42c92139302ccc46caa3550a103621a59f820e45390f13d9e53ed8ae00318407"},
+    {"path": "outputs/checkpoints/chemvector-v085-chemscene-graph-corrector-2k/best.pt", "sha256": "69ff607b41e7eb8c5e590c8ec93e96df9c53fa706054e2295d2c7f60bd548c11"},
+    {"path": "outputs/checkpoints/chemvector-v088-pretrained-bbox-ctc-10k/best.pt", "sha256": "28b7d7e29c713cd7809503866119a628b364a6cfd5f8b85eacaa45a820a80f2b"},
+    {"path": "outputs/checkpoints/chemvector-v089-text-bbox-offset-9k-45k/best.pt", "sha256": "a41902fdd5e7d0246ca9329bea42810f6c61bf6b79a04c64e62fb45b4348bab1"}
+  ]
+}

@@ -27,7 +27,10 @@ from rdkit.Chem.Draw import rdMolDraw2D
 from rdkit.Chem.Scaffolds import MurckoScaffold
 from rdkit.Geometry import Point2D
 
-from chemmol_sequence import serialize_chemmolseq as serialize_chemmolseq_v2
+try:
+    from .chemmol_sequence import serialize_chemmolseq as serialize_chemmolseq_v2
+except ImportError:
+    from chemmol_sequence import serialize_chemmolseq as serialize_chemmolseq_v2
 
 
 SEED = 20260713

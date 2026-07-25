@@ -33,7 +33,10 @@ from rdkit import Chem, RDLogger, rdBase
 from rdkit.Chem.Draw import rdMolDraw2D
 from svgpathtools import parse_path
 
-from build_webdataset_sample import enum_name, mol_from_chemmol, quantize, stable_int
+try:
+    from .build_webdataset_sample import enum_name, mol_from_chemmol, quantize, stable_int
+except ImportError:
+    from build_webdataset_sample import enum_name, mol_from_chemmol, quantize, stable_int
 
 
 SEED = 20260715
@@ -745,7 +748,11 @@ def rasterize_alpha(svg: bytes) -> tuple[bytes, np.ndarray]:
         return pil_png(Image.fromarray(alpha, mode="L"), "L"), alpha
 
 
-def render_and_layers(task: RenderTask, chemmol: dict, source_render: dict) -> tuple[dict[str, bytes], dict]:
+def render_and_layers_with_svg(
+    task: RenderTask,
+    chemmol: dict,
+    source_render: dict,
+) -> tuple[dict[str, bytes], dict, bytes]:
     svg, prepared, points, render_params = draw_semantic_svg(task, chemmol, source_render)
     text_svg, bond_svg, text_bboxes, bond_bboxes, classless_count = split_svg(
         svg, task.bond_line_width
@@ -907,14 +914,28 @@ def render_and_layers(task: RenderTask, chemmol: dict, source_render: dict) -> t
         "unclassified_fraction": unclassified_fraction,
         "classless_svg_paths": classless_count,
     }
-    return {
+    generated = {
         ".png": combined_png,
         ".text.png": text_png,
         ".bond.png": bond_png,
         ".semantic.png": semantic_png,
         ".layers.json": json_bytes(layers),
         ".render.json": json_bytes(render),
-    }, metrics
+    }
+    return generated, metrics, svg
+
+
+def render_and_layers(
+    task: RenderTask,
+    chemmol: dict,
+    source_render: dict,
+) -> tuple[dict[str, bytes], dict]:
+    generated, metrics, _ = render_and_layers_with_svg(
+        task,
+        chemmol,
+        source_render,
+    )
+    return generated, metrics
 
 
 def hard_negative_counts(chemmol: dict, layers: dict, source_render: dict) -> Counter:

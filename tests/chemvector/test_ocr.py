@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import asdict
 import unittest
 
+from PIL import Image, ImageDraw
 import torch
 
 from chemvector.data import ChemVectorCollator
@@ -72,6 +73,12 @@ class OCRTextCodecTests(unittest.TestCase):
             },
         )
         self.assertIsNone(parse_atom_display_text("R1"))
+
+    def test_all_periodic_table_elements_are_supported(self) -> None:
+        self.assertEqual(parse_atom_display_text("Fe")["element"], "Fe")
+        self.assertEqual(parse_atom_display_text("Og")["element"], "Og")
+        self.assertEqual(parse_atom_display_text("23Na+")["formal_charge"], 1)
+        self.assertIsNone(parse_atom_display_text("Ph"))
 
 
 class ChemOCRHeadTests(unittest.TestCase):
@@ -415,6 +422,79 @@ class OCRCollatorTests(unittest.TestCase):
         self.assertEqual(result["categories"].count("large_visible_jitter"), 3)
         self.assertEqual(result["roles"].count("implicit_c"), 2)
         self.assertEqual(result["roles"].count("atom_text"), 6)
+
+    def test_layer_dataset_can_prioritize_modifier_strings(self) -> None:
+        atoms = [
+            {
+                "atom_id": 0,
+                "element": "N",
+                "center": [20.0, 20.0],
+                "bbox": [16.0, 16.0, 24.0, 24.0],
+                "visible_text": True,
+                "text": "N",
+            },
+            {
+                "atom_id": 1,
+                "element": "N",
+                "center": [60.0, 20.0],
+                "bbox": [54.0, 16.0, 66.0, 24.0],
+                "visible_text": True,
+                "text": "NH",
+            },
+        ]
+        sample = {
+            "key": "modifier",
+            "image": torch.zeros(1),
+            "layers": {
+                "width": 100,
+                "height": 100,
+                "atoms": atoms,
+                "render_parameters": {"font_size": 16, "font_family_id": "font-a"},
+            },
+        }
+        result = build_layer_ocr_sample(
+            sample,
+            seed=1,
+            config=ChemVisionLayerOCRConfig(
+                maximum_blank_anchors=0,
+                maximum_visible_anchors=1,
+                maximum_common_visible_anchors=0,
+                priority_elements=(),
+                priority_texts=("NH",),
+            ),
+        )
+        self.assertEqual(result["texts"], ["NH"])
+
+    def test_layer_dataset_can_colorize_visible_nitrogen(self) -> None:
+        image = Image.new("RGB", (40, 40), "white")
+        ImageDraw.Draw(image).rectangle((15, 15, 24, 24), fill="black")
+        sample = {
+            "key": "colored-n",
+            "image": image,
+            "layers": {
+                "width": 40,
+                "height": 40,
+                "atoms": [
+                    {
+                        "atom_id": 0,
+                        "element": "N",
+                        "center": [20.0, 20.0],
+                        "bbox": [15.0, 15.0, 24.0, 24.0],
+                        "visible_text": True,
+                        "text": "N",
+                    }
+                ],
+                "render_parameters": {"font_size": 16, "font_family_id": "font-a"},
+            },
+        }
+        result = build_layer_ocr_sample(
+            sample,
+            seed=1,
+            config=ChemVisionLayerOCRConfig(color_probability=1.0),
+        )
+        red, green, blue = result["image"].getpixel((20, 20))
+        self.assertGreater(blue, red)
+        self.assertIn("_color", result["categories"][0])
 
     def test_predicted_peaks_inside_one_glyph_share_its_label(self) -> None:
         atoms = [

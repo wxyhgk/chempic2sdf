@@ -10,7 +10,7 @@ from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
 
-from chemvector.data import ChemVectorIterableDataset
+from chemvector.data import ChemVectorIterableDataset, load_reject_keys
 from chemvector.pretrain_vertex import (
     load_vertex_model,
     new_detection_totals,
@@ -58,6 +58,8 @@ def evaluate(
     tolerance_pixels_values: tuple[float, ...],
     maximum_vertices_values: tuple[int, ...],
     maximum_batches: int,
+    role_aware: bool = False,
+    nms_kernel_size: int = 3,
 ) -> dict:
     model.eval()
     totals = {
@@ -79,6 +81,8 @@ def evaluate(
                     output,
                     threshold=threshold,
                     maximum_vertices=maximum_vertices,
+                    role_aware=role_aware,
+                    nms_kernel_size=nms_kernel_size,
                 )
                 for tolerance_pixels in tolerance_pixels_values:
                     update_detection_metrics(
@@ -111,6 +115,7 @@ def evaluate(
         "batches": batches,
         "tolerance_pixels_values": tolerance_pixels_values,
         "maximum_vertices_values": maximum_vertices_values,
+        "nms_kernel_size": nms_kernel_size,
         "grid": grid,
     }
     if len(tolerance_pixels_values) == len(maximum_vertices_values) == 1:
@@ -126,6 +131,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--checkpoint", required=True)
     parser.add_argument("--shards", nargs="+", required=True)
+    parser.add_argument("--reject-keys-file")
     parser.add_argument("--output", required=True)
     parser.add_argument(
         "--thresholds",
@@ -140,6 +146,8 @@ def main() -> None:
     parser.add_argument("--maximum-vertices-values", type=parse_positive_ints)
     parser.add_argument("--maximum-batches", type=int, default=0)
     parser.add_argument("--device", default="cuda")
+    parser.add_argument("--role-aware", action="store_true")
+    parser.add_argument("--nms-kernel-size", type=int, default=3)
     args = parser.parse_args()
 
     device = torch.device(args.device)
@@ -147,6 +155,8 @@ def main() -> None:
         raise RuntimeError("CUDA is required for the requested device")
     if args.tolerance_pixels <= 0 or args.maximum_vertices < 1:
         raise ValueError("tolerance and maximum vertices must be positive")
+    if args.nms_kernel_size < 1 or args.nms_kernel_size % 2 == 0:
+        raise ValueError("nms-kernel-size must be a positive odd integer")
     tolerance_pixels_values = args.tolerances or (args.tolerance_pixels,)
     maximum_vertices_values = args.maximum_vertices_values or (args.maximum_vertices,)
     model = load_vertex_model(Path(args.checkpoint), device)
@@ -154,6 +164,7 @@ def main() -> None:
         ChemVectorIterableDataset(
             expand_shards(args.shards),
             sequence_version="0.4",
+            reject_keys=load_reject_keys(args.reject_keys_file),
         ),
         batch_size=args.batch_size,
         num_workers=args.workers,
@@ -168,11 +179,16 @@ def main() -> None:
         tolerance_pixels_values=tolerance_pixels_values,
         maximum_vertices_values=maximum_vertices_values,
         maximum_batches=args.maximum_batches,
+        role_aware=args.role_aware,
+        nms_kernel_size=args.nms_kernel_size,
     )
     result.update(
         {
             "checkpoint": args.checkpoint,
             "shards": expand_shards(args.shards),
+            "reject_keys_file": args.reject_keys_file,
+            "role_aware": args.role_aware,
+            "nms_kernel_size": args.nms_kernel_size,
         }
     )
     output = Path(args.output)

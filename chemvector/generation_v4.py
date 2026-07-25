@@ -942,6 +942,7 @@ def generate_detected_chemsvg_v4(
     maximum_vertices: int = 128,
     stroke_threshold: float = 0.5,
     ocr_roi_radius: float = 20.0,
+    vertex_nms_kernel_size: int = 3,
     max_length: int | None = None,
 ) -> GenerationResultV4:
     """Detect a fixed visual vertex prefix, then autoregress only over strokes."""
@@ -967,6 +968,7 @@ def generate_detected_chemsvg_v4(
             threshold=vertex_threshold,
             maximum_vertices=maximum_vertices,
             ocr_roi_radius=ocr_roi_radius,
+            nms_kernel_size=vertex_nms_kernel_size,
         )
         memory = model.encode_images(pixel_values)
         grammar = ChemSVGGrammarV4(tokenizer, visual_first=True)

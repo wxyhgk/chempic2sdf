@@ -80,6 +80,12 @@ def load_ocr_model(
     allowed_missing = {
         key for key in model.state_dict() if key.startswith("ocr_head.")
     }
+    allowed_missing.update(
+        {
+            "vertex_head.role_heatmap.weight",
+            "vertex_head.role_heatmap.bias",
+        }
+    )
     if unexpected or missing - allowed_missing:
         raise ValueError(
             "OCR initialization checkpoint mismatch: "
@@ -310,6 +316,23 @@ def validate(
         "I",
         "Ph",
         "R1",
+        "NH",
+        "NH2",
+        "NH3",
+        "N+",
+        "N-",
+        "NH+",
+        "NH2+",
+        "OH",
+        "O-",
+        "O+",
+        "B-",
+        "BH",
+        "BH2",
+        "SH",
+        "S+",
+        "S-",
+        "P+",
     }
     label_totals: dict[str, int] = {}
     label_exact: dict[str, int] = {}
@@ -446,6 +469,8 @@ def main() -> None:
     parser.add_argument("--visible-jitter-copies", type=int, default=0)
     parser.add_argument("--n-jitter-probability", type=float, default=0.05)
     parser.add_argument("--predicted-anchor-weight", type=float, default=0.0)
+    parser.add_argument("--modifier-focus", action="store_true")
+    parser.add_argument("--color-augmentation-probability", type=float, default=0.0)
     parser.add_argument("--seed", type=int, default=20260714)
     args = parser.parse_args()
 
@@ -476,6 +501,8 @@ def main() -> None:
         raise ValueError("Visible jitter copies require chemvision-layers")
     if args.predicted_anchor_weight < 0:
         raise ValueError("Predicted anchor weight must be nonnegative")
+    if not 0.0 <= args.color_augmentation_probability <= 1.0:
+        raise ValueError("Color augmentation probability must be in [0, 1]")
     if args.predicted_anchor_weight and args.dataset != "chemvision-layers":
         raise ValueError("Predicted anchor training requires chemvision-layers")
     if args.adapter_dim < 1 or args.role_loss_weight < 0:
@@ -566,12 +593,25 @@ def main() -> None:
         training_kind = "molecule_replacement_ocr_pretraining"
     else:
         collator = partial(collate_layer_ocr, codec=codec)
+        modifier_texts = (
+            "N", "NH", "NH2", "NH3", "N+", "N-", "NH+", "NH2+",
+            "O", "OH", "O-", "O+",
+            "B", "B-", "BH", "BH2",
+            "S", "SH", "S+", "S-", "P", "P+",
+        )
         train_dataset = ChemVisionLayerOCRDataset(
             args.train_shards,
             seed=args.seed,
             config=ChemVisionLayerOCRConfig(
                 visible_jitter_copies=args.visible_jitter_copies,
                 n_jitter_probability=args.n_jitter_probability,
+                priority_elements=(
+                    ()
+                    if args.modifier_focus
+                    else ChemVisionLayerOCRConfig().priority_elements
+                ),
+                priority_texts=modifier_texts if args.modifier_focus else (),
+                color_probability=args.color_augmentation_probability,
             ),
             shardshuffle=100,
             sample_shuffle_buffer=128,
@@ -579,6 +619,11 @@ def main() -> None:
         validation_dataset = ChemVisionLayerOCRDataset(
             args.validation_shards,
             seed=args.seed + 1_000_000_007,
+            config=ChemVisionLayerOCRConfig(
+                color_probability=(
+                    0.5 if args.color_augmentation_probability > 0.0 else 0.0
+                )
+            ),
             sample_limit=args.validation_samples,
         )
         training_kind = "chemvision_layers_ocr_pretraining"

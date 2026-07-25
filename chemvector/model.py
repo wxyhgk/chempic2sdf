@@ -1062,9 +1062,11 @@ class ChemVertexDetector(nn.Module):
             nn.GELU(),
         )
         self.heatmap = nn.Conv2d(channels, 1, kernel_size=1)
+        self.role_heatmap = nn.Conv2d(channels, 2, kernel_size=1)
         self.offset = nn.Conv2d(channels, 2, kernel_size=1)
         self.aromatic = nn.Conv2d(channels, 1, kernel_size=1)
         nn.init.constant_(self.heatmap.bias, -4.6)
+        nn.init.constant_(self.role_heatmap.bias, -4.6)
         if config.structure_residual_adapter:
             self.output_adapter = nn.Sequential(
                 nn.Conv2d(
@@ -1084,6 +1086,7 @@ class ChemVertexDetector(nn.Module):
     def forward(self, feature_map: torch.Tensor) -> dict[str, torch.Tensor]:
         hidden = self.shared(feature_map)
         heatmap = self.heatmap(hidden)
+        role_heatmap = self.role_heatmap(hidden)
         offset = self.offset(hidden)
         aromatic = self.aromatic(hidden)
         if self.output_adapter is not None:
@@ -1093,6 +1096,7 @@ class ChemVertexDetector(nn.Module):
             aromatic = aromatic + residual[:, 3:4]
         return {
             "vertex_heatmap_logits": heatmap,
+            "vertex_role_heatmap_logits": role_heatmap,
             "vertex_offset_logits": offset,
             "vertex_aromatic_logits": aromatic,
         }

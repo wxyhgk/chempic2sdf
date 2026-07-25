@@ -4,8 +4,10 @@
 
 - [ChemVector 当前架构、结果与训练索引](model/CHEMVECTOR.md)
 - [ChemVector 独立训练档案](model/training/README.md)
+- [v0.9.13 Fresh Dev preflight 与 formal loader 门禁](model/training/20260722-v0.9.13-fresh-dev-preflight.md)
 - [新训练记录模板](model/training/TEMPLATE.md)
 - [OCR 当前路线与训练索引](model/OCR_TEACHER.md)
+- [自动实验 Campaign、恢复与门控协议](model/EXPERIMENT_LOOP.md)
 
 ## 数据协议
 
@@ -21,6 +23,10 @@
 - [USPTO Clean 1K 公开 Benchmark](benchmarks/USPTO_CLEAN_1K.md)
 - [Public OCSR v1 数据交付规范](../Data/benchmarks/public_ocsr_v1/README.md)
 - [Benchmark 真值/预测 SDF 对照前端](../frontend/README.md)
+
+## AI 技术咨询
+
+- [外部 AI 评审、项目决策与实验回填](ai_consultations/README.md)
 
 ## 参考代码
 

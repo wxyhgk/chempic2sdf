@@ -13,8 +13,10 @@ from Data.sdf.chemsvg_sequence_v4 import (
     VertexRecordV4,
     serialize_parsed_chemsvg_v4,
 )
-from chemvector.detection import detect_vertex_records
+from chemvector.detection import detect_vertex_records_with_evidence
 from chemvector.model import ChemVectorModel
+from chemvector.proposal_keep import ProposalKeepHead
+from chemvector.proposal_graph import ProposalGraphRefiner
 from chemvector.relation import factorized_relation_probabilities
 from chemvector.stroke import STROKE_CLASSES, all_pair_indices
 
@@ -137,6 +139,30 @@ def build_parallel_sequence(
     return serialize_parsed_chemsvg_v4(parsed), tuple(strokes)
 
 
+def add_proposal_graph_edge_prior(
+    pair_predictions: dict[
+        tuple[tuple[int, int], tuple[int, int]],
+        tuple[float, str],
+    ],
+    graph_edges: dict[tuple[tuple[int, int], tuple[int, int]], float],
+    *,
+    threshold: float | None,
+) -> dict[tuple[tuple[int, int], tuple[int, int]], tuple[float, str]]:
+    """Raise bridge ranking with graph connectivity while preserving bond type."""
+
+    if threshold is None:
+        return pair_predictions
+    if not 0.0 < threshold < 1.0:
+        raise ValueError("Proposal graph edge prior threshold must be in (0, 1)")
+    fused = dict(pair_predictions)
+    for coordinate_pair, graph_score in graph_edges.items():
+        if graph_score < threshold or coordinate_pair not in fused:
+            continue
+        relation_score, bond_type = fused[coordinate_pair]
+        fused[coordinate_pair] = (max(relation_score, graph_score), bond_type)
+    return fused
+
+
 @torch.inference_mode()
 def generate_parallel_chemsvg_v6(
     model: ChemVectorModel,
@@ -146,6 +172,12 @@ def generate_parallel_chemsvg_v6(
     maximum_vertices: int = 128,
     edge_threshold: float = 0.5,
     ocr_roi_radius: float = 20.0,
+    vertex_nms_kernel_size: int = 3,
+    proposal_keep_head: ProposalKeepHead | None = None,
+    proposal_keep_threshold: float = 0.5,
+    proposal_graph_head: ProposalGraphRefiner | None = None,
+    proposal_graph_threshold: float = 0.5,
+    proposal_graph_edge_prior_threshold: float | None = None,
 ) -> ParallelChemSVGResult:
     if pixel_values.size(0) != 1:
         raise ValueError("Parallel inference currently supports batch size 1")
@@ -154,13 +186,20 @@ def generate_parallel_chemsvg_v6(
     device = pixel_values.device
     _synchronize(device)
     started = time.perf_counter()
-    vertices, stroke_features = detect_vertex_records(
+    detection = detect_vertex_records_with_evidence(
         model,
         pixel_values,
         threshold=vertex_threshold,
         maximum_vertices=maximum_vertices,
         ocr_roi_radius=ocr_roi_radius,
+        nms_kernel_size=vertex_nms_kernel_size,
+        proposal_keep_head=proposal_keep_head,
+        proposal_keep_threshold=proposal_keep_threshold,
+        proposal_graph_head=proposal_graph_head,
+        proposal_graph_threshold=proposal_graph_threshold,
     )
+    vertices = detection.vertices
+    stroke_features = detection.stroke_features
     _synchronize(device)
     vertex_ocr_seconds = time.perf_counter() - started
 
@@ -189,6 +228,11 @@ def generate_parallel_chemsvg_v6(
             1.0 - float(row[0]),
             STROKE_CLASSES[class_id],
         )
+    pair_predictions = add_proposal_graph_edge_prior(
+        pair_predictions,
+        detection.proposal_graph_edges,
+        threshold=proposal_graph_edge_prior_threshold,
+    )
     _synchronize(device)
     pair_seconds = time.perf_counter() - started
     return ParallelChemSVGResult(

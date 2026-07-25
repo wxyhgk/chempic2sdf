@@ -15,10 +15,18 @@
           <p id="runMeta">正在读取评测记录</p>
         </div>
       </div>
-      <label class="run-picker">
-        <span>评测运行</span>
-        <select id="runSelect" aria-label="选择评测运行"></select>
-      </label>
+      <div class="header-actions">
+        <div class="model-context" aria-label="当前模型信息">
+          <span>模型 <strong id="modelVersion">-</strong></span>
+          <span id="modelCheckpoint">checkpoint -</span>
+          <span id="modelProtocol">协议 -</span>
+        </div>
+        <label class="run-picker">
+          <span>评测运行</span>
+          <select id="runSelect" aria-label="选择评测运行"></select>
+        </label>
+        <button id="openUpload" class="primary-command" type="button">上传测试</button>
+      </div>
     </header>
 
     <main>
@@ -73,6 +81,42 @@
         </section>
       </section>
     </main>
+
+    <dialog id="uploadDialog" class="upload-dialog">
+      <form id="uploadForm" method="dialog">
+        <div class="dialog-header">
+          <div>
+            <h2>单张图片测试</h2>
+            <p id="uploadModelNote">正在读取模型配置</p>
+          </div>
+          <button id="closeUpload" class="icon-command" type="button" aria-label="关闭">×</button>
+        </div>
+        <div class="upload-controls">
+          <label>
+            <span>推理模型</span>
+            <select id="uploadProfile" required></select>
+          </label>
+          <label class="file-picker">
+            <span>化学结构图片</span>
+            <input id="uploadFile" type="file" accept="image/png,image/jpeg,image/webp,image/tiff">
+            <small id="uploadFileName">未选择图片</small>
+          </label>
+          <button id="runUpload" class="primary-command" type="submit">开始识别</button>
+        </div>
+        <div id="uploadResult" class="upload-result">
+          <div class="comparison-grid upload-comparison">
+            <section class="structure-panel">
+              <div class="panel-heading"><h3>输入图片</h3></div>
+              <div class="molecule-frame paste-frame"><span>等待图片</span></div>
+            </section>
+            <section class="structure-panel">
+              <div class="panel-heading"><h3>预测结果</h3></div>
+              <div class="molecule-frame paste-frame"><span>等待识别</span></div>
+            </section>
+          </div>
+        </div>
+      </form>
+    </dialog>
 
     <script src="/app.js" defer></script>
   </body>

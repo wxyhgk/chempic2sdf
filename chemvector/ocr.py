@@ -6,6 +6,8 @@ from dataclasses import dataclass
 import re
 from typing import Any
 
+from rdkit import Chem
+
 
 @dataclass(frozen=True, slots=True)
 class OCRTextCodec:
@@ -108,9 +110,16 @@ def atom_display_text(atom: dict[str, Any]) -> str:
     )
 
 
+_PERIODIC_TABLE = Chem.GetPeriodicTable()
+_ELEMENT_SYMBOLS = tuple(
+    sorted(
+        (_PERIODIC_TABLE.GetElementSymbol(index) for index in range(1, 119)),
+        key=lambda symbol: (-len(symbol), symbol),
+    )
+)
 _ATOM_TEXT_PATTERN = re.compile(
     r"^(?P<isotope>\d+)?"
-    r"(?P<element>Br|Cl|Se|Si|[BCFINOPS])"
+    rf"(?P<element>{'|'.join(map(re.escape, _ELEMENT_SYMBOLS))})"
     r"(?:H(?P<hydrogens>\d+)?)?"
     r"(?P<charge>(?:\d+)?[+-])?"
     r"(?P<radicals>\.*)$"

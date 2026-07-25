@@ -3,3 +3,6 @@ webdataset==1.0.2
 Pillow==12.3.0
 numpy>=2.0
 scipy>=1.12
+PyYAML>=6.0
+CairoSVG==2.8.2
+opencv-python-headless>=4.10

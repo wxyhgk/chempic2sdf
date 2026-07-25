@@ -26,6 +26,11 @@
 body {
   margin: 0;
   min-width: 320px;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   background: var(--bg);
   color: var(--text);
 }
@@ -104,6 +109,64 @@ h1 {
   font-size: 12px;
 }
 
+.header-actions {
+  min-width: min(720px, 65vw);
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(280px, 1.4fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.model-context {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  color: #aebbb4;
+  font-size: 10px;
+}
+
+.model-context span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.model-context strong {
+  color: #ffffff;
+  font-size: 13px;
+}
+
+.primary-command,
+.icon-command {
+  min-height: 38px;
+  border: 1px solid #6f897a;
+  border-radius: 5px;
+  background: #dceee4;
+  color: #173527;
+  font-weight: 700;
+}
+
+.primary-command {
+  padding: 0 14px;
+  white-space: nowrap;
+}
+
+.primary-command:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.icon-command {
+  width: 38px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  background: #ffffff;
+  border-color: var(--border-strong);
+  color: var(--text);
+  font-size: 22px;
+}
+
 .run-picker select {
   width: 100%;
   min-height: 38px;
@@ -115,7 +178,11 @@ h1 {
 }
 
 main {
+  flex: 1;
+  min-height: 0;
   padding: 16px;
+  display: flex;
+  flex-direction: column;
 }
 
 .metrics {
@@ -153,11 +220,12 @@ main {
 }
 
 .workspace {
-  height: calc(100vh - 182px);
-  min-height: 560px;
+  flex: 1;
+  min-height: 0;
   margin-top: 14px;
   display: grid;
   grid-template-columns: 370px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--surface);
@@ -167,6 +235,7 @@ main {
 
 .sample-browser {
   min-width: 0;
+  min-height: 0;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   border-right: 1px solid var(--border);
@@ -396,7 +465,9 @@ button:focus-visible {
 
 .detail {
   min-width: 0;
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   background: #ffffff;
 }
 
@@ -473,6 +544,9 @@ button:focus-visible {
 }
 
 .view-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   padding: 10px 18px;
   display: flex;
   align-items: center;
@@ -646,7 +720,156 @@ button:focus-visible {
   display: none !important;
 }
 
+.upload-dialog {
+  width: min(1180px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 24px 80px rgba(15, 27, 20, 0.28);
+}
+
+.upload-dialog::backdrop {
+  background: rgba(17, 27, 22, 0.62);
+}
+
+.upload-dialog form {
+  min-height: min(760px, calc(100vh - 34px));
+  display: flex;
+  flex-direction: column;
+}
+
+.dialog-header {
+  padding: 16px 18px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.dialog-header h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.dialog-header p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.upload-controls {
+  padding: 12px 18px;
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(280px, 1.4fr) auto;
+  align-items: end;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-muted);
+}
+
+.upload-controls label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.upload-controls small {
+  min-height: 14px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.upload-controls select,
+.upload-controls input {
+  width: 100%;
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: #ffffff;
+  color: var(--text);
+}
+
+.upload-result {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.empty-state.compact,
+.loading-state.compact {
+  min-height: 420px;
+}
+
+.upload-result-header {
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.upload-result-header > div:first-child {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.upload-result-header span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.upload-comparison .molecule-frame {
+  max-height: 520px;
+}
+
+.paste-frame {
+  color: var(--muted);
+  background: var(--surface-muted);
+  font-size: 13px;
+}
+
+.upload-metrics {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(100px, 1fr));
+  gap: 1px;
+  padding: 1px 0 0;
+  background: var(--border);
+}
+
+.upload-error {
+  min-height: 420px;
+  padding: 30px;
+  display: grid;
+  place-content: center;
+  gap: 8px;
+  color: var(--red);
+  text-align: center;
+}
+
+.upload-error span {
+  max-width: 780px;
+  color: var(--muted);
+  font: 11px/1.55 "SFMono-Regular", Consolas, monospace;
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 1120px) {
+  .header-actions {
+    min-width: min(620px, 67vw);
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 1.2fr) auto;
+  }
+
   .metrics {
     grid-template-columns: repeat(3, 1fr);
   }
@@ -660,7 +883,6 @@ button:focus-visible {
   }
 
   .workspace {
-    height: calc(100vh - 262px);
     grid-template-columns: 330px minmax(0, 1fr);
   }
 
@@ -670,6 +892,12 @@ button:focus-visible {
 }
 
 @media (max-width: 780px) {
+  body {
+    height: auto;
+    display: block;
+    overflow: visible;
+  }
+
   .topbar {
     align-items: stretch;
     flex-direction: column;
@@ -680,7 +908,35 @@ button:focus-visible {
     width: 100%;
   }
 
+  .header-actions {
+    min-width: 0;
+    width: 100%;
+    grid-template-columns: 1fr auto;
+  }
+
+  .model-context {
+    grid-column: 1 / -1;
+  }
+
+  .upload-dialog {
+    width: calc(100vw - 12px);
+    max-height: calc(100vh - 12px);
+  }
+
+  .upload-dialog form {
+    min-height: calc(100vh - 14px);
+  }
+
+  .upload-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .upload-metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
   main {
+    display: block;
     padding: 10px;
   }
 
@@ -700,8 +956,8 @@ button:focus-visible {
 
   .workspace {
     height: auto;
-    min-height: 0;
     grid-template-columns: 1fr;
+    grid-template-rows: none;
   }
 
   .sample-browser {
@@ -712,6 +968,7 @@ button:focus-visible {
 
   .detail {
     min-height: 700px;
+    overflow-y: visible;
   }
 
   .detail-header,
@@ -736,4 +993,43 @@ button:focus-visible {
   .comparison-metrics {
     grid-template-columns: repeat(2, 1fr);
   }
+}
+
+
+/* 内部滚动区域：细滚动条与滚动边界隔离 */
+.sample-list,
+.detail,
+.sdf-view {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+.sample-list::-webkit-scrollbar,
+.detail::-webkit-scrollbar,
+.sdf-view::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.sample-list::-webkit-scrollbar-thumb,
+.detail::-webkit-scrollbar-thumb,
+.sdf-view::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background: var(--border-strong);
+}
+
+.sample-list::-webkit-scrollbar-thumb:hover,
+.detail::-webkit-scrollbar-thumb:hover,
+.sdf-view::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+.sample-list::-webkit-scrollbar-track,
+.detail::-webkit-scrollbar-track,
+.sdf-view::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sample-list {
+  overscroll-behavior: contain;
 }

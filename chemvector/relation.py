@@ -12,6 +12,52 @@ BOND_CLASSES = ("SINGLE", "DOUBLE", "TRIPLE")
 AROMATIC_CLASS_ID = STROKE_CLASSES.index("AROMATIC")
 
 
+def apply_safe_hydrogen_constraints(
+    edge_logits: torch.Tensor,
+    bond_logits: torch.Tensor,
+    pair_indices: torch.Tensor,
+    hydrogen_like: torch.Tensor,
+    atom_confidences: torch.Tensor,
+    *,
+    confidence_threshold: float = 0.95,
+    disabled_logit: float = -30.0,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Apply only valence rules that are safe for high-confidence H/D/T labels."""
+
+    if edge_logits.ndim != 2 or bond_logits.shape != (*edge_logits.shape, 3):
+        raise ValueError("Batched edge and bond logits have incompatible shapes")
+    if pair_indices.shape != (edge_logits.size(1), 2):
+        raise ValueError("Pair indices do not match edge logits")
+    if hydrogen_like.shape != atom_confidences.shape or hydrogen_like.ndim != 2:
+        raise ValueError("Hydrogen mask and atom confidences must have shape [batch, atoms]")
+    if not 0.0 <= confidence_threshold <= 1.0:
+        raise ValueError("Hydrogen confidence threshold must be in [0, 1]")
+    if pair_indices.numel() and int(pair_indices.max()) >= hydrogen_like.size(1):
+        raise ValueError("Pair index is outside the atom dimension")
+
+    constrained_edges = edge_logits.clone()
+    constrained_bonds = bond_logits.clone()
+    confident_hydrogen = hydrogen_like.bool() & (
+        atom_confidences >= confidence_threshold
+    )
+    begin = pair_indices[:, 0]
+    end = pair_indices[:, 1]
+    hydrogen_pair = confident_hydrogen[:, begin] | confident_hydrogen[:, end]
+    constrained_bonds[..., 1:] = constrained_bonds[..., 1:].masked_fill(
+        hydrogen_pair.unsqueeze(-1), disabled_logit
+    )
+
+    for batch_index in range(edge_logits.size(0)):
+        for atom_index in torch.where(confident_hydrogen[batch_index])[0].tolist():
+            incident = torch.where((begin == atom_index) | (end == atom_index))[0]
+            if len(incident) <= 1:
+                continue
+            keep = incident[edge_logits[batch_index, incident].argmax()]
+            suppress = incident[incident != keep]
+            constrained_edges[batch_index, suppress] = disabled_logit
+    return constrained_edges, constrained_bonds
+
+
 def factorized_relation_probabilities(
     edge_logits: torch.Tensor,
     bond_logits: torch.Tensor,
@@ -94,6 +140,75 @@ def factorized_relation_loss(
         "edge_loss": edge_loss,
         "bond_loss": bond_loss,
     }
+
+
+def hard_mined_factorized_relation_loss(
+    edge_logits: torch.Tensor,
+    bond_logits: torch.Tensor,
+    labels: torch.Tensor,
+    *,
+    negative_ratio: int = 8,
+    minimum_negatives: int = 32,
+    ranking_weight: float = 0.2,
+    ranking_margin: float = 1.0,
+    **loss_kwargs,
+) -> dict[str, torch.Tensor]:
+    """Keep every true edge and train on the currently hardest non-edges."""
+
+    if negative_ratio < 1 or minimum_negatives < 1:
+        raise ValueError("Hard-negative counts must be positive")
+    if ranking_weight < 0 or ranking_margin < 0:
+        raise ValueError("Ranking loss settings must be nonnegative")
+    if edge_logits.ndim != 1 or labels.ndim != 1:
+        raise ValueError("Hard-negative mining expects flattened relation tensors")
+    if edge_logits.size(0) != labels.size(0):
+        raise ValueError("Relation logits and labels have different lengths")
+
+    positive_indices = torch.where(labels != 0)[0]
+    negative_indices = torch.where(labels == 0)[0]
+    negative_count = min(
+        int(negative_indices.numel()),
+        max(minimum_negatives, int(positive_indices.numel()) * negative_ratio),
+    )
+    if negative_count:
+        hard_offsets = torch.topk(
+            edge_logits[negative_indices].detach(),
+            negative_count,
+        ).indices
+        hard_negative_indices = negative_indices[hard_offsets]
+    else:
+        hard_negative_indices = negative_indices
+    selected = torch.cat((positive_indices, hard_negative_indices))
+    if not len(selected):
+        selected = torch.arange(labels.numel(), device=labels.device)
+    losses = factorized_relation_loss(
+        edge_logits[selected],
+        bond_logits[selected],
+        labels[selected],
+        **loss_kwargs,
+    )
+
+    ranking_loss = edge_logits.sum() * 0.0
+    if len(positive_indices) and len(hard_negative_indices):
+        ranking_pairs = min(len(positive_indices), len(hard_negative_indices))
+        weakest_positive = -torch.topk(
+            -edge_logits[positive_indices],
+            ranking_pairs,
+        ).values
+        strongest_negative = torch.topk(
+            edge_logits[hard_negative_indices],
+            ranking_pairs,
+        ).values
+        ranking_loss = F.softplus(
+            ranking_margin + strongest_negative - weakest_positive
+        ).mean()
+    losses["ranking_loss"] = ranking_loss
+    losses["loss"] = losses["loss"] + ranking_weight * ranking_loss
+    losses["selected_pairs"] = edge_logits.new_tensor(float(len(selected)))
+    losses["selected_negatives"] = edge_logits.new_tensor(
+        float(len(hard_negative_indices))
+    )
+    return losses
 
 
 def relation_teacher_consistency_loss(

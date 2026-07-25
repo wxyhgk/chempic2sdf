@@ -1,0 +1,51 @@
+{
+  "schema_version": "chemscene-v0.2-validation-0.1",
+  "created_at": "2026-07-23T07:21:49.624484+00:00",
+  "archive": "Data/sdf/chemvision_layers_v0_1/pilot_10k/shards/validation-000000.tar",
+  "limit": 500,
+  "status": "passed",
+  "counts": {
+    "total": 500,
+    "passed": 498,
+    "skipped_coordinate_collision": 2
+  },
+  "atom_roles": {
+    "IMPLICIT": 11910,
+    "TEXT": 5012
+  },
+  "port_sources": {
+    "ANCHOR": 28112,
+    "TEXT_BBOX_RAY": 8544
+  },
+  "display_bond_types": {
+    "AROMATIC": 3396,
+    "DOUBLE": 2930,
+    "SINGLE": 11982,
+    "TRIPLE": 20
+  },
+  "chemical_bond_types": {
+    "AROMATIC": 6804,
+    "DOUBLE": 1360,
+    "SINGLE": 10144,
+    "TRIPLE": 20
+  },
+  "objects": {
+    "atom_objects": {
+      "total": 16922,
+      "mean_per_passed_sample": 33.97991967871486,
+      "min": 14,
+      "max": 91
+    },
+    "bond_objects": {
+      "total": 18328,
+      "mean_per_passed_sample": 36.803212851405625,
+      "min": 13,
+      "max": 102
+    }
+  },
+  "mean_bytes": {
+    "chemscene_json": 20971.194779116468,
+    "sdf": 2939.3092369477913
+  },
+  "failures": []
+}

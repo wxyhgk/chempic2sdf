@@ -16,6 +16,18 @@ from chemvector.model import OCR_ROLE_LABELS
 
 
 ROLE_TO_ID = {label: index for index, label in enumerate(OCR_ROLE_LABELS)}
+CPK_TEXT_COLORS = {
+    "B": (235, 120, 145),
+    "N": (35, 75, 210),
+    "O": (215, 35, 35),
+    "F": (30, 155, 45),
+    "Cl": (30, 155, 45),
+    "Br": (145, 55, 35),
+    "I": (110, 45, 155),
+    "P": (220, 110, 25),
+    "S": (190, 150, 20),
+    "Se": (175, 85, 30),
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -36,6 +48,8 @@ class ChemVisionLayerOCRConfig:
         "Si",
         "Se",
     )
+    priority_texts: tuple[str, ...] = ()
+    color_probability: float = 0.0
 
     def __post_init__(self) -> None:
         if min(
@@ -48,6 +62,34 @@ class ChemVisionLayerOCRConfig:
             raise ValueError("Visible jitter copies must be nonnegative")
         if not 0.0 <= self.n_jitter_probability <= 1.0:
             raise ValueError("N jitter probability must be in [0, 1]")
+        if not 0.0 <= self.color_probability <= 1.0:
+            raise ValueError("OCR color probability must be in [0, 1]")
+
+
+def colorize_visible_text(image, atoms: list[dict]):
+    """Apply element colors inside known text boxes while preserving white background."""
+
+    array = np.asarray(image.convert("RGB")).copy()
+    height, width = array.shape[:2]
+    for atom in atoms:
+        bbox = atom.get("bbox")
+        color = CPK_TEXT_COLORS.get(str(atom.get("element", "")))
+        if not atom.get("visible_text") or bbox is None or color is None:
+            continue
+        x0, y0, x1, y1 = bbox
+        left = max(0, int(np.floor(x0)) - 1)
+        top = max(0, int(np.floor(y0)) - 1)
+        right = min(width, int(np.ceil(x1)) + 2)
+        bottom = min(height, int(np.ceil(y1)) + 2)
+        region = array[top:bottom, left:right]
+        darkness = 255 - region.mean(axis=-1)
+        alpha = np.clip(darkness / 220.0, 0.0, 1.0)[..., None]
+        target = np.asarray(color, dtype=np.float32)
+        recolored = 255.0 * (1.0 - alpha) + target * alpha
+        region[:] = recolored.round().clip(0, 255).astype(np.uint8)
+    from PIL import Image
+
+    return Image.fromarray(array, mode="RGB")
 
 
 def stable_seed(seed: int, key: str) -> int:
@@ -76,15 +118,26 @@ def build_layer_ocr_sample(
         raise ValueError(f"ChemVision sample has no layers.json: {sample['key']}")
     rng = random.Random(stable_seed(seed, sample["key"]))
     atoms = sorted(layers["atoms"], key=lambda atom: atom["atom_id"])
+    colored = rng.random() < config.color_probability
+    image = colorize_visible_text(sample["image"], atoms) if colored else sample["image"]
+    color_suffix = (
+        f"_{'color' if colored else 'bw'}" if config.color_probability > 0.0 else ""
+    )
     priority = [
         atom
         for atom in atoms
-        if atom["visible_text"] and atom["element"] in config.priority_elements
+        if atom["visible_text"]
+        and (
+            atom["element"] in config.priority_elements
+            or atom.get("text", "") in config.priority_texts
+        )
     ]
     common = [
         atom
         for atom in atoms
-        if atom["visible_text"] and atom["element"] not in config.priority_elements
+        if atom["visible_text"]
+        and atom["element"] not in config.priority_elements
+        and atom.get("text", "") not in config.priority_texts
     ]
     blank = [atom for atom in atoms if not atom["visible_text"]]
     if len(priority) > config.maximum_visible_anchors:
@@ -111,7 +164,7 @@ def build_layer_ocr_sample(
                 "atom_id": atom["atom_id"],
                 "point": atom["center"],
                 "text": atom["text"],
-                "category": f"{bucket}_{'visible' if atom['visible_text'] else 'blank'}",
+                "category": f"{bucket}_{'visible' if atom['visible_text'] else 'blank'}{color_suffix}",
             }
         )
         if (
@@ -130,12 +183,12 @@ def build_layer_ocr_sample(
                         "atom_id": atom["atom_id"],
                         "point": [rng.uniform(x0, x1), rng.uniform(y0, y1)],
                         "text": atom["text"],
-                        "category": f"{bucket}_visible_jitter",
+                        "category": f"{bucket}_visible_jitter{color_suffix}",
                     }
                 )
     return {
         "key": sample["key"],
-        "image": sample["image"],
+        "image": image,
         "anchors": [
             (entry["point"][0] / width, entry["point"][1] / height)
             for entry in entries

@@ -49,7 +49,12 @@ def load_model(checkpoint_path: Path, device: torch.device) -> tuple[ChemVectorM
     incompatible = model.load_state_dict(checkpoint["model"], strict=False)
     unexpected = set(incompatible.unexpected_keys)
     missing = set(incompatible.missing_keys)
-    allowed_missing = {"visual_aux_head.weight", "visual_aux_head.bias"}
+    allowed_missing = {
+        "visual_aux_head.weight",
+        "visual_aux_head.bias",
+        "vertex_head.role_heatmap.weight",
+        "vertex_head.role_heatmap.bias",
+    }
     if unexpected or missing - allowed_missing:
         raise ValueError(
             f"Checkpoint architecture mismatch: missing={sorted(missing)}, "

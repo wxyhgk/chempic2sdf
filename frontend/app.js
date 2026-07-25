@@ -11,6 +11,9 @@ const state = {
   pageSize: 60,
   view: "image",
   sdfCache: new Map(),
+  profiles: [],
+  uploadFile: null,
+  uploadPreviewUrl: null,
 };
 
 const statusLabels = {
@@ -51,6 +54,19 @@ const errorLabels = {
 const elements = {
   runSelect: document.querySelector("#runSelect"),
   runMeta: document.querySelector("#runMeta"),
+  modelVersion: document.querySelector("#modelVersion"),
+  modelCheckpoint: document.querySelector("#modelCheckpoint"),
+  modelProtocol: document.querySelector("#modelProtocol"),
+  openUpload: document.querySelector("#openUpload"),
+  uploadDialog: document.querySelector("#uploadDialog"),
+  closeUpload: document.querySelector("#closeUpload"),
+  uploadForm: document.querySelector("#uploadForm"),
+  uploadProfile: document.querySelector("#uploadProfile"),
+  uploadFile: document.querySelector("#uploadFile"),
+  uploadFileName: document.querySelector("#uploadFileName"),
+  uploadModelNote: document.querySelector("#uploadModelNote"),
+  uploadResult: document.querySelector("#uploadResult"),
+  runUpload: document.querySelector("#runUpload"),
   metrics: document.querySelector("#metrics"),
   searchInput: document.querySelector("#searchInput"),
   statusFilter: document.querySelector("#statusFilter"),
@@ -94,6 +110,7 @@ async function requestJson(url) {
 async function initialize() {
   bindControls();
   try {
+    await loadInferenceProfiles();
     const payload = await requestJson("/api/runs");
     state.runs = payload.runs;
     if (!state.runs.length) {
@@ -108,7 +125,7 @@ async function initialize() {
     elements.runSelect.innerHTML = state.runs
       .map(
         (run) =>
-          `<option value="${escapeHtml(run.id)}">${escapeHtml(run.id)} · ${run.samples} 张</option>`,
+          `<option value="${escapeHtml(run.id)}">${escapeHtml(run.model?.version || "版本未知")} · ${escapeHtml(run.id)} · ${run.samples} 张</option>`,
       )
       .join("");
     await loadRun(state.runs[0].id);
@@ -153,6 +170,53 @@ function bindControls() {
     state.page = Math.min(pages, state.page + 1);
     renderSampleList();
   });
+  elements.openUpload.addEventListener("click", openUploadDialog);
+  elements.closeUpload.addEventListener("click", () => elements.uploadDialog.close());
+  elements.uploadProfile.addEventListener("change", renderUploadProfileNote);
+  elements.uploadFile.addEventListener("change", () => {
+    state.uploadFile = elements.uploadFile.files?.[0] || null;
+    renderUploadPreview(state.uploadFile);
+  });
+  elements.uploadForm.addEventListener("submit", runUploadedInference);
+  document.addEventListener("paste", handlePastedImage);
+  elements.uploadResult.addEventListener("dragover", (event) => event.preventDefault());
+  elements.uploadResult.addEventListener("drop", handleDroppedImage);
+}
+
+async function loadInferenceProfiles({ preserveSelection = false } = {}) {
+  const previous = preserveSelection ? elements.uploadProfile.value : null;
+  const payload = await requestJson("/api/inference/profiles");
+  state.profiles = payload.profiles || [];
+  elements.uploadProfile.innerHTML = state.profiles
+    .map(
+      (profile) =>
+        `<option value="${escapeHtml(profile.id)}" ${profile.available ? "" : "disabled"}>${escapeHtml(profile.label)}${profile.available ? "" : " · 尚不可用"}</option>`,
+    )
+    .join("");
+  const selected =
+    state.profiles.find((profile) => profile.id === previous && profile.available) ||
+    state.profiles.find((profile) => profile.available && profile.recommended) ||
+    state.profiles.find((profile) => profile.available);
+  if (selected) elements.uploadProfile.value = selected.id;
+  elements.openUpload.disabled = !selected;
+  renderUploadProfileNote();
+}
+
+async function openUploadDialog() {
+  if (!elements.uploadDialog.open) elements.uploadDialog.showModal();
+  elements.uploadModelNote.textContent = "正在更新模型列表";
+  try {
+    await loadInferenceProfiles({ preserveSelection: true });
+  } catch (error) {
+    elements.uploadModelNote.textContent = `模型列表更新失败：${error.message}`;
+  }
+}
+
+function renderUploadProfileNote() {
+  const profile = state.profiles.find((item) => item.id === elements.uploadProfile.value);
+  elements.uploadModelNote.textContent = profile
+    ? `${profile.version} · ${profile.protocol}${profile.unavailable_reason ? ` · ${profile.unavailable_reason}` : ""}`
+    : "没有可用推理模型";
 }
 
 async function loadRun(runId) {
@@ -163,13 +227,150 @@ async function loadRun(runId) {
     state.run = await requestJson(`/api/runs/${encodeURIComponent(runId)}`);
     elements.runSelect.value = runId;
     const checkpoint = state.run.config.checkpoint?.split("/").slice(-2).join("/") ?? "-";
-    elements.runMeta.textContent = `${state.run.samples.length} 个样本 · ${checkpoint} · ${state.run.updated_at}`;
+    const model = state.run.model || {};
+    elements.runMeta.textContent = `${state.run.samples.length} 个样本 · ${state.run.updated_at}`;
+    elements.modelVersion.textContent = model.version || "未知";
+    elements.modelCheckpoint.textContent = checkpoint;
+    elements.modelCheckpoint.title = model.checkpoint || checkpoint;
+    elements.modelProtocol.textContent = model.protocol || "默认推理协议";
     renderErrorFilter();
     renderMetrics();
     applyFilters(true);
   } catch (error) {
     showFatal(error);
   }
+}
+
+function renderUploadPreview(file = state.uploadFile) {
+  if (state.uploadPreviewUrl) URL.revokeObjectURL(state.uploadPreviewUrl);
+  if (!file) {
+    elements.uploadFileName.textContent = "未选择图片";
+    return;
+  }
+  elements.uploadFileName.textContent = file.name;
+  state.uploadPreviewUrl = URL.createObjectURL(file);
+  elements.uploadResult.innerHTML = `
+    <div class="comparison-grid upload-comparison">
+      <section class="structure-panel">
+        <div class="panel-heading"><h3>输入图片</h3><span>${escapeHtml(file.name)}</span></div>
+        <div class="molecule-frame"><img src="${escapeHtml(state.uploadPreviewUrl)}" alt="待识别结构图"></div>
+      </section>
+      <section class="structure-panel">
+        <div class="panel-heading"><h3>预测结果</h3></div>
+        <div class="molecule-frame paste-frame"><span>等待识别</span></div>
+      </section>
+    </div>`;
+}
+
+function handlePastedImage(event) {
+  const item = [...(event.clipboardData?.items || [])].find((candidate) =>
+    candidate.type.startsWith("image/"),
+  );
+  if (!item) return;
+  const blob = item.getAsFile();
+  if (!blob) return;
+  event.preventDefault();
+  const extension = blob.type.split("/")[1]?.replace("jpeg", "jpg") || "png";
+  state.uploadFile = new File(
+    [blob],
+    `clipboard-${new Date().toISOString().replaceAll(":", "-")}.${extension}`,
+    { type: blob.type },
+  );
+  if (!elements.uploadDialog.open) void openUploadDialog();
+  renderUploadPreview(state.uploadFile);
+}
+
+function handleDroppedImage(event) {
+  event.preventDefault();
+  const file = [...(event.dataTransfer?.files || [])].find((item) =>
+    item.type.startsWith("image/"),
+  );
+  if (!file) return;
+  state.uploadFile = file;
+  renderUploadPreview(file);
+}
+
+async function runUploadedInference(event) {
+  event.preventDefault();
+  const file = state.uploadFile || elements.uploadFile.files?.[0];
+  const profileId = elements.uploadProfile.value;
+  if (!file || !profileId) return;
+  elements.runUpload.disabled = true;
+  elements.runUpload.textContent = "识别中";
+  renderUploadPreview(file);
+  const predictionFrame = elements.uploadResult.querySelectorAll(".molecule-frame")[1];
+  predictionFrame.innerHTML = '<div class="loading-state compact">模型正在生成 SDF</div>';
+  try {
+    const response = await fetch(`/api/infer/${encodeURIComponent(profileId)}`, {
+      method: "POST",
+      headers: { "Content-Type": file.type || "application/octet-stream" },
+      body: file,
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || `${response.status} ${response.statusText}`);
+    renderUploadResult(payload);
+  } catch (error) {
+    renderUploadFailure(file, error.message);
+  } finally {
+    elements.runUpload.disabled = false;
+    elements.runUpload.textContent = "开始识别";
+  }
+}
+
+function renderUploadFailure(file, message) {
+  const source = state.uploadPreviewUrl || URL.createObjectURL(file);
+  elements.uploadResult.innerHTML = `
+    <div class="comparison-grid upload-comparison">
+      <section class="structure-panel">
+        <div class="panel-heading"><h3>输入图片</h3><span>${escapeHtml(file.name)}</span></div>
+        <div class="molecule-frame"><img src="${escapeHtml(source)}" alt="输入结构图"></div>
+      </section>
+      <section class="structure-panel">
+        <div class="panel-heading"><h3>预测结果</h3></div>
+        <div class="molecule-frame">
+          <div class="upload-error"><strong>未生成有效 SDF</strong><span>${escapeHtml(message)}</span></div>
+        </div>
+      </section>
+    </div>`;
+}
+
+function renderUploadResult(payload) {
+  const artifacts = payload.artifacts || {};
+  const metrics = payload.metrics || {};
+  const links = [
+    artifactLink(artifacts.prediction_sdf, "下载预测 SDF", true),
+    artifactLink(artifacts.raw_chemsvg, "原始 ChemSVG"),
+    artifactLink(artifacts.repaired_chemsvg, "修复后 ChemSVG"),
+    artifactLink(artifacts.chemscene, "ChemScene JSON"),
+  ].join("");
+  elements.uploadResult.innerHTML = `
+    <div class="upload-result-header">
+      <div>
+        <strong>${escapeHtml(payload.model.version)} · ${escapeHtml(payload.model.protocol)}</strong>
+        <span>${escapeHtml(payload.id)} · ${escapeHtml(formatSeconds(payload.wall_seconds))}</span>
+      </div>
+      <div class="artifact-links">${links}</div>
+    </div>
+    <div class="comparison-grid upload-comparison">
+      <section class="structure-panel">
+        <div class="panel-heading"><h3>上传原图</h3></div>
+        <div class="molecule-frame"><img src="${escapeHtml(artifacts.source_image)}" alt="上传原图"></div>
+      </section>
+      <section class="structure-panel">
+        <div class="panel-heading"><h3>预测 SDF 渲染</h3><span>${escapeHtml(metrics.formula || "-")}</span></div>
+        <div class="molecule-frame"><img src="${escapeHtml(artifacts.prediction_image)}" alt="预测 SDF 渲染"></div>
+      </section>
+    </div>
+    <div class="upload-metrics">
+      ${comparisonMetric("模型版本", payload.model.version)}
+      ${comparisonMetric("推理设备", payload.device)}
+      ${comparisonMetric("模型推理", formatSeconds(metrics.inference_seconds))}
+      ${comparisonMetric("顶点数", metrics.vertices ?? "-")}
+      ${comparisonMetric("预测键 → 输出键", `${metrics.candidate_strokes ?? "-"} → ${metrics.repaired_strokes ?? "-"}`)}
+      ${comparisonMetric("分子式", metrics.formula || "-")}
+      ${comparisonMetric("芳香降级", metrics.aromatic_fallback === undefined ? "-" : metrics.aromatic_fallback ? "是" : "否")}
+      ${comparisonMetric("自环/重复边", metrics.diagnostics ? `${metrics.diagnostics.self_loop_objects ?? 0} / ${metrics.diagnostics.duplicate_pair_objects ?? 0}` : "-")}
+    </div>`;
 }
 
 function renderErrorFilter() {
@@ -194,6 +395,7 @@ function renderErrorFilter() {
 
 function renderMetrics() {
   const samples = state.run.samples;
+  const decomposition = state.run.object_decomposition;
   const count = (status) => samples.filter((sample) => sample.status === status).length;
   const valid = samples.filter((sample) => sample.sdf_valid).length;
   const averageSeconds =
@@ -206,7 +408,7 @@ function renderMetrics() {
   const averageSimilarity =
     similarities.reduce((total, value) => total + value, 0) /
     Math.max(similarities.length, 1);
-  const metrics = [
+  let metrics = [
     ["样本总数", samples.length.toLocaleString("zh-CN")],
     ["有效 SDF", `${valid.toLocaleString("zh-CN")} · ${formatPercent(valid / samples.length)}`],
     ["完全一致", `${count("exact").toLocaleString("zh-CN")} · ${formatPercent(count("exact") / samples.length)}`],
@@ -214,7 +416,25 @@ function renderMetrics() {
     ["无效 SDF", count("invalid").toLocaleString("zh-CN")],
     ["平均推理", formatSeconds(averageSeconds)],
   ];
-  if (similarities.length) {
+  if (decomposition) {
+    const measured = Math.max(Number(decomposition.samples || samples.length), 1);
+    const measuredMetric = (label, countKey) => {
+      const value = Number(decomposition[countKey] || 0);
+      return [label, `${value.toLocaleString("zh-CN")} · ${formatPercent(value / measured)}`];
+    };
+    metrics = [
+      ["样本总数", samples.length.toLocaleString("zh-CN")],
+      measuredMetric("纯连接骨架", "skeleton_exact_count"),
+      measuredMetric("原子类型 + 骨架", "atom_typed_skeleton_exact_count"),
+      ["单原子类型", formatPercent(Number(decomposition.atom_type_micro_accuracy_given_skeleton || 0))],
+      measuredMetric("键级 + 骨架", "bond_typed_skeleton_exact_count"),
+      ["单键级", formatPercent(Number(decomposition.bond_type_micro_accuracy_given_skeleton || 0))],
+      measuredMetric("完整非立体图", "labeled_graph_exact_count"),
+      ["有效 SDF", `${valid.toLocaleString("zh-CN")} · ${formatPercent(valid / samples.length)}`],
+      ["化学完全一致", `${count("exact").toLocaleString("zh-CN")} · ${formatPercent(count("exact") / samples.length)}`],
+      ["平均推理", formatSeconds(averageSeconds)],
+    ];
+  } else if (similarities.length) {
     metrics[3] = ["平均结构相似度", formatPercent(averageSimilarity)];
   }
   elements.metrics.innerHTML = metrics

@@ -9,7 +9,13 @@ from pathlib import Path
 import shutil
 
 
-OUTPUT_CATEGORIES = ("checkpoints", "evaluations", "predictions", "diagnostics")
+OUTPUT_CATEGORIES = (
+    "checkpoints",
+    "evaluations",
+    "predictions",
+    "diagnostics",
+    "experiments",
+)
 
 
 def artifact_size(path: Path) -> int:

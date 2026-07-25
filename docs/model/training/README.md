@@ -15,10 +15,18 @@
 5. 新实验完成后，同时更新本页时间线和上一级 [ChemVector 主文档](../CHEMVECTOR.md)
    的一行摘要。
 6. MR-TADF 只作为外部 benchmark，不得写成训练数据。
+7. 每个产生正式 checkpoint 的模型版本必须先提交对应代码、配置和训练记录，再创建与模型
+   版本名完全一致的 annotated Git tag，例如模型 `v0.9.90` 对应 tag `v0.9.90`。
+8. tag 注释必须记录 checkpoint 路径、SHA256、训练样本数以及 GO/NO-GO 部署结论。pilot、
+   smoke 和中间 step 不单独占用正式版本 tag；它们统一记录在对应版本的训练文档中。
+9. 禁止把 `.pt` checkpoint、训练数据或生成图片提交到 Git。tag 固定的是可复现代码和协议，
+   模型权重通过训练文档中的路径与 SHA256 对应。
 
 新建文档时复制 [训练记录模板](TEMPLATE.md)。
 
 ## 训练时间线
+
+当前进行中：[v0.9.71 Atom/Bond/Incidence 联合扩量 50k](20260724-v0.9.71-joint-full50k.md)。
 
 | 编号 | 阶段 | 主要结论 | 状态 |
 |---|---|---|---|
@@ -42,11 +50,432 @@
 | 018 | [v0.7.11 Teacher Consistency](20260715-v0.7.11-teacher-consistency.md) | 新域局部指标恢复，但共享头仍严重遗忘未覆盖旧域 | NO-GO |
 | 019 | [v0.7.11 保守结构 MoE](20260715-v0.7.11-conservative-structure-moe.md) | gate 只实现旧域回退，新域 detected exact 1.3% | NO-GO |
 | 020 | [v0.7.12 集合式顶点](20260716-v0.7.12-atom-query-vertex.md) | Atom Query 计数 + dense 吸附在 100 图达到 95% vertex exact | 顶点 GO |
+| 021 | [v0.7.13 检测顶点关系](20260716-v0.7.13-detected-relation-hard-negatives.md) | 困难负边 + pair encoder 在 100 图达到 89% skeleton exact | 过拟合 GO |
+| 022 | [v0.7.14 MolGrapher 9k 顶点扩量](20260716-v0.7.14-molgrapher-9k-vertex-scale.md) | dense 6px F1 89.48%，但整图 vertex exact 最高 6.3% | 局部 GO / 整图 NO-GO |
+| 023 | [v0.7.15 顶点主干适配与峰值抑制](20260716-v0.7.15-vertex-backbone-and-nms.md) | 解冻一个 stride-4 block 将 exact 提至 9.5%；宽 NMS 揭示一对一候选竞争瓶颈，但固定尺度不可部署 | 权重 GO / 固定宽 NMS NO-GO |
+| 024 | [v0.7.16 一对一顶点候选筛选](20260716-v0.7.16-one-to-one-proposal-keep.md) | 56,673 参数 keep head 将 exact 提至 22.0%，USPTO 有效 SDF 63→107 | proposal GO / shadow 不替换稳定版 |
+| 025 | [v0.7.17 稳定基线尺度增强 Proposal](20260716-v0.7.17-stable-scale-proposal.md) | 稳定 v0.7.10 上有效 SDF 192→226，但完全一致 22→19，过删仍增加断图 | 组件 GO / 默认 NO-GO |
+| 026 | [v0.7.18 联合 Node-Edge Proposal Graph](20260716-v0.7.18-joint-proposal-graph.md) | 原图线带反向救点；USPTO 有效 241、完全一致 29，paired 净增 10 | 组件与 shadow GO / 默认待定 |
+| 027 | [v0.7.19 Graph Edge Prior](20260716-v0.7.19-graph-edge-prior.md) | repair 末端仅改变 2/1000 样本，完全一致无提升 | NO-GO |
+| 028 | [v0.7.20 跨字体全局 Proposal Graph](20260716-v0.7.20-style-global-proposal.md) | held-out 字体 exact 32.93%→36.75%，USPTO 241/29→258/30；固定阈值使 MR 完全一致降至 49% | 组件 GO / 默认 NO-GO |
+| 029 | [v0.7.21 可训练视觉 Atom Query](20260716-v0.7.21-trainable-vision-atom-query.md) | 100 图 97%；独立 1k 的 6px F1 20.40%→40.14%，Count exact 23.9% | 坐标 GO / cardinality 待新结构 |
+| 030 | [v0.7.22 全局 Cardinality Token](20260716-v0.7.22-global-cardinality-token.md) | token 联合训练 Count exact 21.5%；真实计数 Oracle 的 6px exact 仍为 0 | cardinality NO-GO / query 质量待提升 |
+| 031 | [v0.7.23 纯坐标分配与独立排序](20260716-v0.7.23-coordinate-query-selection.md) | 修复 presence 自强化；部署型 6px F1 40.14%→54.79%，Oracle 65.39% | 分配/排序 GO / 计数待提升 |
+| 032 | [v0.7.24 共享 Dense 顶点吸附](20260716-v0.7.24-shared-dense-query-snap.md) | 只增 92,678 参数；部署型 6px F1 54.79%→76.61%，跨字体 76.77% | 顶点精定位 GO / 端到端待 relation |
+| 033 | [v0.7.25 共享顶点分布关系重训](20260716-v0.7.25-shared-detected-relation.md) | MolGrapher Edge F1 52.56%→62.70%，跨字体 53.99%→58.28%，假边显著减少 | relation GO / 稳定默认不替换 |
+| 034 | [v0.7.26 Dense 候选与 Query 融合](20260716-v0.7.26-dense-candidate-query-fusion.md) | MolGrapher 顶点 F1 76.61%→90.02%，首次得到 5.7% skeleton exact；跨字体顶点 F1 92.12% | 顶点与骨架 GO / 待 relation 重训 |
+| 035 | [v0.7.27 Grounded 全点对真实线条图](20260717-v0.7.27-grounded-visible-line-graph.md) | 100 图 Edge F1 8.57%→80.44%；两阶段 known-count vertex exact 12%→18%，但 set-count 仍失准 | Edge GO / 排序容量 GO / 计数 NO-GO |
+| 036 | [v0.7.28 独立 Grounded Count 校准](20260717-v0.7.28-independent-grounded-count.md) | 完整排序节点/边特征在 100 图达到 100% Count accuracy，并追平 known-count vertex exact | Count 容量 GO / 待 9k graph |
+| 037 | [v0.7.29 Whole-Set 整图精确目标](20260717-v0.7.29-whole-set-exact-objective.md) | 修复 TF32 距离标签；6px Oracle exact 57%，whole-set known-count 12%→45%，接 Count 后 41% | 整图目标 GO / 候选上限待提升 |
+| 038 | [v0.7.30 高召回候选与坐标对齐视觉](20260717-v0.7.30-high-recall-candidate-visual.md) | 256 候选 Oracle exact 88.7%；3x3 对齐 patch 将 9k/1k F1 提至 84.72%、strict exact 提至 4.4% | 候选/对齐视觉 GO / 部署 NO-GO |
+| 039 | [v0.7.31 候选身份极值排序](20260717-v0.7.31-extreme-ranking-no-go.md) | 极值损失把 6px 内等价候选误作负样本，20k 时 exact 4.4%→0.5% | NO-GO / 转向候选等价组 |
+| 040 | [v0.7.32 文字对象与键线顶点 Oracle](20260717-v0.7.32-semantic-vertex-oracle.md) | 文字实例作为单一顶点后 F1 75.69%→85.19%、exact 0.2%→2.6%；bond-only 无额外收益 | 文字对象解耦 GO |
+| 041 | [v0.7.33 独立文字对象中心分支](20260717-v0.7.33-text-object-center.md) | internal 500 文字 F1 94.30%、exact 55.60%；合并 F1 75.04%→83.14% | GO / 转向隐式顶点 |
+| 042 | [v0.7.34 文字与隐式骨架双顶点分支](20260717-v0.7.34-dual-vertex-branches.md) | internal 500 双分支 F1 92.62%、exact 9.6%，原始 dense exact 仅 0.4% | 双分支 GO |
+| 043 | [v0.7.35 Bond Object 自由查询 Pilot](20260717-v0.7.35-bond-object-pilot.md) | 100 图端点 recall 96.65%、exact 55%；9k 泛化端点 recall 仅 4.62% | 语义 GO / 自由查询 NO-GO |
+| 044 | [v0.7.36 端点条件化 Bond Object](20260717-v0.7.36-node-conditioned-bond-object.md) | GT 端点 9k Edge F1 99.16%、skeleton exact 78.31%；预测端点条件 Edge recall 98.70% | 键对象 GO / 顶点仍为瓶颈 |
+| 045 | [v0.7.37 渲染真值与候选等价组](20260717-v0.7.37-render-label-group-selector.md) | 角色严格 vertex exact 56.02%；接 Bond Object 后 strict skeleton exact 7.83%→41.37% | 顶点与骨架接入 GO / shadow |
+| 046 | [v0.7.38 端点偏移稳健 Bond Object](20260717-v0.7.38-endpoint-jitter-bond.md) | 真实误差分布 jitter 将 strict skeleton exact 41.37%→51.00%，长键条件 recall 92.84%→96.08% | GO / shadow |
+| 047 | [v0.7.39 部署边界与角色校准](20260717-v0.7.39-deployment-boundary-calibration.md) | 绝对边界将 role vertex exact 56.02%→59.64%、skeleton 51.00%→53.61%，但未过正式门槛 | 方向有效 / 默认 NO-GO |
+| 048 | [v0.7.40 全候选邻接图去噪](20260717-v0.7.40-full-adjacency-graph-denoiser.md) | 100 图容量 89%，9k role exact 57.83%、skeleton 52.81%；强 Bond teacher 无收益 | 容量 GO / 默认 NO-GO |
+| 049 | [v0.7.41 联合节点与边去噪](20260717-v0.7.41-joint-node-edge-denoising.md) | 联合 edge residual 将 role exact 提至 59.44%、skeleton 54.62%，但线内假点明显增加 | 方向有效 / 默认 NO-GO |
+| 050 | [v0.7.42 端点射线终止与穿越证据](20260718-v0.7.42-endpoint-ray-evidence.md) | 3px 线内假点 162→107，但漏点 411→472，role exact 59.24% | 机制 GO / 默认 NO-GO |
+| 051 | [v0.7.43 共线穿越节点上下文](20260718-v0.7.43-straight-through-context.md) | 角度摘要找回部分漏点，但 role exact/skeleton 仅追平 59.64%/54.62% | 容量 GO / 默认 NO-GO |
+| 052 | [v0.7.44 候选二维 Patch 受控 A/B](20260718-v0.7.44-candidate-patch-ab.md) | 原图 patch 减少线内假点但增加漏点，2k exact 比 feature 基线低 1.61pp | 容量 GO / 正式 NO-GO |
+| 053 | [v0.7.45 独立 PASS_THROUGH 语义上下文](20260718-v0.7.45-semantic-pass-through-context.md) | 解耦分类与 REAL 梯度后 100 图 exact 87%，未复现 88% 容量门槛 | 容量 NO-GO |
+| 054 | [v0.7.46 候选覆盖阈值与容量网格](20260718-v0.7.46-candidate-coverage-grid.md) | 0.02/k384 仅找回 3 个顶点、无额外整图收益，点对成本 4.51 倍 | Oracle NO-GO |
+| 055 | [v0.8.0 ChemScene Bond-First](20260718-v0.8.0-chemscene-bond-first.md) | 对象协议和 SDF 编译完成；3k 分片未知失败为 0 | 协议 GO |
+| 056 | [v0.8.1 空间线对象 Bond-First](20260718-v0.8.1-spatial-bond-object.md) | 100 图 SDF exact 98%；9k object accuracy 67.55%，SDF exact 2.61% | 组件 GO / 部署 NO-GO |
+| 057 | [v0.8.2 多尺度空间 BondObject](20260718-v0.8.2-multiscale-bond-object.md) | 长键和双键改善，object 70.66%，SDF exact 4.42% | 多尺度几何 GO |
+| 058 | [v0.8.3 二维线带键型 Refiner](20260718-v0.8.3-line-band-type-refiner.md) | 局部 object 71.22%，但 SDF exact 回退到 2.61% | 局部机制 GO / 替换 NO-GO |
+| 059 | [v0.8.4 Junction-Bond Assembler](20260718-v0.8.4-junction-bond-assembler.md) | pair exact 98.18%，有效率提高但端到端 exact 略降 | 组件 GO / 默认 NO-GO |
+| 060 | [v0.8.5 ChemScene 图级修正](20260718-v0.8.5-chemscene-graph-corrector.md) | type-only exact 19.48%→19.68%，edge keep 严重过删 | type-only 小幅 GO |
+| 061 | [v0.8.6 彩色修饰符 OCR](20260718-v0.8.6-color-modifier-ocr.md) | crop validation 85.62%→89.16%，真实彩色图未泛化 | 组件 GO / 接入 NO-GO |
+| 062 | [v0.8.7 bbox CTC pilot](20260718-v0.8.7-bbox-ctc-pilot.md) | 10k crop 最佳 47.15%，从零视觉表征不足 | NO-GO |
+| 063 | [v0.8.8 预训练 bbox CTC](20260718-v0.8.8-pretrained-bbox-ctc.md) | 10k crop 86.20%；预测框协议 64.12%，真实图仍有 NH 幻觉 | 组件 GO / 接入 NO-GO |
+| 064 | [v0.8.9 非对称文字框](20260719-v0.8.9-asymmetric-text-bbox.md) | 部署 OCR 64.74%→66.58%，modifier 21.97%→27.84% | 组件 GO / 实验 profile GO |
+| 065 | [v0.8.10 Oracle 文字层 A/B](20260719-v0.8.10-oracle-text-layer-ab.md) | balanced RGB macro 55.13%；mask+anchor 57.77%，未过 10pp 门槛 | 数据协议 GO / 分割主线暂缓 |
+| 066 | [v0.8.11 Open Text CTC](20260720-v0.8.11-open-text-ctc.md) | 容量审计 100%；真实预测框 81.50%，modifier 67.49%，开放随机串 5.62% | 容量与真实框 GO / 接入 NO-GO |
+| 067 | [v0.8.13 Bond-first 分层审计与集合选择](20260720-v0.8.13-bond-first-set-decomposition.md) | Candidate Oracle 88.76%；500 张容量拓扑 87.2%，9k 泛化 38.35% | 表示/容量 GO，冻结 selector NO-GO |
+| 068 | [v0.8.14 冻结视觉 Bond Set Selector](20260720-v0.8.14-visual-bond-set-selector.md) | 中心 hidden 在 9k 将拓扑 38.35% 降到 34.34% | 冻结视觉 NO-GO，转 line-band |
+| 069 | [v0.8.15 完整 Line-Band Bond Set Selector](20260720-v0.8.15-line-band-bond-set-selector.md) | line-band AUC 98.77%，但 learned count 拖累，9k 拓扑仅 33.73% | 特征有效 / count 解码 NO-GO |
+| 070 | [v0.8.16 语义 Bond Endpoint 生成 Junction](20260720-v0.8.16-bond-endpoint-junction.md) | 结构拓扑 67.67%；正式端到端化学一致 12.45%，OCR 附着导致大量价态失败 | 结构 GO / 端到端 NO-GO |
+| 071 | [v0.8.17 Bond Threshold 校准](20260720-v0.8.17-bond-threshold-calibration.md) | 0.20 将 USPTO 纯骨架 73.2% 提到 76.0%，但 SDF valid 降到 69.1% | 召回 GO / 固定阈值 NO-GO |
+| 072 | [v0.8.18 Bond Oracle Rescue Ceiling](20260720-v0.8.18-bond-oracle-rescue-ceiling.md) | top-128 覆盖 88.76%，固定 endpoint clustering 后拓扑上限仅 75.30% | 候选 GO / 聚合待改 |
+| 073 | [v0.8.19 Endpoint Same-Junction Grouper](20260720-v0.8.19-endpoint-junction-grouper.md) | 修复亚像素距离审计后，纯几何 validation 拓扑为 75.70%，只高固定半径 0.40pp | 边际 GO |
+| 074 | [v0.8.20 方向对齐视觉 Endpoint Grouper](20260720-v0.8.20-visual-endpoint-junction-grouper.md) | 32px 方向对齐 patch 将 validation 拓扑提高到 77.91%，比固定半径高 2.61pp | GO / 接 selector |
+| 075 | [v0.8.21 Junction-Aware Bond Selector](20260720-v0.8.21-junction-aware-bond-selector.md) | 删除 Oracle Junction 和 learned count 后，9k validation 拓扑达到 70.88%，比固定阈值高 3.21pp | 9k GO / 接实验推理 |
+| 076 | [v0.8.22 Junction-Aware 正式推理接入](20260720-v0.8.22-junction-aware-inference.md) | internal 498 的 Junction exact 68.67%、SDF valid 52.41%、化学一致 13.05%；498 份预测/诊断 SDF 完整保存 | 骨架 GO / 化学层待解 |
+| 077 | [v0.8.23 无效价态结构化原子解码](20260721-v0.8.23-structured-atom-decoder.md) | 固定拓扑的 invalid-only 搜索将 SDF valid 52.41%→67.07%、化学一致 13.05%→16.47% | 确定性修复 GO |
+| 078 | [v0.8.24 数据规模等计算量对照](20260721-v0.8.24-data-scale-matched-compute.md) | full1k 上 9k SDF 57.4%，50k 55.7%；数据多样性有价值但 matched-compute 扩量 NO-GO | 9k GO / 50k NO-GO |
+| 079 | [v0.8.25 50k Coverage 与 9k Replay](20260721-v0.8.25-coverage-replay.md) | replay 将 50k 恢复到 57.5% SDF，但跨风格几何/拓扑仍回退，净增益仅噪声量级 | sampler GO / checkpoint NO-GO |
+| 080 | [v0.8.26 Junction Pair 投影一致性](20260721-v0.8.26-junction-pair-projection-consistency.md) | 统一训练/推理 winner 与坐标路径；Internal/Full1k topology exact 净增益均为 0，Edge F1 仅 +0.04/+0.01pp | 工程 GO / 能力 NO-GO |
+| 081 | [v0.8.27 GT Pair 等价组 Selector](20260721-v0.8.27-equivalence-bond-selector.md) | 9k validation topology 70.88%→71.69%，extras 0.382→0.269/图；提升真实但未过 72.9% 门槛 | 监督 GO / checkpoint NO-GO |
+| 082 | [v0.8.28 Dense Slot Hungarian](20260721-v0.8.28-dense-slot-hungarian.md) | 消除同 cell slot 标签置换冲突；collision exact 6%→8%，secondary recall 23.58%，普通验证明显回退 | 标签修复 GO / 固定 slot 架构 NO-GO |
+| 083 | [v0.8.29 Bond Group Query](20260721-v0.8.29-bond-group-query.md) | 全局三 token 在 matched20 训练 secondary 50.23%，holdout 仅 7.55%、cell exact 1% | 容量有 / 泛化 NO-GO |
+| 084 | [v0.8.30 Endpoint Local Refinement](20260721-v0.8.30-endpoint-local-refinement.md) | stride-4 端点 `5×5` patch；local-only holdout cell exact 16%、secondary 52.83% | 局部几何 GO |
+| 085 | [v0.8.31 Feature Line Band](20260721-v0.8.31-feature-line-band.md) | 特征线带容量 82.18%，holdout cell exact 14%，未超过端点局部分支 | 容量 GO / 泛化 NO-GO |
+| 086 | [v0.8.32 Raw Ink Line View](20260721-v0.8.32-raw-ink-line-view.md) | 原图定向线带将 holdout cell exact 提至 18%；O2 为 18/94，O3 仍为 0/6；旧排序只保留 9.71% collision recall | geometry GO / O3 NO-GO / 默认不变 |
+| 087 | [v0.8.33 Local-evidence Presence Selector](20260721-v0.8.33-local-evidence-presence-selector.md) | 108,289 参数 selector 将 holdout collision known-count recall 9.71%→25.73%；safe-select 保持普通图 exact 回退仅 0.20pp | ranking GO / count、type 未训练 / 默认不变 |
+| 088 | [v0.9.0 Raster-to-Visual-Primitives](20260721-v0.9.0-raster-to-visual-primitives-capacity.md) | 建立 q2047 Visual SVG 协议；旧 cross-attention 在 1,000 step 的 mismatch ratio 仍为 0.999985 | 协议 GO / cross-attention NO-GO |
+| 089 | [v0.9.1 Visual Prefix Grounding 与容量](20260721-v0.9.1-visual-prefix-grounding-and-capacity.md) | content-only value 支路打通视觉梯度；clean 精调后 100 图 primitive exact 99%、数量 exact 100%、mismatch ratio 834.72 | 视觉接地与同集容量 GO / 泛化待验 |
+| 090 | [v0.9.1 未见分子泛化门控](20260721-v0.9.1-unseen-molecule-generalization.md) | coordinate-aware 将 soft MAE 248.50q→236.97q，但 free completion 仅 37%、全部图元 F1 为 0、IoU 0.76%；internal test 未运行 | AR token-sequence 停止 / 转 unordered set A/B |
+| 091 | [v0.9.2 无序图元集合与 Bond Group 容量](20260721-v0.9.2-unordered-primitive-set-capacity.md) | endpoint-only 将 line recall@8q 提至 85.45%、Bond IoU 提至 66.88%；coarse-only 与 flat output-head 长训 NO-GO；v0.2 group 协议 100/100 可逆 | set/refiner GO / 转 group model |
+| 092 | [v0.9.3 Bond Group Unordered Set P1](20260721-v0.9.3-bond-group-unordered-set-p1.md) | 两阶段 full->refiner 将 group r@8q 提至 9.50%、IoU 18.32%，但 group exact 仍为 0；GT 证明 typed carrier 可在 1.5q 内重建 | group 方向 GO / canonical-member head NO-GO |
+| 093 | [v0.9.4 Carrier 与 Flat Proposal Oracle](20260721-v0.9.4-carrier-and-flat-proposal-oracle.md) | direct carrier 仅 r@8q 4.92%/IoU 17.95%；保留 flat 坐标并做 oracle grouping 达到 85.54%/70.62% | carrier codec GO / direct 坐标回归 NO-GO |
+| 094 | [v0.9.5 Frozen Proposal 与 Free Group Slots](20260721-v0.9.5-frozen-proposal-free-group-slots.md) | 2.43M free-slot 模型正式 r@8q 41.14%、IoU 38.10%；type/count 全塌为 single/count1，membership-only 仍未过门 | frozen proposal GO / free slots NO-GO |
+| 095 | [v0.9.6 Proposal-Anchored Pointer](20260722-v0.9.6-proposal-anchored-pointer.md) | 局部 affinity 提升，但 16.22% root collision、p2 exact 8.73%、sample exact 0 | proposal affinity 有信号 / root NO-GO |
+| 096 | [v0.9.7 Typed Affinity Packing](20260722-v0.9.7-typed-affinity-packing.md) | partition exact 77%、group F1 96.12%、r@8q 85.37%、IoU 70.17%；旧 primitive 在 unseen100 的 line F1 仅 0.055% | grouping capacity GO / 上游 9k 待训 |
+| 097 | [v0.9.8 Primitive Set Pilot 9k](20260722-v0.9.8-primitive-set-pilot9k.md) | step1k line F1 仅 0.146%、IoU 11.39%；平移 16px 后 capacity F1 81.4%→0.16%，refiner 记忆绝对位置 | free-query primitive 正式 NO-GO |
+| 098 | [v0.9.9 Evidence Carrier Extent](20260722-v0.9.9-evidence-carrier-extent.md) | best step900：q8 member 98.39%、single/p2 98.20%/98.25%、长键 96.15%；平移 32px 仅降 0.30pp，但 q8 sample exact 72.4% | 局部 extent GO / 完整 P0 未过 |
+| 099 | [v0.9.9 P0.5 Target-Free Decoded-Line 聚类](20260722-v0.9.9-p05-target-free-decoded-line-clustering.md) | 9049 条压到 4405 clusters，cross-target merge=0、q8 零损失、p2 895/895；pair F1 98.07%、partition exact 79% | 精确去重 NO-GO / 保守预聚类 GO |
+| 100 | [v0.9.9 P1 Candidate-Relative Router 审计](20260722-v0.9.9-p1-candidate-relative-router-audit.md) | 87.48% ignore 来自文字；bbox 与完美 mask 仅差 0.39pp；选择 645 参数 carrier router，不在 LSD 前擦图 | 路线 GO / 尚未训练 |
+| 101 | [v0.9.9 LSD 两侧边界配对](20260722-v0.9.9-boundary-stroke-pairing.md) | molecule-disjoint192 上 multiplicity-2 pair recall 99.45%、GT-positive carrier 减少 48.84%，但仍有 2 个 cross-target、8 个 one-positive pair 和 1 个 p2 直接误合并 | pair candidate GO / 硬合并 NO-GO |
+| 102 | [v0.9.10 Geometry Pair Scorer](20260722-v0.9.10-geometry-pair-scorer.md) | 全量 train-cal900：cross=0 时 precision 100%、P2 100%、p95 2.38ms，但 multiplicity-2 recall 94.56%、pairable exact 71.26%；threshold0 虽有 99.93% recall，仍产生 9 个 cross | 8D A 组 NO-GO / 转 frozen P0 visual B |
+| 103 | [v0.9.10 Pair 8D 可分性与 A1 审计](20260722-v0.9.10-pair-feature-separability-audit.md) | 9 个 residual cross 的 top-10/50 邻居有 94.4%/95.3% 为 positive；top-1 重训仅 9→7，pairable exact 99.46%→97.17% | A1 仅作辅助 / 主线 B0 |
+| 104 | [v0.9.10 Frozen P0 Pair Scorer](20260722-v0.9.10-frozen-p0-pair-scorer.md) | FP32 step1000 P0 + 11,873 参数 scorer：cross=0、precision/P2 100%，但 m2 recall 98.71%、pairable exact 88.53%；低阈值仅剩 1 个 surplus-anchor cross | B 组 NO-GO / 转 whole-set coverage |
+| 105 | [v0.9.11 协同 Pair Coverage](20260722-v0.9.11-synergistic-pair-coverage.md) | target-free 同步 coverage veto 删除低阈值最后 1 个 cross；m2 recall 99.60%、pairable exact 95.41%、P2 100%，pipeline p95 9.49ms | post-hoc train/cal DEV-GO / 待 fresh audit |
+| 106 | [v0.9.12 Fresh Paired Smoke](20260722-v0.9.12-fresh-paired-smoke.md) | train-only 8 分子/32 图 12-member 包可复现；加固后 run5 为 SMOKE-PASS，与 run1 的 32/32 功能结果一致，cross 0→0、仅 veto 3 个 same-target 冗余 pair、pair-stage p95 9.1161ms | 执行契约 GO / 非泛化 / formal dev SHA 未登记 |
+| 107 | [v0.9.13 Fresh Dev 数据冻结](20260722-v0.9.13-fresh-dev-preflight.md) | 2,000 分子/8,000 图、96,000 members 完整验收；8 shard、isolation 全零重叠；commitment `67a2bffd...` 已登记 | 数据与 loader GO / sealed 未读 |
+| 108 | [v0.9.14 Fresh Pair Coverage 独立审计](20260722-v0.9.14-fresh-pair-coverage-no-go.md) | fresh8k：cross 47->47，coverage veto 58 个但全为 same-target；m2 recall 99.37%、pairable exact 93.10%、P2 99.9985% | `FRESH-DEV-NO-GO` / coverage 主线停止 |
+| 109 | [v0.9.15 Train-only 每图标量 Tau 可达性](20260722-v0.9.15-train-only-per-sample-tau-reachability.md) | calibration900 oracle：m2 recall 99.94527%、pairable exact 99.86505%、cross 0、P2/precision 100% | `CALIBRATION-SCALAR-ORACLE-GO` |
+| 110 | [v0.9.16 Train-only 每图 Tau 预测器](20260722-v0.9.16-train-only-sample-tau-predictor.md) | 9k full-hull manifest + 1,841 参数/1,500 steps；calibration m2 99.926%、pairable 99.595%，但 cross 8、P2 violation 1 | `CALIBRATION-TAU-PREDICTOR-NO-GO` / calibration 已消费 |
+| 111 | [v0.9.17 Fit-only Pair-conditioned Residual](20260722-v0.9.17-fit-only-pair-conditioned-residual.md) | m2 recall 99.58%→99.74%、pairable exact 94.84%→96.51%，但 cross 1→2 | `DEV900-PAIR-RESIDUAL-NO-GO` |
+| 112 | [v0.9.18 P0 Fit-only Candidate-Pool Oracle](20260722-v0.9.18-fit-only-candidate-pool-oracle.md) | label oracle：cross 0、precision 100%、m2 recall 99.942%、pairable exact 100% | `FIT-CANDIDATE-POOL-ORACLE-GO` |
+| 113 | [v0.9.18 Endpoint-Incidence Safe Residual OOF](20260722-v0.9.18-endpoint-incidence-oof.md) | OOF m2 99.55%→99.71%、pairable 94.58%→97.19%，但 cross 33→31；三折均非零 | `FIT-OOF-ENDPOINT-SAFE-RESIDUAL-NO-GO` |
+| 114 | [v0.9.19 Pair-Local Raster OOF](20260722-v0.9.19-pair-local-raster-oof.md) | 完整 PNG 对齐 crop 将 cross 33→25、M2 99.55%→99.71%；全局平均池化丢失局部空间位置 | `FIT-OOF-PAIR-LOCAL-RASTER-NO-GO` |
+| 115 | [v0.9.20 Pair-Local Spatial OOF](20260722-v0.9.20-pair-local-spatial-oof.md) | 3×6 空间池化将 cross 33→24、M2 99.73%、pairable 97.27%；更强表示仍会引入 OOF cross | `FIT-OOF-PAIR-LOCAL-SPATIAL-NO-GO` |
+| 116 | [v0.9.21 Conservative Pair Veto OOF](20260722-v0.9.21-conservative-pair-veto-oof.md) | 单向 veto 将 cross 33→22、M2 保持 99.55%，但 exact 停在 baseline；consensus+veto 前沿可到 cross8/exact95.49% | `FIT-OOF-PAIR-LOCAL-VETO-NO-GO` |
+| 117 | [v0.9.22 Junction-Negative Veto OOF](20260722-v0.9.22-junction-negative-veto-oof.md) | junction label 加权将 consensus cross 19→16，但误删 positive 21、negative 仅4 | `FIT-OOF-PAIR-JUNCTION-VETO-NO-GO` |
+| 118 | [v0.9.23 High-Resolution Profile Veto OOF](20260722-v0.9.23-high-resolution-profile-veto-oof.md) | 无池化 profile 将 consensus cross 19→16，误删 positive=0；阈值前沿证明逐 pair 表示已到上限 | `FIT-OOF-PAIR-PROFILE-VETO-NO-GO` |
+| 119 | [v0.9.24 有序邻域 Veto OOF](20260722-v0.9.24-ordered-neighborhood-veto-oof.md) | 12 个近共线邻居 token 将 cross 19→17，但误删 2 positive，且正确删除均与 v0.9.23 重合 | `FIT-OOF-PAIR-NEIGHBORHOOD-VETO-NO-GO` |
+| 120 | [v0.9.25 多节点组件 Oracle OOF](20260722-v0.9.25-multi-component-oracle-oof.md) | 只替换多节点组件即可将 v0.9.23 cross 16→8、M2 99.83%、pairable exact 98.39% | 组件联合选择容量 GO / 非模型 |
+| 121 | [v0.9.26 组件 Structured Matching OOF](20260722-v0.9.26-component-structured-oof.md) | 23,159 组件整组训练完成，但 cross 16→16、exact 下降；baseline/raw gain 造成 active-score 捷径 | `FIT-OOF-COMPONENT-STRUCTURED-NO-GO` |
+| 122 | [v0.9.27 Score-Blind Counterfactual OOF](20260723-v0.9.27-score-blind-counterfactual-oof.md) | 删除全部 score 输入并反事实激活 50,595 negative，cross 仍 16→16、exact 少 1；触发硬停止规则 | `FIT-OOF-COMPONENT-SCORE-BLIND-NO-GO` / pair-stage 停止 |
+| 123 | [v0.9.28 完整对象 Shadow](20260723-v0.9.28-object-shadow.md) | 冻结八组件 PNG→ChemScene→SDF；USPTO clean 100 valid 77%、非立体 exact 21%、化学 exact 19%，GD906 保留无效 SDF 与渲染图 | 完整链路 GO / 稳定替换 NO-GO |
+| 124 | [v0.9.29 SDF 对象分解 Benchmark](20260723-v0.9.29-object-decomposition-benchmark.md) | USPTO clean 1k：纯骨架 72.4%、原子类型+骨架 29.2%、键级+骨架 50.5%；727 个数量正确样本仅 3 个拓扑错 | 评测协议 GO / 下一步原子类型优先 |
+| 125 | [v0.9.30 OCR 与 Graph Corrector A/B](20260723-v0.9.30-ocr-and-graph-corrector-ab.md) | Open Text 1500k 直连使原子 micro 96.42%→84.63%；关闭 corrector 使键级 micro 89.47%→96.15% 但 valid -10pp；invalid-only valid +2pp、exact 不变 | 两个直接替换 NO-GO / 最小键改动搜索 |
+| 126 | [v0.9.31 Line-Band Bond Semantic A/B](20260723-v0.9.31-line-band-semantic-ab.md) | 固定顶点与候选，仅用现有端点对 line-band 判键级；键级整图 61%→18%、单键级 96.15%→80.02% | 现有 line-band NO-GO / 重写 Semantic Relation |
+| 127 | [v0.9.32 Semantic Bond Relation v0.1](20260723-v0.9.32-semantic-bond-relation-v01.md) | 1.68M 双尺度无序 pair 模型；degraded chemical 92.99%；USPTO 1k 键级 50.5%→57.1%、单键级 89.04%→96.51%，valid -10.6pp | relation/ring GO / shadow 替换 NO-GO |
+| 128 | [v0.9.33 Semantic Bond Existence](20260723-v0.9.33-semantic-bond-existence.md) | 去除显式长度输入；sampled F1 99.39%，dense set exact 70%/66% | 表示 GO / 整图 NO-GO |
+| 129 | [v0.9.34 Semantic Bond Hard Negative](20260723-v0.9.34-semantic-bond-hard-negative.md) | 模型分数挖掘困难非键，dense exact 提至 73%/73% | mining GO / 继续扩唯一图 |
+| 130 | [v0.9.35 Predicted Junction Semantic Bond](20260723-v0.9.35-predicted-junction-semantic-bond.md) | 2,000 唯一图达到 78%/76%，接预测 Junction 后 USPTO skeleton 仅 69% | GT-point 分布偏移 NO-GO |
+| 131 | [v0.9.36 Predicted Junction Supervision](20260723-v0.9.36-predicted-junction-supervision.md) | predicted-point dense exact 91%/91%，USPTO skeleton 69%→74%，仍低于旧 shadow 76% | 监督协议 GO / 替换 NO-GO |
+| 132 | [v0.9.37 MolGrapher 风格适配](20260723-v0.9.37-molgrapher-style-adaptation.md) | MolGrapher topology 10%→20%，ChemVision 55%→40%；20% replay 仅恢复到 46% | 风格学习 GO / 遗忘 NO-GO |
+| 133 | [v0.9.38 平衡双域 Replay](20260723-v0.9.38-balanced-style-replay.md) | 50/50 低学习率得到 MolGrapher 14%、ChemVision 52%，只是在双域间折中 | 共享权重 NO-GO |
+| 134 | [v0.9.39 BondObject 风格 MoE](20260723-v0.9.39-bond-style-moe.md) | 内部 MolGrapher 10%→17% 且旧域不变；USPTO 1k skeleton 70.5%→69.3%，路由样本救回 1/破坏 13 | 运行时 GO / 来源 gate NO-GO |
+| 135 | [v0.9.40 Bond 专家收益 Oracle](20260723-v0.9.40-bond-expert-utility-oracle.md) | 双域 topology 原专家 65/200、风格专家 60/200、oracle 并集 88/200；23 rescue / 28 break | 双专家互补 GO / 转收益可分性 |
+| 136 | [v0.9.41 Bond 专家收益路由](20260723-v0.9.41-bond-utility-router.md) | no-style router 未见内部 996 张 rescue 93/break 1；USPTO 1k skeleton 70.5%→72.7%、valid 69.1%→70.4%、chemical 15.7%→16.0% | shadow GO / 默认待保守 veto |
+| 137 | [v0.9.42 AtomObject + BondObject 联合协议](20260723-v0.9.42-atomobject-bondobject-protocol.md) | 删除独立 Junction 与最近邻 OCR 附着；validation/train 1494 张无损往返，未知失败 0 | 协议 GO / 模型待训练 |
+| 138 | [v0.9.43 联合 Free-Query 容量](20260723-v0.9.43-joint-free-query-capacity.md) | count 100%，但 atom 6px 18.93%、bond port 8.22%、skeleton exact 0 | 双 free-query NO-GO |
+| 139 | [v0.9.44 空间 AtomObject 容量](20260723-v0.9.44-spatial-atomobject-capacity.md) | anchor/role 100%，文字中心 97.54%，known-count AtomObject exact 85% | 空间完整对象 GO / count 待联合选择 |
+| 140 | [v0.9.45 空间 Atom-Bond Incidence 容量](20260723-v0.9.45-spatial-incidence-capacity.md) | 74,113 参数 head；step 500 image exact 92%，step 1000 endpoint/bond/image 全部 100% | GT-associated 容量 GO / predicted proposal 待验证 |
+| 141 | [v0.9.46 预测 Proposal Incidence](20260723-v0.9.46-predicted-proposal-incidence.md) | target-independent 候选；独立 validation endpoint 95.36%→97.69%、bond 91.49%→95.58%、image exact 13%→46% | Incidence GO / proposal set 待训练 |
+| 142 | [v0.9.47 Atom/Bond Proposal 集合选择](20260723-v0.9.47-proposal-object-set.md) | train100 full 61%，validation 固定阈值 4%、校准 8% | 容量 GO / 100 图泛化 NO-GO |
+| 143 | [v0.9.48 Proposal 集合扩量到 1k](20260723-v0.9.48-proposal-set-scale-1k.md) | validation full 8%→24%；固定 internal test100 为 19% | 1k 扩量 GO / 转全 9k |
+| 144 | [v0.9.49 Proposal 集合扩量到全 9k](20260723-v0.9.49-proposal-set-scale-9k.md) | 8,974 图缓存训练；validation full 35%，固定 internal test100 为 24% | 全量扩量 GO / 接 ChemScene/SDF |
+| 145 | [v0.9.50 ChemScene v0.2 Oracle Shadow](20260723-v0.9.50-chemscene-v02-oracle-shadow.md) | scene valid 100%、SDF valid 56%、非立体 SDF exact 30%；30/26/44 correct/wrong/invalid 全保存 | 编译 GO / Bond chemical type NO-GO |
+| 146 | [v0.9.51 非环芳香键一致性](20260723-v0.9.51-aromatic-bond-consistency.md) | valid 56%→69%、非立体 exact 30%→36%，配对回退 0 | 编译规则 GO |
+| 147 | [v0.9.52 非环芳香原子一致性](20260723-v0.9.52-aromatic-atom-consistency.md) | valid 69%→82%，清除剩余 13 个 non-ring aromatic invalid，exact 不回退 | 编译规则 GO |
+| 148 | [v0.9.53 匹配键化学语义 Oracle](20260723-v0.9.53-oracle-bond-chemistry.md) | 3,198 根匹配键使用真值，valid 82%→90%、非立体 exact 36%→40% | 键语义非首要瓶颈 |
+| 149 | [v0.9.54 拓扑 Closure Loss](20260723-v0.9.54-topology-closure-loss.md) | validation full 35%→37%，locked internal full 24%→24%、SDF exact 36%→36% | NO-GO |
+| 150 | [v0.9.55 Object/Incidence Oracle 阶梯](20260723-v0.9.55-object-incidence-oracle-ladder.md) | 单独 Oracle 无收益；presence+incidence 同时 Oracle 使非立体 exact 36%→51% | 联合集合目标 GO |
+| 151 | [v0.9.56 Endpoint 救回 AtomObject](20260723-v0.9.56-endpoint-atom-rescue.md) | validation 44%→45%，locked internal 非立体 exact 36%→36% | NO-GO |
+| 152 | [v0.9.57 整图最坏项 Surrogate](20260723-v0.9.57-graph-exact-surrogate.md) | validation full 35%→37%，locked internal full 24%→24%、SDF exact 36%→35% | NO-GO / 改联合匹配协议 |
+| 153 | [v0.9.58 Atom/Bond/Incidence 联合图 MILP](20260723-v0.9.58-joint-graph-milp.md) | locked internal valid 82%→83%、非立体 exact 36%→41%、chemical 31%→36%；paired exact +5/-0 | 联合解码 GO |
+| 154 | [v0.9.59 联合图 Bond Chemistry Oracle](20260723-v0.9.59-joint-oracle-bond-chemistry.md) | v0.9.58 上 valid 83%→90%、非立体 exact 41%→46%、chemical 36%→40%，配对回退 0 | 键语义为第二瓶颈 |
+| 155 | [v0.9.60 线性联合势函数](20260723-v0.9.60-linear-joint-potentials.md) | 482 个 train-only 可表达图 structured update 169 次，同集 exact 64.94%→64.94% | 线性势 NO-GO |
+| 156 | [v0.9.61 非线性联合势容量](20260724-v0.9.61-nonlinear-joint-capacity.md) | train100 SDF exact 61%→70%，达到 70/76 可表达上限；validation full 25% | 容量 GO / 泛化 NO-GO |
+| 157 | [v0.9.62 可表达难图 Replay](20260724-v0.9.62-representable-hard-replay.md) | 3,249 hard 图；validation exact 48%→50%，locked internal 41%→46%，paired +5/-0 | 能力 checkpoint GO |
+| 158 | [v0.9.63 Checkpoint Invalid Fallback](20260724-v0.9.63-checkpoint-invalid-fallback.md) | 主/旧 checkpoint 分层 sanitize fallback；locked internal valid 85%、非立体 46%、chemical 41% | 当前结构 shadow GO |
+| 159 | [v0.9.64 MR-TADF 主测试协议](20260724-v0.9.64-mr-tadf-main-benchmark.md) | 1,100 张主结构测试：valid 79.45%、Oracle 原子化学状态下 SDF 图 exact 55.55% | 当前主 benchmark |
+| 160 | [v0.9.65 多尺度 Bond proposal 无效回退](20260724-v0.9.65-multiscale-bond-proposal-fallback.md) | 单尺度合法结果零回退；valid 88.55%、SDF 图 exact 59.27%，极端长键 +5.26pp | 当前结构主线 |
+| 161 | [v0.9.66 AtomObject 近邻距离与训练量审计](20260724-v0.9.66-atom-spacing-data-audit.md) | 当前 Atom head 只训 100 张；完整 train 有 976 个 12-16px 实例，现 recall 74.69% | 原因确认 / 待全量训练 |
+| 162 | [v0.9.67 AtomObject 全 9k 扩量](20260724-v0.9.67-atomobject-full9k.md) | MR-TADF Atom 整图完整率 93.73%→97.73%，但旧 selector 下 SDF exact 55.55%→48.64% | proposal GO / 直接替换 NO-GO |
+| 163 | [v0.9.68 Selector 重对齐](20260724-v0.9.68-atom-selector-realignment.md) | 新 cache 重训后 validation full 33.33%，MR-TADF SDF exact 48.27% | NO-GO |
+| 164 | [v0.9.69 双 Atom proposal 融合](20260724-v0.9.69-dual-atom-proposal-fusion.md) | 128+16 slot 融合，validation full 28.51%，GDG906/GDG1005 未完全正确 | NO-GO |
+| 165 | [v0.9.70 Feature-Stable Atom 训练](20260724-v0.9.70-feature-stable-atom-training.md) | object feature 不变时 12-16px recall 95.65%，但 geometry/incidence 仍失配 | NO-GO / 转联合训练 |
 | H01 | [历史 PaddleOCR 教师方案](historical-paddleocr-teacher.md) | 通用 OCR 不再作为训练教师 | 停止 |
 
 ## 当前下一步
 
-v0.7.11 MoE 已判定 NO-GO，稳定开发基线回到 v0.7.10。v0.7.12 的 shadow-mode
-Atom Query 负责原子集合和数量，dense heatmap 仅提供一对一几何吸附，在固定 100 图
-达到 95% vertex exact。接入现有 relation 后 skeleton exact 最高 23%，下一步固定融合
-顶点训练检测后 relation hard negatives；未达到 85% 过拟合门槛前不扩大到 50k。
+v0.9.67-v0.9.70 已确认训练数据扩量能显著提高 Atom proposal：MR-TADF 顶点整图完整率
+`93.73%→97.73%`，12-16px recall `89.67%→97.28%`。但直接替换、重训 selector、双头
+候选融合和 feature-stable head-only 四种方案都未通过 SDF 图门控。新 Atom head 直接替换时
+SDF exact `55.55%→48.64%`，说明当前分阶段训练把 Atom geometry/score 与 incidence 身份
+绑定在旧联合分布上。下一步停止独立升级 Atom head，改为 Atom presence、Bond presence 和
+endpoint incidence 同批联合训练，并以完整图损失监督“补回顶点后两条键同时改接”。稳定主线
+仍是 v0.9.65。
+
+v0.9.51-v0.9.56 已把当前边界定位清楚：保守芳香一致性将 SDF valid `56%→82%`、
+非立体 exact `30%→36%`；匹配键 chemical type Oracle 只能到 `40%`。对象 presence 或
+incidence 单独 Oracle 都不能提高 exact，二者同时 Oracle 才达到 `51%`。closure loss、
+Oracle count、endpoint 单向救点和整图最坏项 surrogate 均未通过 locked internal100；
+surrogate 还使 SDF exact `36%→35%`。下一版必须让 AtomObject、BondObject 与两端 incidence
+在同一次联合图优化中监督和解码。v0.9.58 已用不含化学/键长规则的稀疏 MILP 验证该方向：
+locked internal100 的非立体 exact `36%→41%`，完整正确新增 5、回退 0。下一版保持约束不变，
+只学习适配联合解码的 Atom/Bond/incidence 势函数。v0.9.59 证明匹配键 chemistry 还能提供约
+5pp 非立体 exact 上限，但优先级低于 presence/incidence 剩余约 10pp；不先接 OCR，也不使用
+USPTO/MR-TADF 调参。v0.9.60 的五参数 averaged structured perceptron 在训练集 exact 零提升，
+未运行 validation/internal；下一版先验证 proposal 级非线性联合势的 100 图容量。
+
+v0.9.61 已证明非线性 proposal head 容量：固定 train100 的 SDF exact `61%→70%`，达到
+70/76 可表达图。v0.9.62 在完整 8,974 图中挖出 3,249 张 representable hard 图并以 75%
+replay 续训，validation `48%→50%` 后通过门控，locked internal 非立体/chemical exact
+`41%/36%→46%/41%`，完整正确新增 5、回退 0。v0.9.63 仅对 sanitize 失败使用 v0.9.49
+checkpoint 分层回退，将 valid `80%→85%` 且 exact 不变，现为当前结构 shadow。下一阶段转
+环级 Bond chemical type，不接 OCR，不使用公开测试集调参。
+
+v0.9.13 已完成正式 2,000 分子/8,000 图 fresh_dev。8 个 shard 的 96,000 members 全部可读，
+8,000 个结构通过，双键/三键 group 为 67,996/528；final isolation 对冻结 train 暴露和 smoke
+的 molecule、InChIKey、scaffold、source record、style、font、render profile overlap 全为 0。
+正式 commitment SHA256 为
+`67a2bffd984a95bb925b16126faa04b791a7ab2679abf0e59c92941806920d07`。
+
+v0.9.14 在该 commitment 上完成零训练单遍 paired audit。B 的 47 个 cross-target pair 在
+B+coverage 后仍为 47；coverage 删除的 58 个 pair 全部是 same-target。正式 score-frontier
+对 1,068 张失败相关图片做 hash 重放：1,797 个 available miss 全部不高于 threshold，
+1,771/1,797（98.5531%）按 artifact 定义严格领先 incident negatives；其中 1,322 个没有
+incident negative、449 个在存在 negative 时仍领先，局部 ranking fail 为 26 个。fresh 结果
+仅是 exposed diagnostic，不用于选择。
+
+v0.9.15 已在完整 calibration900 上通过 robust scalar oracle 门禁：m2 recall
+`99.94527%`、pairable exact `99.86505%`、cross 0、precision/P2 100%、support loss 0。
+正式 artifact 为
+`outputs/evaluations/chemvector-v0915-sample-threshold-reachability/calibration.json`，SHA256 为
+`783f8a5932ef550be47eefa9ed803d459ec9589dc2352b8e32c00f0987dda28d`。这仍只是
+target-aware 能力上限，不是可部署模型。
+
+v0.9.16 已完成 8,100 fit + 900 calibration 的 full-hull interval manifest，9,000 / 9,000
+样本关闭 early shortcut。只用 7,923 个 loss-eligible fit 样本训练 1,841 参数模型
+1,500 步，final loss 为 `0.00226807`。正式 calibration900 中，m2 recall
+`99.92612%`、pairable exact `99.59514%`、precision `99.97899%`，但产生 8 个
+cross-target pair 和 1 个 P2 violation，因此结论为
+`CALIBRATION-TAU-PREDICTOR-NO-GO`。
+
+v0.9.17 已冻结 fit-only pair-conditioned residual 协议：只在原 `fit8100` 内按
+molecule/source identity component 一次性拆分 7,200 train / 900 dev，训练 2,841 参数
+residual scorer，并在固定 `tau0` 下与 frozen B baseline 做同次结构门禁对照。当前已完成
+预注册、隔离式 split builder、模型、训练器、一次性 marker/evaluator、24 项聚焦测试、
+正式 sidecar、2,000-step 训练和唯一一次 dev900 评估。candidate 将 m2 recall 从
+`99.57978%` 提至 `99.73935%`、pairable exact 从 `94.83961%` 提至 `96.51325%`，但
+cross-target 从 1 增至 2，因此正式结论为 `DEV900-PAIR-RESIDUAL-NO-GO`。原 calibration900、fresh_dev1、
+sealed、旧 validation500、`internal_test` 和 MR-TADF 不得用于本轮训练、选择或门槛调整；
+已暴露的 v0.9.17 dev900 也不得用于同版本调参或重跑，生产推理继续保持 `v0.7.10`。
+fit-only 诊断同时证明现模型 forward 不含 endpoint incidence，逐 pair 平均 loss 与最终
+maximum-weight matching 存在结构性错位；下一候选必须先做 endpoint-aware、matching-aware 的
+OOF train-only 门禁，而不是继续扩大同一路线的数据或参数。
+
+v0.9.18 P0 随后证明 candidate pool 本身足够：fit7200 label oracle 的 cross 为 0、precision
+100%、M2 recall `99.94245%`、pairable exact 100%。因此没有回退 candidate generation。
+Endpoint-incidence 6,829 参数模型完成正式 3-fold OOF 后，将 M2 recall 从 `99.55087%` 提升至
+`99.71458%`、pairable exact 从 `94.58255%` 提升至 `97.18841%`，但 cross 仅从 33 降到 31，
+三个 fold 分别仍有 14 / 11 / 6 个 cross，正式结论为
+`FIT-OOF-ENDPOINT-SAFE-RESIDUAL-NO-GO`。
+
+31 个 OOF selected cross 中有 24 个来自 stress、12 个由 residual 新抬过 threshold、24 个没有
+任何共享 endpoint 的 positive candidate。endpoint incidence 对竞争 pair 有效，却无法判断孤立
+pair 的真实局部线条关系。下一版本应从完整 PNG 提取与 candidate 几何对齐的 pair-local raster
+crop，并保留 candidate mask；在新的 fit-only OOF 通过零 cross 前，不申请 `fresh_dev2`。
+
+v0.9.19 已完成上述 pair-local raster 正式 OOF。7,200 张 fit 图共缓存 368,573 个
+`2×24×48` uint8 crop，完整 PNG ink 与 candidate mask 同时输入 15,353 参数 residual。结果将
+cross 从 33 降到 25，M2 recall 提至 `99.71061%`、pairable exact 提至 `96.79410%`，但三折
+仍为 10 / 9 / 6 个 cross，因此仍是 NO-GO。25 个剩余错误中 22 个没有 incident positive，
+13 个两端 degree 都为 1；contact sheet 显示 crop 已包含平行线、交叉线和端点干扰，但当前
+global average pooling 丢失其相对位置。下一版只做 `3×6` spatial pooling A/B，复用相同 cache、
+fold、loss、步数和门禁，不申请 fresh 数据。
+
+v0.9.20 的 `3×6` spatial pooling A/B 已完成：cross 33→24、M2 recall `99.73178%`、
+pairable exact `97.27413%`、support lost 31→29。空间表示提升成立，但 fold0 cross 12→14；
+与 v0.9.19 对照时修掉 7 个错误、同时新引入 6 个错误。固定 `min(avg,spatial)` 共识可将 cross
+降到 19，但 exact 降至 `96.38265%`，仍未达到零 cross。下一步应将双向 residual 拆为单向
+veto 与受约束 rescue，分别审计 false-delete 和 introduced-cross；不再叠加第三个同类 residual。
+
+v0.9.21 单向 veto 将 raw cross 33→22，M2 保持 `99.54954%`，但 pairable exact 仍为 baseline
+的 `94.58255%`。与双模型 consensus rescue 组合后，固定 threshold=-3 的诊断达到 cross8、
+M2 `99.50655%`、exact `95.49117%`、parallel violation 0；继续降低阈值会跌破 99.5% recall。
+hard8 中 5 个为 parallel3/single junction、3 个为密集 single/single。
+
+v0.9.22 尝试用 target group type 只在 loss 中强调 2,368 个 junction negatives；forward 不读取
+group type。正式 consensus+veto 将 cross 19→16，但三折共误删 21 个 positive、只删除 4 个
+negative，证明标签加权不能替代高分辨率 junction 证据。下一步保留 24 行 normal profile 和
+left/middle/right longitudinal profile，不做 max-pool；禁止继续增加 junction loss 权重。
+
+v0.9.23 使用 480D 不降采样 profile 和 60,505 参数 veto，在相同 consensus 上也达到 cross16，
+但误删 positive 为 0、support lost 25→21、pairable exact 多正确 1 张，证明白缝与端点位置证据
+有效。阈值降到 -3 时 cross 仅到10且已 veto 1,047 个 positive；降到 -4 时 cross6但 M2 只有
+99.14%。因此独立 pair classifier 没有安全零-cross阈值。下一步转 carrier neighborhood / 组件级
+exact-cover，同时建模相邻近共线 anchors 的 normal 排序和 left/right support。
+
+v0.9.24 已完成 7,200 图、368,573 pairs 的 target-free ordered neighborhood sidecar 和 108,033
+参数 veto。正式结果为 consensus cross 19→17、M2 `99.64083%`、pairable exact `96.39979%`，
+但误删 2 个 positive；两个正确删除的 negative 均已被 v0.9.23 删除，因此该模型被 v0.9.23
+严格支配。邻域信号有效，独立 pair 输出方式无效。
+
+v0.9.25 随后完成多节点组件标签 oracle：候选图共有 23,704 个 `anchor_count>2` 组件、97,617
+个 pair。只在这些组件替换 v0.9.23 score，即可将 cross 16→8、M2 提至 `99.83265%`、pairable
+exact 提至 `98.38848%`，parallel violation 归零。下一实验固定为 multi-component structured
+matching：孤立 pair 旁路，组件内枚举 matching，用共享-anchor 消息传递和整组结构损失训练。
+
+v0.9.26 已冻结 23,159 个自然激活多节点组件、45,219 条边和 90,396 个 matching，并训练
+154,497 参数两轮共享-anchor structured model。正式 OOF cross 保持 16，pairable exact 从
+`96.39979%` 降至 `96.36551%`；共删除 477 positive 和 3 个不影响 cross 的 negative。进一步
+审计显示 45,219 条活跃边只有 11 negative，且模型输入同时包含 baseline/raw gain：active positive
+residual 均值 `+4.91`，active negative 也为 `+5.03`，inactive negative 才为 `-4.59`。下一版必须
+移除所有 score 输入，并使用 counterfactual activation 将普通 negative 人工置于 active energy 分布。
+
+v0.9.27 已执行最终硬门槛：154,369 参数 score-blind 模型彻底移除 baseline/raw gain，并将完整
+多节点组件的 50,595 negative 统一置于 `+0.5` 反事实能量训练。正式自然 OOF 仍为 cross 16→16，
+M2 `99.64116%→99.64083%`、pairable exact `96.39979%→96.38265%`。aggregate `cross<=8`
+和 exact 不回归两项均失败。按照预注册规则，pair-stage residual/veto/组件头支线到此停止；下一步
+返回完整 PNG 的 BondObject/TextObject→ChemScene→SDF shadow，不再新增同类 pair scorer。
+
+v0.9.28 已冻结八个已有组件为可执行 Object Shadow，并完成 GD906 单图与 USPTO clean 100
+公开门控。公开集 SDF valid 为 77%，非立体结构 exact 为 21%，化学 exact 为 19%；GD906 因
+多余连接导致 C 价态 6，按协议保留 diagnostic SDF 和渲染图。完整链路与前端试用 GO，但能力
+不足以替换稳定默认。下一阶段以完整对象集合和端到端公开指标训练，不再返回 pair scorer 支线。
+
+v0.9.29 将真值和预测 SDF 拆成纯骨架、原子类型、键级和完整非立体图四层。USPTO clean 1k
+中纯骨架为 72.4%，且 727 个对象数量正确样本只有 3 个连接拓扑错误；原子类型+骨架仅 29.2%，
+键级+骨架为 50.5%。最大瓶颈正式定位为开放文字/原子类型，其次是对象数量和键级。该分解已
+自动接入后续 ChemScene benchmark 和前端，不再用总 exact 猜测组件责任。
+
+v0.9.30 增加对象级 micro 复核：骨架正确时单原子类型 96.45%，单键级 89.04%，键级错误的
+90.9% 为 `AROMATIC -> SINGLE`。Open Text 1500k checkpoint 在 USPTO 前 100 张将原子 micro
+降至 84.63%、化学 exact 归零；直接接入 NO-GO。关闭 graph corrector 虽将键级 micro 提到
+96.15%，却使 valid 降 10pp。新增 invalid-only 模式可将 valid 77%→79%，但完整 exact 不变，
+因此下一步转最小 chemical-type 改动搜索，不全量覆盖 BondObject 输出。
+
+v0.9.31 按 `test1/test2` 的模糊键失败验证“一个端点对一个语义键对象”。冻结 Vertex/Junction、
+候选集合和 selector 后，现有 `25×64` line-band reader 直接判键级使 USPTO 100 的键级整图
+61%→18%、单键级 96.15%→80.02%。该组件仍依赖局部墨迹数量和间距，正式 NO-GO。下一版将
+Relation existence、可见键语义和环级 chemical semantics 分开，芳香性不再交给单条局部线判断。
+
+v0.9.32 新建 1.68M 参数双尺度 Semantic Bond Relation。GT pair 跨字体 validation 的 chemical
+accuracy 为 92.91%，固定模糊/缩放后为 92.99%。逐键直接覆盖在 USPTO 上 NO-GO，改为完整 5/6
+元环整体融合后，USPTO clean 1k 的键级整图从 50.5% 提至 57.1%、单键级从 89.04% 提至
+96.51%、完整非立体图从 21.2% 提至 23.6%，纯骨架和原子层不变。SDF valid 因关闭旧全量
+corrector 降至 66.3%，checkpoint 暂不替换 shadow。`test2` 剩余明确错误为 relation 漏检；
+下一阶段训练通用 Relation existence，键长只用于分层评测，不调整 Vertex/Junction。
+
+v0.9.33 将 existence 分支改为纯视觉 local/context relation，不再读取显式键长。500 张唯一图、
+10k 曝光的 sampled-pair clean/degraded F1 达到 99.39%/99.36%，长度四分位召回没有断层；但新增
+dense 全点对门控后，内部 100 张的整图 relation set exact 只有 70%/66%。表示方向 GO，直接生成
+整图 NO-GO。下一版只做模型分数驱动的视觉 hard-negative mining 和唯一图片扩容，不做长键专项
+训练，也不使用键长阈值删除候选。
+
+v0.9.34 用模型自身分数从全部 non-bond 中挖掘 hard negative，500 张续训使 dense clean/degraded
+exact 从 70%/66% 提高到 73%/73%。v0.9.35 扩到 2,000 张唯一图、20k 曝光后进一步达到
+78%/76%，sampled F1 约 99.6%，最长长度分桶召回仍约 98%-99%。但接到真实预测 Junction 后，
+USPTO clean 100 skeleton 为 69%，低于旧 shadow 76%；paired audit 为新增修正 0、回退 7。
+因此 relation 表示 GO、直接替换 NO-GO。下一版必须用冻结 Junction 生成器产生的预测点训练，解决
+GT point 到 predicted point 的分布偏移，不做长键专项训练。
+
+v0.9.36 新建 predicted-Junction 监督协议。500 张 train 的点匹配率 99.56%、GT 键可恢复率
+94.25%；100 张 validation 为 99.62%/92.55%，证明主要损失来自漏点而非坐标偏移。2k 曝光使
+内部 predicted-point dense exact 从 88%/89% 提至 91%/91%；USPTO clean 100 skeleton 从
+v0.9.35 的 69% 回升到 74%，bond-typed 从 55% 提到 61%。但相对旧 shadow 仍是新增修正 0、
+回退 2，不能替换。pair existence 支线到此停止盲扩，下一步用 Bond 端点证据反向救回缺失
+Junction，并处理多余节点；仍禁止长键专项训练和键长删边。
+
+v0.9.37-v0.9.39 证明跨绘图器风格确实影响 BondObject：单域适配可将 MolGrapher topology
+10%→20%，但共享权重会遗忘 ChemVision。双专家来源 gate 在内部达到 MolGrapher 17%、
+ChemVision 55%，但 USPTO clean 1k 的 56 张路由样本只救回 1 张骨架、破坏 13 张，整体
+skeleton 70.5%→69.3%。来源风格不等于专家收益，下一步只做内部 utility-oracle 和收益路由
+可分性审计，不用 USPTO 标签训练 gate。
+
+v0.9.40 的零训练 utility oracle 证明两个专家有真实互补：MolGrapher/ChemVision 合计
+topology exact 从原专家 65/200 提升到 oracle 并集 88/200。下一步不是再调来源阈值，而是
+在内部 train 域生成双专家 rescue/break teacher，并用专家输出分歧与结构自一致性训练收益路由。
+
+v0.9.41 已完成 2,000 张内部 teacher 和 no-style utility router。固定 validation 零-break 阈值
+在未见内部 996 张上救回 93、破坏 1；USPTO clean 1k skeleton 70.5%→72.7%、SDF valid
+69.1%→70.4%、chemical exact 15.7%→16.0%。方向正式 GO，先作为 shadow；下一步只在内部
+teacher 上增加保守 veto，分析外部回退但不使用公开标签重训。
+
+v0.9.42 已停止“匿名 Junction + 最近邻 OCR 附着”，建立联合 AtomObject + BondObject
+协议。ChemVision validation 500 和 train 前 1000 共 1,494 张有效样本完成 SDF/InChIKey
+无损往返，2 个描绘冲突和 4 个坐标冲突被显式隔离，未知失败为 0。下一步先做 100 图
+联合集合与 incidence 容量实验，不先扩大数据，也不使用 USPTO/MR-TADF 调参。
+
+v0.9.43 的双 free-query 联合模型训练到 5000 step 后 count 均为 100%，但 Atom 6px
+只有 18.93%、Bond port pair 8.22%、incidence endpoint 19.78%，整图为 0，正式
+NO-GO。v0.9.44 改为同一空间 cell 直接预测完整 AtomObject，在固定 100 图上达到
+anchor/role 100%、文字中心 97.54%、known-count exact 85%。下一步固定为空间
+BondObject proposal 与直接 incidence，不再恢复匿名顶点或末端最近邻附着。
+
+v0.9.45 冻结共享视觉、空间 AtomObject 和旧空间 BondObject，只训练 74,113 参数的
+endpoint-to-AtomObject incidence head。GT-associated 固定 100 图在 step 500 达到
+endpoint 99.51%、bond 99.11%、image exact 92%，step 1000 三项均为 100%，容量 GO。
+下一步必须移除 GT proposal 对齐，在独立内部集验证 predicted-proposal incidence；该结果
+不等同于未见图片或公开集准确率。
+
+v0.9.46 使用完全 target-independent 的 top-k 局部峰 proposal，在 train100 上训练并用独立
+validation100 选择 checkpoint。最佳 step300 将 eligible endpoint 95.36%→97.69%、bond
+91.49%→95.58%、incidence image exact 13%→46%。但冻结 proposal 的 validation 全覆盖上限
+只有 64%，且 128 个 Bond 候选尚未做最终集合选择。下一步训练 Atom/Bond presence 与
+incidence 一致性，不继续追加 incidence step。
+
+v0.9.47 联合训练 Atom/Bond presence 与 incidence，一套 178,565 参数集合头在 train100
+达到 full object exact 61%，validation 固定阈值只有 4%、全局校准后 8%，证明容量成立但
+100 图候选排序泛化不足。v0.9.48 保持架构不变扩到 1000 唯一训练图，validation full exact
+提高到 24%，锁定阈值后的 internal test100 为 19%。数据覆盖方向 GO，下一步扩到 pilot 全 9k。
+
+v0.9.49 将三个 train shard 的 8,974 条实际记录全部缓存并训练；0 新拒绝，3000 step 仅
+61.7 秒。validation 校准 full object exact 达到 35%，锁定阈值后的 internal test100 为
+24%，相对 v0.9.48 的 19% 继续提升。扩量 GO，但对象集合指标已不足以代表最终能力；下一步
+接 ChemScene v0.2 和 SDF shadow。
+
+v0.9.50 首次把 v0.9.49 对象集合编译为 ChemScene v0.2/SDF。Oracle 原子化学状态条件下，
+internal test100 的 scene valid 100%、SDF valid 56%、非立体 SDF exact 30%；30 correct、
+26 wrong、44 invalid 的 SDF 和渲染全部保存。invalid 中 26 个 non-ring aromatic、12 个
+kekulize、6 个 valence，下一步优先修 Bond chemical type，不先接 OCR。
+
+v0.9.84 将全图 OpenCV LSD 线段端点吸附到预测 AtomObject，并按无序 AtomPair 聚合，不设置
+最大键长。MR-TADF 极端长键的 Bond proposal 整图完整率从 32.02% 提到 94.30%。正式推理只在
+至少两条 raster boundary 支持、已有 learned AtomPair group 且两个端点位于不同预测分量时
+提升 group presence；键型仍由 v0.9.83 group type head 输出。稳定 invalid fallback 下，外部
+1,100 张 exact 从 56.55% 提到 57.55%，valid 保持 91.09%。详见
+`20260724-v0.9.84-global-line-segment-rescue.md`。
+
+v0.9.85 将旧 AtomPair group 之外的 line-only 候选追加为一等 Bond proposal。尺度不变 head
+在 ChemVision/full-v0 双域 validation 上取得 82.35% presence precision，并找回 7/12 个
+dense 漏键正例。冻结后运行 MR-TADF 1,100，稳定 invalid fallback 的 valid 为 91.36%，exact
+为 57.64%；相对 v0.9.84 是 extreme-long 新增 2 张、standard 损失 1 张，净增 1 张。方向
+边际 GO，但收益不足以继续扩大同一 MLP；下一步应提高内部 line-only rescue 正例覆盖，并把
+误补边纳入整图集合目标。详见 `20260724-v0.9.85-line-only-atom-pair.md`。
+
+v0.9.86 将版本门控从极端长键拉回普通双域结构。冻结 v0.9.83 局部 AtomPair presence/type，
+新增两端邻接和整图集合上下文 residual，并以 count/degree 软监督共同训练。修复 WebDataset
+shuffle 未使用 seed 和 CUDA 原子累加不可复现后，两个独立 smoke 的权重逐位一致。确定性
+validation 的 presence+chemical exact `519→524`，locked internal test `518→521`，两个域均无
+回退。方向 GO，长键 rescue 不进入默认 profile。详见
+`20260724-v0.9.86-atom-pair-graph-context.md`。
+
+v0.9.87 先否决全局 residual 缩放和 base-positive 规则保护：两者在 locked internal test 均只有
+520 chemical exact，低于 v0.9.86 的 521。随后在训练目标中加入真键绝对正 margin，解决相对
+ranking 不保证越过部署阈值的问题。validation 固定 residual scale=0.8 后 chemical exact
+`524→527`；locked internal test 相对 v0.9.86 presence `715→717`、chemical `521→523`，
+两域均提升。详见 `20260724-v0.9.87-positive-margin-graph-context.md`。
+
+v0.9.88 验证候选键关系图和安全删除。18 个关系特征包括第三顶点穿越、两跳共同邻居、直接/
+独占墨迹和候选线段重叠解释率。完整上下文、precision-first 和 2,000 参数 relation-only 三种
+训练均未提高 chemical exact；最好 validation presence `710→711`、chemical `527→527`。
+共线两跳模式边级精度为 8/9，但只在 full-v0 救回 1 张 presence，ChemVision 和 chemical 均
+不变。实验 NO-GO，未消费 locked internal test，默认仍为 v0.9.87。详见
+`20260725-v0.9.88-atom-pair-deletion-veto.md`。
+
+v0.9.89 把事后逐边删除改成集合级 KEEP/ADD/DELETE/SWAP one-move。候选上限审计显示 996 张中
+806 张可表达，710 张已正确，另有 65 张只需一次动作；漏键在负候选 top-16 的覆盖为 27/28，
+假键在正候选 bottom-4 的覆盖为 47/47。51,844 参数动作头用 17,932 张双域图片训练，最终
+validation presence/chemical `710/527→720/532`，locked internal test `717/523→730/527`，
+两个域均无 chemical 回退。默认前端切换到 v0.9.89。详见
+`20260725-v0.9.89-atom-pair-one-move.md`。
+
+v0.9.90 冻结 v0.9.89 并追加第二阶段 residual move。可达上限审计表明第二次 one-move 可将
+validation 的 720 张 presence exact 理论提高到 779，完整两删两加只再多覆盖 13 张，因此不做
+上千动作枚举。两次 cold-start pilot 均塌缩为全 KEEP；将 v0.9.89 权重映射 warm start 后，
+17,932 张双域训练把 validation presence/chemical 提到 `726/535`。locked internal test
+`730/527→734/530`，但 full-v0 chemical `288→287` 回退 1 张。组件 GO、默认部署 NO-GO，
+前端继续使用 v0.9.89。详见 `20260725-v0.9.90-atom-pair-second-move.md`。

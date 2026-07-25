@@ -79,6 +79,7 @@ def load_relation_model(
         key
         for key in model.state_dict()
         if key.startswith("relation_head.")
+        or key.startswith("vertex_head.role_heatmap.")
         or ".pair_feature_adapter." in key
         or ".output_adapter." in key
     }
