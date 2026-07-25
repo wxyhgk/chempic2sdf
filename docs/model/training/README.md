@@ -509,3 +509,11 @@ presence `348→340`；随后改为可折叠的 129 参数零初始化 adapter�
 adapter scale 中无安全增益。style validation 的 representable 仅 389/498，stress 仅 47/124，
 证明 context 层无法修复风格导致的 proposal 缺失。实验 NO-GO，详见
 `20260725-v0.9.94-atom-pair-style-consistency.md`。
+
+v0.9.95 将审计和训练上移到 Bond proposal。style validation 的 Bond full coverage 仅
+78.71%，且它到 AtomPair representable 只再损失 3 张，确认 proposal 是第一瓶颈。完整 Bond
+head 微调因改变 `object_features` 使 deployed exact 崩溃；改用 37,391 参数零初始化
+heatmap/endpoint residual 后，style Bond coverage/representable 均提高 0.40pp，official 两域
+整图覆盖也各提高 0.40pp。locked internal 的 proposal recall 仍双域微升，但 full-v0
+deployed/full exact `251/210→244/208`，因此组件 GO、部署 NO-GO，默认前端不变。详见
+`20260725-v0.9.95-bond-proposal-style-residual.md`。

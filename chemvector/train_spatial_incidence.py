@@ -17,6 +17,7 @@ import torch
 from chemvector.atom_bond_scene import AtomBondSceneConfig
 from chemvector.data import ChemVectorIterableDataset
 from chemvector.dense_bond_object import (
+    BondProposalResidualAdapter,
     DenseBondObjectConfig,
     DenseBondObjectDetector,
     MultiScaleDenseBondObjectDetector,
@@ -94,7 +95,12 @@ def forward_frozen_bond_head(
     bond_head: torch.nn.Module,
     stroke_features: torch.Tensor,
 ) -> dict[str, torch.Tensor]:
-    if not isinstance(bond_head, MultiScaleDenseBondObjectDetector):
+    detector = (
+        bond_head.base_detector
+        if isinstance(bond_head, BondProposalResidualAdapter)
+        else bond_head
+    )
+    if not isinstance(detector, MultiScaleDenseBondObjectDetector):
         return bond_head(stroke_features)
     stride8 = vision.forward_high_resolution_from_stroke(stroke_features)
     stride16 = stride8

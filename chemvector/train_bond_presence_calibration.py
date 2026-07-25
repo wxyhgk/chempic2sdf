@@ -14,6 +14,8 @@ import torch
 
 from chemvector.atom_bond_scene import AtomBondSceneConfig
 from chemvector.dense_bond_object import (
+    BondProposalResidualAdapter,
+    BondProposalResidualConfig,
     DenseBondObjectConfig,
     DenseBondObjectDetector,
     MultiScaleDenseBondObjectDetector,
@@ -67,10 +69,18 @@ def load_components(path: str, graph_checkpoint: str, device: torch.device):
     atom.eval().requires_grad_(False)
 
     bond_config = DenseBondObjectConfig(**payload["bond_config"])
-    bond = (
+    bond_base = (
         MultiScaleDenseBondObjectDetector(bond_config).to(device)
         if payload["bond_multiscale"]
         else DenseBondObjectDetector(bond_config).to(device)
+    )
+    bond = (
+        BondProposalResidualAdapter(
+            bond_base,
+            BondProposalResidualConfig(**payload["bond_proposal_residual_config"]),
+        ).to(device)
+        if "bond_proposal_residual_config" in payload
+        else bond_base
     )
     bond.load_state_dict(payload["bond_head"], strict=True)
     bond.eval().requires_grad_(False)

@@ -191,6 +191,72 @@ class MultiScaleDenseBondObjectDetector(nn.Module):
         )
 
 
+@dataclass(frozen=True, slots=True)
+class BondProposalResidualConfig:
+    hidden_channels: int = 32
+    maximum_endpoint_delta_pixels: float = 16.0
+    image_size: float = 768.0
+
+    def __post_init__(self) -> None:
+        if self.hidden_channels < 1:
+            raise ValueError("Bond residual hidden channels must be positive")
+        if min(self.maximum_endpoint_delta_pixels, self.image_size) <= 0:
+            raise ValueError("Bond residual geometry scales must be positive")
+
+
+class BondProposalResidualAdapter(nn.Module):
+    """Add proposal corrections without changing frozen Bond object features."""
+
+    def __init__(
+        self,
+        base_detector: nn.Module,
+        config: BondProposalResidualConfig,
+    ) -> None:
+        super().__init__()
+        self.base_detector = base_detector
+        self.config = base_detector.config
+        self.residual_config = config
+        slots = self.config.slots
+        self.residual = nn.Sequential(
+            nn.Conv2d(
+                self.config.hidden_channels,
+                config.hidden_channels,
+                kernel_size=3,
+                padding=1,
+            ),
+            nn.GELU(),
+            nn.Conv2d(config.hidden_channels, slots * 5, kernel_size=1),
+        )
+        nn.init.zeros_(self.residual[-1].weight)
+        nn.init.zeros_(self.residual[-1].bias)
+        self.base_detector.eval().requires_grad_(False)
+
+    def forward(self, *features: torch.Tensor) -> dict[str, torch.Tensor]:
+        with torch.no_grad():
+            base = self.base_detector(*features)
+        batch, _, height, width = base["object_features"].shape
+        slots = self.config.slots
+        correction = self.residual(base["object_features"])
+        heatmap_delta = correction[:, :slots]
+        endpoint_delta = correction[:, slots:].reshape(
+            batch, slots, 2, 2, height, width
+        )
+        endpoint_scale = (
+            self.residual_config.maximum_endpoint_delta_pixels
+            / self.residual_config.image_size
+        )
+        return {
+            **base,
+            "heatmap_logits": base["heatmap_logits"] + heatmap_delta,
+            "endpoints": (
+                base["endpoints"] + endpoint_delta.tanh() * endpoint_scale
+            ).clamp(0.0, 1.0),
+        }
+
+    def adapter_parameters(self) -> list[nn.Parameter]:
+        return list(self.residual.parameters())
+
+
 def build_dense_bond_targets(
     targets: dict[str, torch.Tensor],
     *,
