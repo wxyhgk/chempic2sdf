@@ -83,6 +83,7 @@ def build_atom_pair_groups(
     group_direction_targets = []
     group_members: list[list[list[int]]] = []
     group_atom_pairs: list[list[tuple[int, int]]] = []
+    group_target_atom_pairs: list[list[tuple[int, int]]] = []
     predicted_refs = output["incidence_logits"].argmax(-1)
     for batch_index in range(proposals["bond_mask"].size(0)):
         groups: dict[tuple[int, int], list[int]] = {}
@@ -92,6 +93,7 @@ def build_atom_pair_groups(
             groups.setdefault(key, []).append(proposal_index)
         sample_members = []
         sample_atom_pairs = []
+        sample_target_atom_pairs = []
         for atom_pair, members in groups.items():
             indices = torch.tensor(members, device=per_proposal.device)
             values = per_proposal[batch_index, indices]
@@ -129,8 +131,18 @@ def build_atom_pair_groups(
             group_samples.append(batch_index)
             sample_members.append(members)
             sample_atom_pairs.append(atom_pair)
+            target_atom_pair = (-1, -1)
+            if "atom_target_indices" in proposals:
+                mapped = proposals["atom_target_indices"][
+                    batch_index,
+                    torch.tensor(atom_pair, device=per_proposal.device),
+                ]
+                if bool((mapped >= 0).all()) and int(mapped[0]) != int(mapped[1]):
+                    target_atom_pair = tuple(sorted((int(mapped[0]), int(mapped[1]))))
+            sample_target_atom_pairs.append(target_atom_pair)
         group_members.append(sample_members)
         group_atom_pairs.append(sample_atom_pairs)
+        group_target_atom_pairs.append(sample_target_atom_pairs)
     if not group_features:
         empty = per_proposal.new_empty((0, GROUP_FEATURE_DIM))
         return {
@@ -143,6 +155,7 @@ def build_atom_pair_groups(
             "direction_targets": torch.empty(0, device=empty.device, dtype=torch.long),
             "members": group_members,
             "atom_pairs": group_atom_pairs,
+            "target_atom_pairs": group_target_atom_pairs,
         }
     return {
         "features": torch.stack(group_features),
@@ -158,6 +171,7 @@ def build_atom_pair_groups(
         "direction_targets": torch.stack(group_direction_targets).long(),
         "members": group_members,
         "atom_pairs": group_atom_pairs,
+        "target_atom_pairs": group_target_atom_pairs,
     }
 
 

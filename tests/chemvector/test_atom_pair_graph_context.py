@@ -33,6 +33,7 @@ class AtomPairGraphContextTest(unittest.TestCase):
             batch_size=1,
         )
         torch.testing.assert_close(output["presence_logits"], base)
+        self.assertEqual(tuple(output["residual_hidden"].shape), (3, 16))
 
     def test_group_permutation_is_equivariant(self) -> None:
         torch.manual_seed(7)

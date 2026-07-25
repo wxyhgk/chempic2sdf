@@ -74,6 +74,9 @@ class AtomPairGraphContextHead(nn.Module):
             return {
                 "presence_logits": base_logits,
                 "residual_logits": base_logits,
+                "residual_hidden": features.new_empty(
+                    (0, self.config.hidden_dim)
+                ),
             }
 
         hidden = self.local_encoder(features)
@@ -128,10 +131,12 @@ class AtomPairGraphContextHead(nn.Module):
             ),
             dim=-1,
         )
-        residual = self.residual(context).squeeze(-1)
+        residual_hidden = self.residual[:-1](context)
+        residual = self.residual[-1](residual_hidden).squeeze(-1)
         return {
             "presence_logits": base_logits + residual,
             "residual_logits": residual,
+            "residual_hidden": residual_hidden,
         }
 
 

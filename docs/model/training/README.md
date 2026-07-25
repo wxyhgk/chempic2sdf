@@ -501,3 +501,11 @@ v0.9.93 扩大候选级 verifier 数据量，9k 阶段 train-dev chemical exact 
 67.7%，chemical 为 56.5%；layout chemical gap 为 43.0pp，multiple-bond offset 为 13.8pp，
 字体家族为 6.3pp。扩量同风格 verifier 无法修复上游风格敏感，实验 NO-GO。详见
 `20260725-v0.9.93-style-sensitivity-audit.md`。
+
+v0.9.94 在 250 个 molecule、1,000 张四风格图片上训练 paired AtomPair consistency，并等量
+回放 ChemVision/full-v0。全 context 微调把 mixed outcome `86→83`，但 official ChemVision
+presence `348→340`；随后改为可折叠的 129 参数零初始化 adapter，只在四张均 representable
+时对齐并归一化 count，最终 style exact `348→349`，仍伴随 ChemVision `348→347`。21 档
+adapter scale 中无安全增益。style validation 的 representable 仅 389/498，stress 仅 47/124，
+证明 context 层无法修复风格导致的 proposal 缺失。实验 NO-GO，详见
+`20260725-v0.9.94-atom-pair-style-consistency.md`。

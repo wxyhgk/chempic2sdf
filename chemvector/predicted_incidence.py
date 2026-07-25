@@ -260,6 +260,9 @@ def associate_predicted_proposals(
     )
     supervised_bonds = torch.zeros_like(bond_proposals["bond_mask"])
     atom_presence_targets = torch.zeros_like(atom_proposals["atom_mask"])
+    atom_target_indices = torch.full_like(
+        atom_proposals["atom_indices"], -1, dtype=torch.long
+    )
     bond_presence_targets = torch.zeros_like(bond_proposals["bond_mask"])
     bond_target_indices = torch.full_like(
         bond_proposals["bond_indices"], -1, dtype=torch.long
@@ -292,6 +295,7 @@ def associate_predicted_proposals(
                 if float(cost[row, column].detach()) <= config.atom_match_radius_px:
                     proposal_index = atom_indices[row]
                     target_to_proposal[column] = proposal_index
+                    atom_target_indices[batch_index, proposal_index] = int(column)
                     atom_target_matched[batch_index, column] = True
                     atom_presence_targets[batch_index, proposal_index] = True
 
@@ -342,6 +346,7 @@ def associate_predicted_proposals(
         **bond_proposals,
         "bond_supervision_mask": supervised_bonds,
         "atom_presence_targets": atom_presence_targets,
+        "atom_target_indices": atom_target_indices,
         "bond_presence_targets": bond_presence_targets,
         "bond_target_indices": bond_target_indices,
         "bond_target_reversed": bond_target_reversed,

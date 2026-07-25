@@ -6,8 +6,44 @@ from chemvector.atom_pair_bond_group import (
     AtomPairBondGroupHead,
     atom_pair_group_loss,
     atom_pair_group_type_loss,
+    build_atom_pair_groups,
     collapse_atom_pair_group_outputs,
 )
+
+
+def test_groups_expose_training_only_target_atom_pairs() -> None:
+    output = {
+        "incidence_probabilities": torch.tensor(
+            [[[[0.9, 0.1, 0.0], [0.1, 0.8, 0.1]],
+              [[0.0, 0.9, 0.1], [0.0, 0.1, 0.9]]]]
+        ),
+        "incidence_logits": torch.tensor(
+            [[[[9.0, 1.0, 0.0], [1.0, 8.0, 1.0]],
+              [[0.0, 9.0, 1.0], [0.0, 1.0, 9.0]]]]
+        ),
+        "bond_pre_presence_logits": torch.zeros(1, 2),
+        "base_bond_presence_logits": torch.zeros(1, 2),
+    }
+    proposals = {
+        "bond_features": torch.zeros(1, 2, 128),
+        "bond_endpoints": torch.zeros(1, 2, 2, 2),
+        "bond_types": torch.zeros(1, 2, 8),
+        "bond_scores": torch.ones(1, 2),
+        "bond_mask": torch.tensor([[True, True]]),
+        "bond_presence_targets": torch.tensor([[True, True]]),
+        "bond_target_indices": torch.tensor([[0, 1]]),
+        "atom_target_indices": torch.tensor([[2, 0, 1]]),
+    }
+    targets = {
+        "bond_display": torch.tensor([[0, 0]]),
+        "bond_chemical": torch.tensor([[0, 0]]),
+        "bond_direction": torch.tensor([[0, 0]]),
+    }
+
+    groups = build_atom_pair_groups(output, proposals, targets)
+
+    assert groups["atom_pairs"] == [[(0, 1), (1, 2)]]
+    assert groups["target_atom_pairs"] == [[(0, 2), (0, 1)]]
 
 
 def test_atom_pair_group_head_and_loss() -> None:

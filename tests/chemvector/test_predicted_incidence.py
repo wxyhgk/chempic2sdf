@@ -92,6 +92,11 @@ class PredictedIncidenceTests(unittest.TestCase):
         self.assertTrue(associated["bond_supervision_mask"][0, 0])
         self.assertTrue(associated["atom_presence_targets"][0, :2].all())
         self.assertFalse(associated["atom_presence_targets"][0, 2])
+        self.assertTrue(
+            torch.equal(
+                associated["atom_target_indices"][0], torch.tensor([0, 1, -1])
+            )
+        )
         self.assertTrue(associated["bond_presence_targets"][0, 0])
         self.assertFalse(associated["bond_presence_targets"][0, 1])
         self.assertTrue(

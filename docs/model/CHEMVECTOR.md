@@ -10,7 +10,7 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
 
 - 稳定 tag：`v0.7.12`。
 - 当前稳定推理基线：`v0.7.10`。
-- 当前开发包版本：`v0.9.93`；当前研究实验编号：`v0.9.93`。
+- 当前开发包版本：`v0.9.94`；当前研究实验编号：`v0.9.94`。
 - v0.9.28 已接入冻结的完整图片到 SDF Object Shadow；稳定默认仍为 `v0.7.10`。
 - 版本从 `v0.7` 开始，每次发布增加 `0.0.1`。
 - 根目录 `VERSION` 是开发版本的唯一来源。
@@ -82,6 +82,12 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
   同一分子的四种渲染有 67.7% 出现 presence 结果分裂、56.5% 出现 chemical 结果分裂；主要
   差异来自 layout/stress、multiple-bond offset 和 rotation，而不只是字体。实验 NO-GO，默认
   profile 保持 `structure-v0992-carbon`。
+- v0.9.94 首次以同一 molecule 的四种渲染训练 AtomPair 风格一致性。训练期用 GT 匹配把
+  匿名 atom query 临时映射到目标原子对；该映射不进入推理。全 context 微调将 mixed outcome
+  `86→83`，但 official ChemVision presence `348→340`；129 参数零初始化 adapter 最多只将
+  style exact `348→349`，同时 ChemVision `348→347`。`0.00–1.00` scale calibration 无安全
+  区间。根因是 style validation 仅 389/498 可由现有 proposal 表达，stress 仅 47/124。
+  实验 NO-GO，下一步将 paired consistency 上移到 Atom/Bond proposal 集合。
 - v0.9.28 冻结八组件完整对象链路。USPTO clean 100 的 SDF valid 为 77%、非立体 exact 21%、
   化学 exact 19%；GD906 无效预测也保留 diagnostic SDF 与渲染图。可试用，但不替换稳定默认。
 - v0.9.29 在 USPTO clean 1k 上将 SDF 图分解为四层：纯骨架 72.4%、原子类型+骨架 29.2%、
