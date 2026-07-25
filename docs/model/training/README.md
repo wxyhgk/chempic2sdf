@@ -26,7 +26,7 @@
 
 ## 训练时间线
 
-当前进行中：[v0.9.71 Atom/Bond/Incidence 联合扩量 50k](20260724-v0.9.71-joint-full50k.md)。
+当前已完成：[v0.9.91 Chemical RETYPE 整图修复](20260725-v0.9.91-chemical-retype.md)。
 
 | 编号 | 阶段 | 主要结论 | 状态 |
 |---|---|---|---|
@@ -479,3 +479,11 @@ validation 的 720 张 presence exact 理论提高到 779，完整两删两加�
 17,932 张双域训练把 validation presence/chemical 提到 `726/535`。locked internal test
 `730/527→734/530`，但 full-v0 chemical `288→287` 回退 1 张。组件 GO、默认部署 NO-GO，
 前端继续使用 v0.9.89。详见 `20260725-v0.9.90-atom-pair-second-move.md`。
+
+v0.9.91 冻结 presence，只允许已存在边在四种键型之间 RETYPE。train-only 4,500 张的
+bounded RETYPE-only 上限为 `2466→2823`，候选覆盖只漏 1 个；但 separate gate/action、
+KEEP+RETYPE 联合 softmax、累计 9k 和 global safety gate 均未超过固定 train-dev 的
+`551/996` chemical exact。action top-1 可提高到 43.75%，说明数据量影响排序能力；部署端
+仍无净 rescue，说明下一步必须改成候选级 verifier，而不是继续训练纯 global gate。正式
+NO-GO，未运行 official validation 或 locked internal。详见
+`20260725-v0.9.91-chemical-retype.md`。

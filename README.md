@@ -7,7 +7,7 @@ Junction、TextObject 和 BondObject 组成的 ChemScene，再通过确定性编
 当前端到端 shadow 仍为 `v0.7.38`；v0.8.33 是冻结 geometry 的 presence selector
 实验 checkpoint，默认推理尚未替换。
 
-当前研究实验为 `v0.9.90`。从 v0.9.86 开始，版本门控重新以 ChemVision/full-v0 普通结构的
+当前研究实验为 `v0.9.91`。从 v0.9.86 开始，版本门控重新以 ChemVision/full-v0 普通结构的
 双域 validation 和 locked internal test 为主；MR-TADF 长键只保留为专项诊断，不再主导模型方向。
 此前的 locked internal100 继续作为历史回归护栏。MR-TADF 仍然只测不训，不参与阈值拟合或
 hard replay。
@@ -79,6 +79,12 @@ v0.9.90 冻结 v0.9.89，再训练第二阶段 residual move。warm-start 全量
 将 presence/chemical exact 提到 `726/535`；locked internal test 提到 `734/530`，但 full-v0
 chemical exact `288→287` 回退 1 张。该版证明二次整图编辑可以继续减少漏键，但 presence-only
 动作尚未约束键型效用，因此组件 GO、默认部署 NO-GO；前端继续使用 v0.9.89。
+v0.9.91 冻结 v0.9.89 的 presence，只允许对已存在的一条键执行 RETYPE。train-only 4,500
+审计中 typed exact 为 2,466，一次 bounded RETYPE-only 可达 2,823，16 条候选只漏 1 个。
+分离 gate/action、KEEP+RETYPE 联合 softmax 和 global safety gate 均未把固定 train-dev chemical
+exact 从 `551/996` 提高；累计 9,000 张后 action top-1 从 32.50% 提到 43.75%，但实际最佳
+仍是 rescue/break `0/0`。该版 NO-GO，未运行 official validation 或 locked internal，默认
+前端继续使用 v0.9.89；下一版改为读取具体候选边与目标键型的候选级 verifier。
 
 版本管理规则：每个产生正式 checkpoint 的模型版本都必须提交可复现代码和中文训练记录，并创建
 与模型版本名完全一致的 annotated Git tag。tag 注释记录 checkpoint 路径、SHA256、训练样本数和
