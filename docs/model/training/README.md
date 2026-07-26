@@ -524,3 +524,10 @@ v0.9.96 冻结 v0.9.95 residual，同时用新旧两套 proposal 重训 178,565 
 和 full-v0 -1 相抵。确定性 weight-space scale `0.25/0.5/0.75/1.0` 的最坏逐域回退为
 `-1/-1/-2/-2`，无安全非零点。协议 GO、checkpoint NO-GO，未运行 locked internal，默认前端
 不变。详见 `20260726-v0.9.96-dual-proposal-set-incidence.md`。
+
+v0.9.97 冻结全部共享模块，只训练 2,306 参数 proposal-delta adapter；每个新 Bond proposal
+按自身 dense `(slot,cell)` 回查原 score/endpoints，不依赖 rank 或 GT。epoch 1 将 style
+Bond/Full `208/172→210/173`，official ChemVision `211/170→212/171`、full-v0
+`247/215→248/215`，首次通过双域门控；但 deterministic locked internal 中 ChemVision 不变，
+full-v0 `258/221→257/220`。架构/official GO、部署 NO-GO，默认前端不变。详见
+`20260726-v0.9.97-proposal-delta-set-adapter.md`。
