@@ -10,7 +10,7 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
 
 - 稳定 tag：`v0.7.12`。
 - 当前稳定推理基线：`v0.7.10`。
-- 当前开发包版本：`v0.9.95`；当前研究实验编号：`v0.9.95`。
+- 当前开发包版本：`v0.9.96`；当前研究实验编号：`v0.9.96`。
 - v0.9.28 已接入冻结的完整图片到 SDF Object Shadow；稳定默认仍为 `v0.7.10`。
 - 版本从 `v0.7` 开始，每次发布增加 `0.0.1`。
 - 根目录 `VERSION` 是开发版本的唯一来源。
@@ -92,6 +92,10 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
   零初始化 heatmap/endpoint residual 将 style 与 official 双域整图 Bond coverage 各提高
   0.40pp；但四渲染 mixed 不变，locked full-v0 deployed/full exact `251/210→244/208`。
   组件 GO、部署 NO-GO；下一步重训与 candidate proposal 几何对齐的 set/incidence 小头。
+- v0.9.96 让同一个 set/incidence 同时读取 v0.9.95 新 proposal 和原 proposal。style full exact
+  `172→175`、新路径 official pooled `385→387`，但原路径 `376→373`；teacher 10 与
+  `0.25–1.0` weight scale 均无逐域零回退解。协议 GO、checkpoint NO-GO；下一步只训练输入
+  proposal delta 的零初始化 residual，从结构上保持原路径不变。
 - v0.9.28 冻结八组件完整对象链路。USPTO clean 100 的 SDF valid 为 77%、非立体 exact 21%、
   化学 exact 19%；GD906 无效预测也保留 diagnostic SDF 与渲染图。可试用，但不替换稳定默认。
 - v0.9.29 在 USPTO clean 1k 上将 SDF 图分解为四层：纯骨架 72.4%、原子类型+骨架 29.2%、

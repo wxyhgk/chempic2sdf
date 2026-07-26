@@ -517,3 +517,10 @@ heatmap/endpoint residual 后，style Bond coverage/representable 均提高 0.40
 整图覆盖也各提高 0.40pp。locked internal 的 proposal recall 仍双域微升，但 full-v0
 deployed/full exact `251/210→244/208`，因此组件 GO、部署 NO-GO，默认前端不变。详见
 `20260725-v0.9.95-bond-proposal-style-residual.md`。
+
+v0.9.96 冻结 v0.9.95 residual，同时用新旧两套 proposal 重训 178,565 参数 set/incidence。
+三 epoch 将 style full exact `172→175`、新路径 official pooled `385→387`，但原路径
+`376→373`；teacher 权重从 0.1 提到 10 后，原路径 pooled 虽保持 376，仍由 ChemVision +1
+和 full-v0 -1 相抵。确定性 weight-space scale `0.25/0.5/0.75/1.0` 的最坏逐域回退为
+`-1/-1/-2/-2`，无安全非零点。协议 GO、checkpoint NO-GO，未运行 locked internal，默认前端
+不变。详见 `20260726-v0.9.96-dual-proposal-set-incidence.md`。
