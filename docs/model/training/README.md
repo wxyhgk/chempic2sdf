@@ -551,3 +551,9 @@ exact 从 32.9% 崩到 2.8%，Full exact 从 26.3% 崩到 2.7%，但 Bond propos
 0.26pp；旧域也同步回退。说明 proposal 仍在，但 Bond 表征移动使 set 决策边界失配。本轮
 提前停止并正式 NO-GO，下一轮改为冻结 Bond 的 set-first 适配。详见
 `20260729-v0.10.0-fresh-joint-10k-no-go.md`。
+
+v0.10.1 冻结 vision、Atom 和 Bond，只训练 set/incidence 10k。完整 fresh 8k 的 Bond exact
+从 28.7125% 提高到 28.9000%，Full exact 从 20.9500% 提高到 21.1875%，旧域最差 Full
+exact 提高 0.60pp。它完全避免了 v0.10.0 的崩溃，但未通过预设 `+2pp` Bond 门槛：稳定性
+GO、能力 NO-GO。下一步从该 checkpoint 以十分之一 Bond 学习率做小步联合。详见
+`20260729-v0.10.1-set-first-style10k.md`。
