@@ -538,3 +538,9 @@ v0.9.98 在训练 safety verifier 前审计 adapter action 可学习性。offici
 重叠，不足以训练可泛化 verifier。本轮不训练模型，action-verifier NO-GO；v0.9.95-v0.9.98
 residual 补丁支线停止，下一阶段回到更大规模的 Bond/set/incidence 联合训练。详见
 `20260728-v0.9.98-proposal-delta-action-reachability.md`。
+
+v0.9.99 固定下一阶段数据协议：100k style train、8k fresh dev、4k sealed test，要求与旧数据
+molecule/InChIKey/scaffold 零重叠并提前固定 commitment。同时完成三域各 2 张的联合工程
+smoke：997,305 参数 Bond head 与 178,565 参数 set/incidence 同时更新，Bond/set loss 和整图
+surrogate 均有效，标准 checkpoint 可重载。fresh dev 尚未生成，本轮不作能力结论、不运行旧
+locked、不切换前端。详见 `20260728-v0.9.99-joint-training-preparation.md`。
