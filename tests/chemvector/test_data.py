@@ -172,6 +172,17 @@ class DataHelperTests(unittest.TestCase):
         self.assertEqual(loader.call_args.kwargs["sample_shuffle_buffer"], 32)
         self.assertEqual(loader.call_args.kwargs["sample_shuffle_seed"], 17)
 
+    def test_iterable_dataset_can_disable_unused_target_serialization(self) -> None:
+        dataset = ChemVectorIterableDataset(
+            "unused.tar", serialize_target=False, load_raster_layers=False
+        )
+
+        with patch("chemvector.data.ChemMolWebDataset", return_value=iter(())) as loader:
+            list(dataset)
+
+        self.assertFalse(loader.call_args.kwargs["serialize_target"])
+        self.assertFalse(loader.call_args.kwargs["load_raster_layers"])
+
     def test_reject_key_file_ignores_comments_blanks_and_duplicates(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "reject_keys.txt"

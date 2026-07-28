@@ -137,6 +137,8 @@ class ChemVectorIterableDataset(IterableDataset):
         sequence_version: str = "0.2",
         reject_keys: set[str] | None = None,
         allowed_variants: set[str] | None = None,
+        serialize_target: bool = True,
+        load_raster_layers: bool = True,
     ) -> None:
         super().__init__()
         self.shards = shards
@@ -146,6 +148,8 @@ class ChemVectorIterableDataset(IterableDataset):
         self.sequence_version = sequence_version
         self.reject_keys = reject_keys or set()
         self.allowed_variants = allowed_variants
+        self.serialize_target = serialize_target
+        self.load_raster_layers = load_raster_layers
 
     def __iter__(self) -> Iterator[dict]:
         for sample in ChemMolWebDataset(
@@ -156,6 +160,8 @@ class ChemVectorIterableDataset(IterableDataset):
             sample_shuffle_seed=self.sample_shuffle_seed,
             sequence_version=self.sequence_version,
             reject_keys=self.reject_keys,
+            serialize_target=self.serialize_target,
+            load_raster_layers=self.load_raster_layers,
         ):
             if (
                 self.allowed_variants is not None

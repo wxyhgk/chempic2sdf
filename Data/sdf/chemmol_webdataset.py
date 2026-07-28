@@ -61,6 +61,8 @@ class ChemMolWebDataset:
         sample_shuffle_seed: int | None = None,
         sequence_version: str = "0.2",
         reject_keys: set[str] | None = None,
+        serialize_target: bool = True,
+        load_raster_layers: bool = True,
     ) -> None:
         self.shards = shards
         self.validate_legacy_hash = validate_legacy_hash
@@ -72,6 +74,10 @@ class ChemMolWebDataset:
             raise ValueError(f"Unsupported ChemMolSeq version: {sequence_version}")
         self.sequence_version = sequence_version
         self.reject_keys = reject_keys or set()
+        self.serialize_target = serialize_target
+        self.load_raster_layers = load_raster_layers
+        if self.validate_target_roundtrip and not self.serialize_target:
+            raise ValueError("Target roundtrip validation requires target serialization")
 
     def __iter__(self) -> Iterator[dict]:
         dataset = wds.WebDataset(
@@ -106,7 +112,10 @@ class ChemMolWebDataset:
                 sequence_hash = hashlib.sha256(legacy_sequence.encode("utf-8")).hexdigest()
                 if sequence_hash != meta["chemmolseq_sha256"]:
                     raise ValueError(f"Legacy ChemMolSeq hash mismatch in {sample['__key__']}")
-            if self.sequence_version == "0.4":
+            if not self.serialize_target:
+                sequence = None
+                schema_version = None
+            elif self.sequence_version == "0.4":
                 try:
                     sequence = serialize_chemsvg_v4(chemmol, render)
                 except ChemSVGCoordinateCollisionError:
@@ -144,7 +153,7 @@ class ChemMolWebDataset:
                 ("bond.png", "bond_layer", "L"),
                 ("semantic.png", "semantic_layer", "L"),
             ):
-                if member not in sample:
+                if not self.load_raster_layers or member not in sample:
                     continue
                 layer = Image.open(io.BytesIO(sample[member])).convert(mode)
                 layer.load()
