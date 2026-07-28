@@ -109,6 +109,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--incidence-learning-rate", type=float, default=2e-7)
     parser.add_argument("--bond-loss-weight", type=float, default=1.0)
     parser.add_argument("--set-loss-weight", type=float, default=1.0)
+    parser.add_argument("--freeze-bond", action="store_true")
     parser.add_argument("--graph-exact-surrogate-weight", type=float, default=0.1)
     parser.add_argument("--validate-every-total-samples", type=int, default=10_000)
     parser.add_argument("--log-every-total-samples", type=int, default=1_000)
@@ -353,6 +354,8 @@ def main() -> None:
     domain_batch_counts = dict(DEFAULT_DOMAIN_BATCH_COUNTS)
     if min(*domain_sample_counts.values(), args.batch_size) < 1:
         raise ValueError("Training sizes must be positive")
+    if args.freeze_bond and args.bond_loss_weight != 0.0:
+        raise ValueError("Frozen Bond training requires --bond-loss-weight 0")
     random.seed(args.seed)
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
@@ -401,7 +404,11 @@ def main() -> None:
     )
     vision.eval().requires_grad_(False)
     atom.eval().requires_grad_(False)
-    bond.train().requires_grad_(True)
+    bond.requires_grad_(not args.freeze_bond)
+    if args.freeze_bond:
+        bond.eval()
+    else:
+        bond.train()
     set_head.train().requires_grad_(True)
     proposal_config = PredictedProposalConfig(**source["proposal_config"])
     scene_config = AtomBondSceneConfig(
@@ -494,15 +501,21 @@ def main() -> None:
         for parameter in set_head.parameters()
         if id(parameter) not in incidence_ids
     ]
-    optimizer = torch.optim.AdamW(
-        [
-            {"params": bond.parameters(), "lr": args.bond_learning_rate},
-            {"params": presence_parameters, "lr": args.presence_learning_rate},
-            {"params": incidence_parameters, "lr": args.incidence_learning_rate},
-        ],
-        weight_decay=0.0,
-    )
-    trainable = list(bond.parameters()) + list(set_head.parameters())
+    optimizer_groups = [
+        {"params": presence_parameters, "lr": args.presence_learning_rate},
+        {"params": incidence_parameters, "lr": args.incidence_learning_rate},
+    ]
+    if not args.freeze_bond:
+        optimizer_groups.insert(
+            0, {"params": bond.parameters(), "lr": args.bond_learning_rate}
+        )
+    optimizer = torch.optim.AdamW(optimizer_groups, weight_decay=0.0)
+    trainable = [
+        parameter
+        for module in (bond, set_head)
+        for parameter in module.parameters()
+        if parameter.requires_grad
+    ]
     totals = defaultdict(float)
     window = defaultdict(float)
     total_seen = 0
@@ -522,7 +535,10 @@ def main() -> None:
         seed=args.seed,
         shuffle_buffer=args.shuffle_buffer,
     ):
-        bond.train()
+        if args.freeze_bond:
+            bond.eval()
+        else:
+            bond.train()
         set_head.train()
         batch = collator(samples)
         pixels = batch["pixel_values"].to(device, non_blocking=True)
