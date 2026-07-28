@@ -2,7 +2,10 @@ from unittest.mock import patch
 
 import pytest
 
-from chemvector.train_joint_bond_set_multidomain import mixed_batches
+from chemvector.train_joint_bond_set_multidomain import (
+    include_forced_exact_failures,
+    mixed_batches,
+)
 
 
 DOMAINS = {"style_train": ["style"], "chemvision_replay": ["cv"], "font_v2_replay": ["font"]}
@@ -62,3 +65,23 @@ def test_mixed_batches_honor_exact_domain_totals() -> None:
         "chemvision_replay": 2,
         "font_v2_replay": 2,
     }
+
+
+def test_forced_failures_are_included_in_exact_denominators() -> None:
+    metrics = {
+        "samples": 8,
+        "atom_candidate_exact": 6,
+        "atom_deployed_exact": 5,
+        "bond_candidate_exact": 4,
+        "bond_deployed_exact": 3,
+        "incidence_exact": 7,
+        "full_object_exact": 2,
+    }
+
+    result = include_forced_exact_failures(metrics, 2)
+
+    assert result["samples"] == 10
+    assert result["evaluable_samples"] == 8
+    assert result["forced_failure_samples"] == 2
+    assert result["bond_deployed_exact_rate"] == 0.3
+    assert result["full_object_exact_rate"] == 0.2

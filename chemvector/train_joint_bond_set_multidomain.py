@@ -15,6 +15,10 @@ import time
 
 import torch
 
+from Data.sdf.chemsvg_sequence_v4 import (
+    ChemSVGCoordinateCollisionError,
+    serialize_chemsvg_v4,
+)
 from chemvector.atom_bond_scene import AtomBondSceneConfig
 from chemvector.data import ChemVectorIterableDataset
 from chemvector.dense_bond_object import dense_bond_object_loss
@@ -228,6 +232,7 @@ def load_fresh_records(
 ) -> tuple[list[dict], dict]:
     records = []
     collision_samples = 0
+    coordinate_collision_samples = 0
     for sample in ChemVectorIterableDataset(
         FRESH_DEV_SHARDS,
         sequence_version="0.4",
@@ -236,27 +241,59 @@ def load_fresh_records(
     ):
         if sample_split(sample) != "fresh_dev":
             raise ValueError("Fresh-dev shard contains another split")
+        try:
+            serialize_chemsvg_v4(sample["chemmol"], sample["render"])
+        except ChemSVGCoordinateCollisionError:
+            coordinate_collision_samples += 1
+            if len(records) + coordinate_collision_samples >= expected_samples:
+                break
+            continue
         reason = rejection_reason(sample, config)
         if reason == "atom_cell_collision":
             collision_samples += 1
         elif reason is not None:
             raise ValueError(f"Fresh-dev sample is outside model capacity: {reason}")
         records.append(sample)
-        if len(records) >= expected_samples:
+        if len(records) + coordinate_collision_samples >= expected_samples:
             break
-    if len(records) != expected_samples:
+    if len(records) + coordinate_collision_samples != expected_samples:
         raise ValueError(
-            f"Fresh-dev loader yielded {len(records)}, expected {expected_samples}"
+            "Fresh-dev loader coverage differs: "
+            f"evaluable={len(records)} coordinate_collision={coordinate_collision_samples} "
+            f"expected={expected_samples}"
         )
     return records, {
         "expected": expected_samples,
         "loaded": len(records),
         "atom_cell_collision_samples_included": collision_samples,
-        "coordinate_collision_samples_included": (
-            26 if expected_samples == 8_000 else None
-        ),
+        "coordinate_collision_samples_counted_as_failures": coordinate_collision_samples,
         "target_serialization_disabled": True,
     }
+
+
+def include_forced_exact_failures(metrics: dict, failures: int) -> dict:
+    if failures < 0:
+        raise ValueError("Forced failure count cannot be negative")
+    result = dict(metrics)
+    evaluable = int(metrics["samples"])
+    total = evaluable + failures
+    result.update(
+        {
+            "samples": total,
+            "evaluable_samples": evaluable,
+            "forced_failure_samples": failures,
+        }
+    )
+    for count_name, rate_name in (
+        ("atom_candidate_exact", "atom_candidate_exact_rate"),
+        ("atom_deployed_exact", "atom_deployed_exact_rate"),
+        ("bond_candidate_exact", "bond_candidate_exact_rate"),
+        ("bond_deployed_exact", "bond_deployed_exact_rate"),
+        ("incidence_exact", "incidence_exact_rate"),
+        ("full_object_exact", "full_object_exact_rate"),
+    ):
+        result[rate_name] = int(metrics[count_name]) / max(total, 1)
+    return result
 
 
 def checkpoint_payload(
@@ -406,8 +443,8 @@ def main() -> None:
     atom_threshold = float(source["training_args"]["atom_decision_threshold"])
     bond_threshold = float(source["training_args"]["bond_decision_threshold"])
 
-    def evaluate_fresh(rows: list[dict]) -> dict:
-        return evaluate(
+    def evaluate_fresh(rows: list[dict], *, forced_failures: int = 0) -> dict:
+        metrics = evaluate(
             vision,
             atom,
             bond,
@@ -420,6 +457,7 @@ def main() -> None:
             atom_threshold,
             bond_threshold,
         )
+        return include_forced_exact_failures(metrics, forced_failures)
 
     def evaluate_regression() -> dict:
         return domain_validation(
@@ -436,7 +474,12 @@ def main() -> None:
             bond_threshold,
         )
 
-    initial_fresh = evaluate_fresh(fresh_records)
+    fresh_forced_failures = int(
+        fresh_audit["coordinate_collision_samples_counted_as_failures"]
+    )
+    initial_fresh = evaluate_fresh(
+        fresh_records, forced_failures=fresh_forced_failures
+    )
     initial_regression = evaluate_regression()
     initial = {"fresh_dev": initial_fresh, "regression": initial_regression}
     (output_dir / "initial_metrics.json").write_text(
@@ -616,7 +659,9 @@ def main() -> None:
     selected = torch.load(output_dir / "best.pt", map_location="cpu", weights_only=False)
     bond.load_state_dict(selected["bond_head"], strict=True)
     set_head.load_state_dict(selected["set_head"], strict=True)
-    selected_fresh = evaluate_fresh(fresh_records)
+    selected_fresh = evaluate_fresh(
+        fresh_records, forced_failures=fresh_forced_failures
+    )
     selected_regression = evaluate_regression()
     fresh_bond_delta = (
         selected_fresh["bond_deployed_exact_rate"]
