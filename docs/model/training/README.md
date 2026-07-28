@@ -544,3 +544,10 @@ molecule/InChIKey/scaffold 零重叠并提前固定 commitment。同时完成三
 smoke：997,305 参数 Bond head 与 178,565 参数 set/incidence 同时更新，Bond/set loss 和整图
 surrogate 均有效，标准 checkpoint 可重载。fresh dev 尚未生成，本轮不作能力结论、不运行旧
 locked、不切换前端。详见 `20260728-v0.9.99-joint-training-preparation.md`。
+
+v0.10.0 首次使用完整 8k fresh-dev：源模型 Atom/Bond proposal recall 为 99.39%/98.19%，
+Full object exact 为 20.95%。当前学习率下联合训练 10,002 张后，同一 fresh probe 的 Bond
+exact 从 32.9% 崩到 2.8%，Full exact 从 26.3% 崩到 2.7%，但 Bond proposal recall 仅下降
+0.26pp；旧域也同步回退。说明 proposal 仍在，但 Bond 表征移动使 set 决策边界失配。本轮
+提前停止并正式 NO-GO，下一轮改为冻结 Bond 的 set-first 适配。详见
+`20260729-v0.10.0-fresh-joint-10k-no-go.md`。
