@@ -113,6 +113,9 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
 - v0.10.1 严格冻结 Bond、只训练 set/incidence 10k。完整 fresh 8k 的 Bond exact 仅
   28.7125%→28.9000%，Full exact 20.9500%→21.1875%，旧域无遗忘。它证明 set-first
   能消除联合漂移，但单独扩量已接近平台；稳定性 GO、能力/部署 NO-GO。
+- v0.10.2 从 v0.10.1 热启动，以 `1e-7` Bond 学习率联合训练 10k。fresh probe 的 proposal
+  recall 保持 95.35%，但 Bond exact 32.9%→23.1%、Full exact 26.0%→18.3%，旧域同步
+  回退。纯时间尺度调整 NO-GO，下一步转向冻结 teacher 的显式 Bond 输出 anchoring。
 - v0.9.28 冻结八组件完整对象链路。USPTO clean 100 的 SDF valid 为 77%、非立体 exact 21%、
   化学 exact 19%；GD906 无效预测也保留 diagnostic SDF 与渲染图。可试用，但不替换稳定默认。
 - v0.9.29 在 USPTO clean 1k 上将 SDF 图分解为四层：纯骨架 72.4%、原子类型+骨架 29.2%、

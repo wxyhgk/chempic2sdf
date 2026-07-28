@@ -557,3 +557,9 @@ v0.10.1 冻结 vision、Atom 和 Bond，只训练 set/incidence 10k。完整 fre
 exact 提高 0.60pp。它完全避免了 v0.10.0 的崩溃，但未通过预设 `+2pp` Bond 门槛：稳定性
 GO、能力 NO-GO。下一步从该 checkpoint 以十分之一 Bond 学习率做小步联合。详见
 `20260729-v0.10.1-set-first-style10k.md`。
+
+v0.10.2 从 v0.10.1 热启动，将 Bond 学习率降为 `1e-7` 后联合训练 10k。同一 fresh probe 的
+proposal recall 95.33%→95.35%，但 Bond exact 32.9%→23.1%、Full exact 26.0%→18.3%；
+旧域 Full exact 也降到 24.10%。纯学习率缩放正式 NO-GO，后续不继续搜索更小数值，改做
+冻结 teacher 的 Bond 输出 anchoring/reachability 审计。详见
+`20260729-v0.10.2-slow-bond-joint-10k.md`。
