@@ -142,6 +142,8 @@ def _candidate_batch(
         deltas = proposal_deltas(proposals, original_dense)
     with torch.autocast(device_type="cuda", dtype=torch.bfloat16):
         adjusted = adapter(base, proposals, deltas)
+        adjusted["proposal_delta_score"] = deltas["score"]
+        adjusted["proposal_delta_endpoints"] = deltas["endpoints"]
     return adjusted, proposals, targets
 
 

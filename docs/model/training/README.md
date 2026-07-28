@@ -531,3 +531,10 @@ Bond/Full `208/172→210/173`，official ChemVision `211/170→212/171`、full-v
 `247/215→248/215`，首次通过双域门控；但 deterministic locked internal 中 ChemVision 不变，
 full-v0 `258/221→257/220`。架构/official GO、部署 NO-GO，默认前端不变。详见
 `20260726-v0.9.97-proposal-delta-set-adapter.md`。
+
+v0.9.98 在训练 safety verifier 前审计 adapter action 可学习性。official 996 只有 1 rescue、
+0 break；严格排除 v0.9.97 replay 后的 train-only 8,000 只有 4 rescue、15 break，净变化 -11。
+4 个 rescue 与 break 都表现为新增 1 根键，residual、margin、score/endpoint delta 范围高度
+重叠，不足以训练可泛化 verifier。本轮不训练模型，action-verifier NO-GO；v0.9.95-v0.9.98
+residual 补丁支线停止，下一阶段回到更大规模的 Bond/set/incidence 联合训练。详见
+`20260728-v0.9.98-proposal-delta-action-reachability.md`。

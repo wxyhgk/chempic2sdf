@@ -145,6 +145,10 @@ class ProposalDeltaSetAdapter(nn.Module):
             "bond_presence_logits": base["bond_presence_logits"] + presence_residual,
             "incidence_logits": incidence_logits,
             "incidence_probabilities": adjusted_probabilities,
+            "proposal_delta_base_bond_presence_logits": base[
+                "bond_presence_logits"
+            ],
+            "proposal_delta_base_incidence_logits": base["incidence_logits"],
             "proposal_delta_bond_presence_residual": presence_residual,
             "proposal_delta_incidence_residual": incidence_residual,
         }
