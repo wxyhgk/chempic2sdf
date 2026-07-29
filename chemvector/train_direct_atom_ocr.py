@@ -51,6 +51,7 @@ def parse_args():
     parser.add_argument("--batch-size", type=int, default=6)
     parser.add_argument("--learning-rate", type=float, default=1e-4)
     parser.add_argument("--extent-scale", type=float, default=1.5)
+    parser.add_argument("--true-text-only", action="store_true")
     parser.add_argument("--validate-every-total-samples", type=int, default=2_500)
     parser.add_argument("--output-dir", default=DEFAULT_OUTPUT)
     parser.add_argument("--seed", type=int, default=20260729)
@@ -173,6 +174,10 @@ def main():
         crops, labels = training_crops(
             samples, atoms, mapping, atom_indices, sample_indices, text_rows, args.extent_scale
         )
+        if args.true_text_only:
+            retained = [index for index, label in enumerate(labels) if label]
+            crops = [crops[index] for index in retained]
+            labels = [labels[index] for index in retained]
         if not crops:
             continue
         encoded = [encode_text(label, ocr.config.maximum_bytes) for label in labels]

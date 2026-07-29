@@ -26,7 +26,7 @@
 
 ## 训练时间线
 
-当前已完成：[v0.10.6 Deployed Atom OCR](20260729-v0.10.6-deployed-atom-ocr.md)（NO-GO）。
+当前运行中：[v0.10.7 True-Text-Only CTC](20260729-v0.10.7-true-text-ctc.md)。
 
 | 编号 | 阶段 | 主要结论 | 状态 |
 |---|---|---|---|
@@ -591,3 +591,7 @@ v0.10.6 在 fresh calibration 500 上否决现成 v0.8.8 CTC 的直接复用：�
 v0.8.8 初始化，在 v0.10.5 预测 TEXT 与预测 extent 1.5× crop 上用 GT 可见字符串微调；但
 2.5k/5k 均塌缩为全 blank，TEXT accuracy 0%，提前停止于 6k。独立 fresh eval 未读取，正式
 NO-GO。详见 `20260729-v0.10.6-deployed-atom-ocr.md`。
+
+v0.10.7 不继承 v0.10.6 blank-collapse 权重，从 v0.8.8 重新初始化；训练只保留 v0.10.5
+预测 TEXT 中已匹配且 GT 可见字符串非空的 crop，blank 与误报不进入 CTC loss。角色门、结构
+与 crop 协议冻结，通用三域 10k 运行中。详见 `20260729-v0.10.7-true-text-ctc.md`。
