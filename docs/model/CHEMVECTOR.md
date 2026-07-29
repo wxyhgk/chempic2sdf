@@ -10,7 +10,7 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
 
 - 稳定 tag：`v0.7.12`。
 - 当前稳定推理基线：`v0.7.10`。
-- 当前开发包版本：`v0.10.2`；当前研究实验编号：`v0.10.2`。
+- 当前开发包版本：`v0.10.3`；当前研究实验编号：`v0.10.3`。
 - v0.9.28 已接入冻结的完整图片到 SDF Object Shadow；稳定默认仍为 `v0.7.10`。
 - 版本从 `v0.7` 开始，每次发布增加 `0.0.1`。
 - 根目录 `VERSION` 是开发版本的唯一来源。
@@ -116,6 +116,10 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
 - v0.10.2 从 v0.10.1 热启动，以 `1e-7` Bond 学习率联合训练 10k。fresh probe 的 proposal
   recall 保持 95.35%，但 Bond exact 32.9%→23.1%、Full exact 26.0%→18.3%，旧域同步
   回退。纯时间尺度调整 NO-GO，下一步转向冻结 teacher 的显式 Bond 输出 anchoring。
+- v0.10.3 冻结 vision、Atom、旧 Dense Bond 和 set，仅复用最终 AtomObject。新 2.27M
+  Direct AtomPair Bond 对全部无序 Atom 对读取 stride-4 `9x32` 二维 ribbon，直接输出
+  `None/SINGLE/DOUBLE/TRIPLE/AROMATIC`；不设邻居数、键长或空白中点过滤。6 图工程 smoke
+  已通过，正式 10k fresh 门控运行中，默认前端暂不切换。
 - v0.9.28 冻结八组件完整对象链路。USPTO clean 100 的 SDF valid 为 77%、非立体 exact 21%、
   化学 exact 19%；GD906 无效预测也保留 diagnostic SDF 与渲染图。可试用，但不替换稳定默认。
 - v0.9.29 在 USPTO clean 1k 上将 SDF 图分解为四层：纯骨架 72.4%、原子类型+骨架 29.2%、

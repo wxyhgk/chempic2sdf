@@ -26,7 +26,7 @@
 
 ## 训练时间线
 
-当前已完成：[v0.9.92 候选级 Chemical RETYPE Verifier](20260725-v0.9.92-chemical-retype-verifier.md)。
+当前运行中：[v0.10.3 Direct AtomPair Bond](20260729-v0.10.3-direct-atom-pair-bond.md)。
 
 | 编号 | 阶段 | 主要结论 | 状态 |
 |---|---|---|---|
@@ -563,3 +563,10 @@ proposal recall 95.33%→95.35%，但 Bond exact 32.9%→23.1%、Full exact 26.0
 旧域 Full exact 也降到 24.10%。纯学习率缩放正式 NO-GO，后续不继续搜索更小数值，改做
 冻结 teacher 的 Bond 输出 anchoring/reachability 审计。详见
 `20260729-v0.10.2-slow-bond-joint-10k.md`。
+
+v0.10.3 不再微调 Dense Bond 或追逐其 latent 表征。冻结 vision、Atom、旧 Bond 和 set 后，
+对 set 最终保留的所有 AtomObject 无序对读取尺度归一化 `9x32` 特征 ribbon，直接判断
+`None/四种化学键`。不输入绝对长度和位置，也不使用最近邻、键长或空白中点过滤。6 图 smoke
+已验证确定性训练、反传和 checkpoint 重载；正式 10k 以 fresh calibration 500 选阈值、
+独立 fresh evaluation 1k 做 `Bond exact +5pp` 门控。详见
+`20260729-v0.10.3-direct-atom-pair-bond.md`。
