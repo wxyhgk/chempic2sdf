@@ -59,6 +59,11 @@ Bond proposal。它不使用绝对键长，仍把双键/三键作为两个语义
 validation 的 presence/chemical exact 从 `710/527` 提高到 `720/532`，固定 checkpoint 和
 margin 后，locked internal test 从 `717/523` 提高到 `730/527`。两个域的 presence 都有净
 提升，因此它成为当前默认结构 profile。
+
+`structure-v0103-direct-atom-pair-carbon` 是 v0.10.3 的非默认 shadow。它冻结最终
+AtomObject 后枚举全部无序 AtomPair，直接判断无键或四种化学键，不使用最近邻和键长过滤。
+独立 fresh 1k 的 Bond exact 为 45.3%，但文字原子仍按 C 占位，且尚未完成公开集和 MR-TADF
+逐图回归，因此只供上传诊断，不替换 `structure-v0992-carbon`。
 `v0.9.92 候选级 Chemical RETYPE` 冻结 v0.9.89 的 presence，只对具体“某条边改成目标
 键型”的动作训练整图 exact verifier。validation chemical exact `532→537`，locked internal
 test `527→533`，internal 两域分别 `239→244` 和 `288→289`，presence 完全不变。该 profile

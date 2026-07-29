@@ -1,5 +1,21 @@
 {
   "profiles": {
+    "structure-v0103-direct-atom-pair-carbon": {
+      "version": "v0.10.3",
+      "label": "Direct AtomPair Bond v0.10.3（文字按 C 占位）",
+      "checkpoint": "outputs/checkpoints/chemvector-v0103-direct-atom-pair-style10k/selected.pt",
+      "checkpoint_sha256": "e0d769b457fdbcac2d405fa234ccd108c80640db63cb35a1d8ed36446eea0614",
+      "protocol": "冻结最终 AtomObject；枚举全部无序 AtomPair；尺度归一化二维 ribbon 直接判断 None/SINGLE/DOUBLE/TRIPLE/AROMATIC；无邻居数和键长过滤；fresh 1k Bond exact 45.3%；未接 OCR",
+      "available": true,
+      "recommended": false,
+      "module": "chemvector.infer_direct_atom_pair_bond",
+      "arguments": [
+        "--model-version",
+        "v0.10.3-direct-atom-pair-carbon",
+        "--checkpoint",
+        "outputs/checkpoints/chemvector-v0103-direct-atom-pair-style10k/selected.pt"
+      ]
+    },
     "structure-v0992-carbon": {
       "version": "v0.9.92",
       "label": "候选级 Chemical RETYPE v0.9.92（文字按 C 占位）",
