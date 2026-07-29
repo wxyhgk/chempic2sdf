@@ -64,6 +64,10 @@ margin 后，locked internal test 从 `717/523` 提高到 `730/527`。两个域�
 AtomObject 后枚举全部无序 AtomPair，直接判断无键或四种化学键，不使用最近邻和键长过滤。
 独立 fresh 1k 的 Bond exact 为 45.3%，但文字原子仍按 C 占位，且尚未完成公开集和 MR-TADF
 逐图回归，因此只供上传诊断，不替换 `structure-v0992-carbon`。
+
+`structure-v0104-direct-aromatic-carbon` 在 v0.10.3 相同 checkpoint 和骨架上增加完整环语义：
+只允许满足锁定整环证据的 5/6 元环整体变为 aromatic，不逐键修补。fresh 1k chemical Bond
+exact 从 18.3% 提高到 28.2%，presence 和 skeleton 不变。它同样尚未接 OCR，保持非默认。
 `v0.9.92 候选级 Chemical RETYPE` 冻结 v0.9.89 的 presence，只对具体“某条边改成目标
 键型”的动作训练整图 exact verifier。validation chemical exact `532→537`，locked internal
 test `527→533`，internal 两域分别 `239→244` 和 `288→289`，presence 完全不变。该 profile

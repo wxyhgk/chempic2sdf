@@ -1,5 +1,26 @@
 {
   "profiles": {
+    "structure-v0104-direct-aromatic-carbon": {
+      "version": "v0.10.4",
+      "label": "Direct AtomPair + 完整芳香环 v0.10.4（文字按 C 占位）",
+      "checkpoint": "outputs/checkpoints/chemvector-v0103-direct-atom-pair-style10k/selected.pt",
+      "checkpoint_sha256": "e0d769b457fdbcac2d405fa234ccd108c80640db63cb35a1d8ed36446eea0614",
+      "protocol": "v0.10.3 全部 AtomPair 骨架；只对完整闭合且整环 aromatic 证据通过锁定阈值的 5/6 元环整体提升；fresh 1k chemical Bond exact 18.3%→28.2%；presence 与骨架不变；未接 OCR",
+      "available": true,
+      "recommended": false,
+      "module": "chemvector.infer_direct_atom_pair_bond",
+      "arguments": [
+        "--model-version",
+        "v0.10.4-direct-aromatic-carbon",
+        "--checkpoint",
+        "outputs/checkpoints/chemvector-v0103-direct-atom-pair-style10k/selected.pt",
+        "--aromatic-ring-fusion",
+        "--aromatic-mean-threshold",
+        "0.40",
+        "--aromatic-minimum-threshold",
+        "0.05"
+      ]
+    },
     "structure-v0103-direct-atom-pair-carbon": {
       "version": "v0.10.3",
       "label": "Direct AtomPair Bond v0.10.3（文字按 C 占位）",

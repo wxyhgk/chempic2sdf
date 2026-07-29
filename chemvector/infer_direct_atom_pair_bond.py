@@ -20,6 +20,7 @@ from chemvector.direct_atom_pair_bond import (
     DirectAtomPairBondConfig,
     enumerate_unordered_atom_pairs,
 )
+from chemvector.direct_atom_pair_chemistry import promote_complete_aromatic_rings
 from chemvector.infer_joint_object_structure import (
     compile_carbon_placeholder,
     placeholder_scene,
@@ -64,6 +65,7 @@ def direct_scene_tensors(
     atoms: dict[str, torch.Tensor],
     pairs: torch.Tensor,
     output: dict[str, torch.Tensor],
+    chemical_predictions: torch.Tensor | None = None,
 ) -> dict[str, torch.Tensor]:
     """Translate direct AtomPair output into the existing ChemScene compiler API."""
 
@@ -73,6 +75,13 @@ def direct_scene_tensors(
         raise ValueError("Pair count differs from Direct AtomPair output")
     maximum_atoms = atoms["atom_mask"].size(1)
     chemical = output["chemical_logits"].float().softmax(-1)
+    if chemical_predictions is not None:
+        if chemical_predictions.shape != (len(pairs),):
+            raise ValueError("Chemical prediction count differs from AtomPairs")
+        changed = chemical_predictions != chemical.argmax(-1)
+        chemical[changed] = torch.nn.functional.one_hot(
+            chemical_predictions[changed], num_classes=chemical.size(-1)
+        ).to(chemical.dtype)
     incidence = chemical.new_full((len(pairs), 2, maximum_atoms), -1e4)
     if len(pairs):
         rows = torch.arange(len(pairs), device=pairs.device)
@@ -103,6 +112,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--checkpoint", default=DEFAULT_CHECKPOINT)
     parser.add_argument("--source-checkpoint")
     parser.add_argument("--grounded-graph-checkpoint")
+    parser.add_argument("--aromatic-ring-fusion", action="store_true")
+    parser.add_argument("--aromatic-mean-threshold", type=float, default=0.40)
+    parser.add_argument("--aromatic-minimum-threshold", type=float, default=0.05)
     return parser.parse_args()
 
 
@@ -169,7 +181,20 @@ def main() -> None:
             sample_indices,
         )
 
-    compiler = direct_scene_tensors(atoms, pairs, direct_output)
+    ring_diagnostics = None
+    chemical_predictions = None
+    if args.aromatic_ring_fusion:
+        chemical_predictions, ring_diagnostics = promote_complete_aromatic_rings(
+            pairs,
+            direct_output["presence_logits"].sigmoid(),
+            direct_output["chemical_logits"],
+            presence_threshold=probability_threshold,
+            mean_threshold=args.aromatic_mean_threshold,
+            minimum_threshold=args.aromatic_minimum_threshold,
+        )
+    compiler = direct_scene_tensors(
+        atoms, pairs, direct_output, chemical_predictions
+    )
     gt_scene = placeholder_scene("upload", 768, 768)
     scene, diagnostics = build_oracle_chemistry_shadow_scene(
         molecule_id="upload",
@@ -190,6 +215,7 @@ def main() -> None:
     diagnostics["aromatic"] = aromatic
     diagnostics["direct_atom_pairs"] = len(pairs)
     diagnostics["direct_presence_threshold"] = probability_threshold
+    diagnostics["aromatic_ring_fusion"] = ring_diagnostics
     errors = []
     predicted = None
     decode_path = "direct_atom_pair"
@@ -227,6 +253,9 @@ def main() -> None:
         "candidate_atom_pairs": len(pairs),
         "selected_bonds": selected_bonds,
         "presence_threshold": probability_threshold,
+        "aromatic_ring_fusion": args.aromatic_ring_fusion,
+        "aromatic_mean_threshold": args.aromatic_mean_threshold,
+        "aromatic_minimum_threshold": args.aromatic_minimum_threshold,
         "formula": (
             rdMolDescriptors.CalcMolFormula(predicted) if predicted is not None else None
         ),

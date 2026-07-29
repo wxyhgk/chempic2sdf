@@ -302,13 +302,16 @@ def collect_predictions(
                     sample_indices,
                 )
             probabilities = output["presence_logits"].sigmoid().float().cpu()
-            chemical = output["chemical_logits"].argmax(-1).cpu()
+            chemical_logits = output["chemical_logits"].float().cpu()
+            chemical = chemical_logits.argmax(-1)
             for batch_index in range(len(pixels)):
                 rows = torch.where(sample_indices == batch_index)[0]
                 predictions.append(
                     {
+                        "pair_indices": pairs[rows].cpu(),
                         "probabilities": probabilities[rows.cpu()],
                         "chemical": chemical[rows.cpu()],
+                        "chemical_logits": chemical_logits[rows.cpu()],
                         "presence_targets": pair_targets["presence"][rows].cpu(),
                         "chemical_targets": pair_targets["chemical"][rows].cpu(),
                         "target_bonds": int(pair_targets["target_bonds"][batch_index]),

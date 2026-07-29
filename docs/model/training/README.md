@@ -26,7 +26,7 @@
 
 ## 训练时间线
 
-当前已完成：[v0.10.3 Direct AtomPair Bond](20260729-v0.10.3-direct-atom-pair-bond.md)。
+当前已完成：[v0.10.4 Direct AtomPair 完整芳香环](20260729-v0.10.4-direct-aromatic-ring.md)。
 
 | 编号 | 阶段 | 主要结论 | 状态 |
 |---|---|---|---|
@@ -571,3 +571,10 @@ v0.10.3 不再微调 Dense Bond 或追逐其 latent 表征。冻结 vision、Ato
 exact `30.6%→45.3%`，edge recall `95.15%→95.61%`，通过 `+5pp/-1pp` 门控。架构 GO；
 chemical Bond exact 为 18.3%，推理编译接入前默认前端不切换。详见
 `20260729-v0.10.3-direct-atom-pair-bond.md`。
+
+v0.10.4 保持 v0.10.3 checkpoint、presence 和 AtomPair skeleton 完全不变，只在预测图中对
+完整闭合且每条边均有 aromatic 支撑的 5/6 元环执行整环 chemical type 提升。阈值仅用 fresh
+calibration 500 选择；独立 fresh evaluation 1k 的 chemical Bond exact `18.3%→28.2%`、
+Full chemical exact `18.2%→28.1%`、边级键型 accuracy `93.48%→94.95%`。360/1000 张发生
+720 次键型修改，presence/skeleton 指标逐位不变。编译器 GO，默认前端仍不切换。详见
+`20260729-v0.10.4-direct-aromatic-ring.md`。
