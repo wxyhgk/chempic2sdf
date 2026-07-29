@@ -26,7 +26,7 @@
 
 ## 训练时间线
 
-当前运行中：[v0.10.7 True-Text-Only CTC](20260729-v0.10.7-true-text-ctc.md)。
+当前已完成：[v0.10.7 True-Text-Only CTC](20260729-v0.10.7-true-text-ctc.md)（NO-GO）。
 
 | 编号 | 阶段 | 主要结论 | 状态 |
 |---|---|---|---|
@@ -594,4 +594,6 @@ NO-GO。详见 `20260729-v0.10.6-deployed-atom-ocr.md`。
 
 v0.10.7 不继承 v0.10.6 blank-collapse 权重，从 v0.8.8 重新初始化；训练只保留 v0.10.5
 预测 TEXT 中已匹配且 GT 可见字符串非空的 crop，blank 与误报不进入 CTC loss。角色门、结构
-与 crop 协议冻结，通用三域 10k 运行中。详见 `20260729-v0.10.7-true-text-ctc.md`。
+与 crop 协议冻结。7.5k 最佳 TEXT raw 仅 10.11%、state accuracy 56.45%、exact 0.2%；10k
+轻微回退。正式 NO-GO，下一步训练文字 bbox/分割定位。详见
+`20260729-v0.10.7-true-text-ctc.md`。

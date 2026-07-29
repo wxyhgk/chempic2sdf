@@ -134,7 +134,8 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
   2.5k 和 5k 均塌缩为全 blank，TEXT accuracy 0%，提前停止于 6k。正式 NO-GO，独立 fresh
   eval 1k 未读取；下一版拆分真实 TEXT CTC 与 blank gate。
 - v0.10.7 从干净 v0.8.8 重新初始化，保持 v0.10.5 角色门，只用已匹配且 GT 字符串非空的
-  部署 crop 训练 CTC，移除全部 blank 目标；通用三域 10k 运行中。
+  部署 crop 训练 CTC，移除全部 blank 目标。没有 blank collapse，但 7.5k 最佳 TEXT raw 仅
+  10.11%、state accuracy 56.45%、exact 0.2%，正式 NO-GO；下一步训练独立文字 bbox/分割。
 - v0.9.28 冻结八组件完整对象链路。USPTO clean 100 的 SDF valid 为 77%、非立体 exact 21%、
   化学 exact 19%；GD906 无效预测也保留 diagnostic SDF 与渲染图。可试用，但不替换稳定默认。
 - v0.9.29 在 USPTO clean 1k 上将 SDF 图分解为四层：纯骨架 72.4%、原子类型+骨架 29.2%、

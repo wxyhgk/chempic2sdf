@@ -211,6 +211,28 @@ def main():
             print(json.dumps({"validation": validation}), flush=True)
     payload = torch.load(output / "best.pt", map_location="cpu", weights_only=False)
     ocr.load_state_dict(payload["pretrained_ctc_ocr"])
+    calibration_gate = {
+        "state_accuracy_min": 0.95,
+        "state_exact_rate_min": 0.20,
+        "passed": payload["validation"]["state_accuracy"] >= 0.95
+        and payload["validation"]["state_exact_rate"] >= 0.20,
+    }
+    if not calibration_gate["passed"]:
+        report = {
+            "calibration": payload["validation"],
+            "calibration_gate": calibration_gate,
+            "fresh_evaluation_read": False,
+            "sealed_test_read": False,
+        }
+        (output / "calibration_no_go.json").write_text(
+            json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        payload["fresh_evaluation"] = None
+        payload["calibration_gate"] = calibration_gate
+        torch.save(payload, output / "selected.pt")
+        print(json.dumps({"final": report}), flush=True)
+        return
     records = collect(
         role, ocr, modules, evaluation_records, collator, config,
         role_threshold, device, args.batch_size
