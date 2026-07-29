@@ -26,7 +26,7 @@
 
 ## 训练时间线
 
-当前已完成：[v0.10.4 Direct AtomPair 完整芳香环](20260729-v0.10.4-direct-aromatic-ring.md)。
+当前运行中：[v0.10.5 Anchor-Centered Atom Role](20260729-v0.10.5-anchor-atom-role.md)。
 
 | 编号 | 阶段 | 主要结论 | 状态 |
 |---|---|---|---|
@@ -578,3 +578,8 @@ calibration 500 选择；独立 fresh evaluation 1k 的 chemical Bond exact `18.
 Full chemical exact `18.2%→28.1%`、边级键型 accuracy `93.48%→94.95%`。360/1000 张发生
 720 次键型修改，presence/skeleton 指标逐位不变。编译器 GO，默认前端仍不切换。详见
 `20260729-v0.10.4-direct-aromatic-ring.md`。
+
+v0.10.5 先审计出旧 Atom role head 在 fresh 1k 的 TEXT recall 仅 `1/10,607=0.0094%`，整图
+role exact 为 0；GD906 的 N/N/B/F 坐标均在 1.5px 内匹配，但全部被判为 IMPLICIT。新角色门
+只读 anchor 周围 12/20/32px 原始像素，冻结 v0.10.4 结构与 OCR，通用三域 10k 训练运行中。
+详见 `20260729-v0.10.5-anchor-atom-role.md`。
