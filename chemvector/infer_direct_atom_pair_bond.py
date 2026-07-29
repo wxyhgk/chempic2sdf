@@ -14,6 +14,11 @@ from rdkit.Chem import rdMolDescriptors
 import torch
 
 from Data.sdf.chemscene_v0_2 import mol_from_chemscene_v0_2
+from Data.sdf.chemscene_v0_2 import (
+    QUANTIZATION_MAX,
+    _clip_port_to_text_bbox,
+    parse_chemscene_v0_2,
+)
 from chemvector.benchmark_mr_tadf import write_prediction_sdf
 from chemvector.direct_atom_pair_bond import (
     DirectAtomPairBond,
@@ -21,6 +26,9 @@ from chemvector.direct_atom_pair_bond import (
     enumerate_unordered_atom_pairs,
 )
 from chemvector.direct_atom_pair_chemistry import promote_complete_aromatic_rings
+from chemvector.ctc_ocr import decode_ctc_with_score
+from chemvector.direct_atom_role import enumerate_selected_atoms
+from chemvector.evaluate_direct_atom_ocr import crop_tensor, load_bbox, load_ctc, load_role
 from chemvector.infer_joint_object_structure import (
     compile_carbon_placeholder,
     placeholder_scene,
@@ -31,6 +39,7 @@ from chemvector.predicted_incidence import (
     decode_predicted_atom_proposals,
     decode_predicted_bond_proposals,
 )
+from chemvector.ocr import parse_atom_display_text
 from chemvector.shadow_chemscene_v02_oracle import (
     _render_sdf,
     _write_empty_sdf,
@@ -45,6 +54,95 @@ from chemvector.train_spatial_incidence import forward_frozen_bond_head
 DEFAULT_CHECKPOINT = (
     "outputs/checkpoints/chemvector-v0103-direct-atom-pair-style10k/selected.pt"
 )
+DEFAULT_ROLE_CHECKPOINT = (
+    "outputs/checkpoints/chemvector-v0105-direct-atom-role-style10k/selected.pt"
+)
+DEFAULT_BBOX_CHECKPOINT = (
+    "outputs/checkpoints/chemvector-v0108-direct-atom-text-bbox-style10k/selected.pt"
+)
+DEFAULT_OCR_CHECKPOINT = (
+    "outputs/checkpoints/chemvector-v0109-correct-label-ocr-style10k/selected.pt"
+)
+
+
+def _q(value: float) -> int:
+    return max(0, min(QUANTIZATION_MAX, round(float(value) * QUANTIZATION_MAX)))
+
+
+def apply_atom_ocr(
+    scene: dict,
+    candidate_indices: list[int],
+    predictions: dict[int, dict],
+) -> dict:
+    """Write parsed OCR labels into ChemScene and rebuild text-clipped bond ports."""
+
+    if len(candidate_indices) != len(scene["atom_objects"]):
+        raise ValueError("Compiled AtomObject/candidate mapping length differs")
+    diagnostics = {"predicted_text": 0, "parsed_text": 0, "unparsed_text": 0, "labels": []}
+    for atom, candidate in zip(scene["atom_objects"], candidate_indices):
+        prediction = predictions.get(int(candidate))
+        if prediction is None or not prediction["text"]:
+            continue
+        text = str(prediction["text"])
+        diagnostics["predicted_text"] += 1
+        parsed = parse_atom_display_text(text)
+        diagnostics["labels"].append(
+            {"atom_id": int(atom["id"]), "candidate": int(candidate), "text": text,
+             "score": float(prediction["score"]), "parsed": parsed is not None}
+        )
+        if parsed is None:
+            diagnostics["unparsed_text"] += 1
+            continue
+        diagnostics["parsed_text"] += 1
+        center_x, center_y = prediction["center"]
+        half_width, half_height = prediction["half_extent"]
+        center = [_q(center_x), _q(center_y)]
+        bbox = [
+            _q(center_x - half_width),
+            _q(center_y - half_height),
+            _q(center_x + half_width),
+            _q(center_y + half_height),
+        ]
+        atom["role"] = "TEXT"
+        atom["chemical"] = {
+            "element": parsed["element"],
+            "formal_charge": parsed["formal_charge"],
+            "isotope": parsed["isotope"],
+            "aromatic": False,
+            "explicit_h_count": parsed["explicit_h_count"],
+            "no_implicit": parsed["explicit_h_count"] > 0,
+            "radical_electrons": parsed["radical_electrons"],
+            "canonical_chiral_tag": "CHI_UNSPECIFIED",
+        }
+        atom["text"] = {"value": text, "center": center, "bbox": bbox}
+
+    for atom in scene["atom_objects"]:
+        atom["incident_ports"] = []
+    for bond in scene["bond_objects"]:
+        begin_atom, end_atom = (int(value) for value in bond["atom_refs"])
+        begin = scene["atom_objects"][begin_atom]
+        end = scene["atom_objects"][end_atom]
+        begin_port, begin_source = _clip_port_to_text_bbox(
+            tuple(begin["anchor"]),
+            tuple(end["anchor"]),
+            tuple(begin["text"]["bbox"]) if begin["text"] is not None else None,
+        )
+        end_port, end_source = _clip_port_to_text_bbox(
+            tuple(end["anchor"]),
+            tuple(begin["anchor"]),
+            tuple(end["text"]["bbox"]) if end["text"] is not None else None,
+        )
+        bond["ports"] = [list(begin_port), list(end_port)]
+        begin["incident_ports"].append(
+            {"bond_id": int(bond["id"]), "endpoint": 0,
+             "coordinate": list(begin_port), "source": begin_source}
+        )
+        end["incident_ports"].append(
+            {"bond_id": int(bond["id"]), "endpoint": 1,
+             "coordinate": list(end_port), "source": end_source}
+        )
+    parse_chemscene_v0_2(scene)
+    return diagnostics
 
 
 def load_direct_model(
@@ -110,6 +208,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--device", choices=("cpu", "cuda"), default="cuda")
     parser.add_argument("--model-version", default="v0.10.3-direct-atom-pair-carbon")
     parser.add_argument("--checkpoint", default=DEFAULT_CHECKPOINT)
+    parser.add_argument("--role-checkpoint", default=DEFAULT_ROLE_CHECKPOINT)
+    parser.add_argument("--bbox-checkpoint", default=DEFAULT_BBOX_CHECKPOINT)
+    parser.add_argument("--ocr-checkpoint", default=DEFAULT_OCR_CHECKPOINT)
+    parser.add_argument("--enable-ocr", action="store_true")
     parser.add_argument("--source-checkpoint")
     parser.add_argument("--grounded-graph-checkpoint")
     parser.add_argument("--aromatic-ring-fusion", action="store_true")
@@ -130,6 +232,13 @@ def main() -> None:
     started = time.perf_counter()
 
     direct, direct_payload = load_direct_model(args.checkpoint, device)
+    role = bbox = ctc = None
+    role_threshold = None
+    if args.enable_ocr:
+        role, role_payload = load_role(args.role_checkpoint, device)
+        bbox, _ = load_bbox(args.bbox_checkpoint, device)
+        ctc, _ = load_ctc(args.ocr_checkpoint, device)
+        role_threshold = float(role_payload["validation"]["threshold"])
     training_args = direct_payload["training_args"]
     source_checkpoint = args.source_checkpoint or training_args["source_checkpoint"]
     graph_checkpoint = (
@@ -181,6 +290,43 @@ def main() -> None:
             sample_indices,
         )
 
+        ocr_predictions = {}
+        if args.enable_ocr:
+            atom_indices, sample_indices = enumerate_selected_atoms(atoms["atom_mask"])
+            role_probabilities = role(
+                pixels, atoms["atom_geometry"][..., :2], atom_indices, sample_indices
+            ).sigmoid()
+            text_rows = torch.where(role_probabilities >= role_threshold)[0]
+            learned = bbox(
+                pixels,
+                atoms["atom_geometry"][..., :2],
+                atom_indices[text_rows],
+                sample_indices[text_rows],
+            )
+            crops = []
+            for center, half_extent in zip(learned["centers"], learned["half_extents"]):
+                x, y = (center.float().cpu() * 768).tolist()
+                half_width, half_height = (half_extent.float().cpu() * 768).tolist()
+                crops.append(
+                    crop_tensor(
+                        image,
+                        (x - half_width, y - half_height, x + half_width, y + half_height),
+                    )
+                )
+            decoded = []
+            if crops:
+                logits = ctc(torch.stack(crops).to(device))
+                decoded = [decode_ctc_with_score(row.float()) for row in logits]
+            for index, row in enumerate(text_rows.tolist()):
+                candidate = int(atom_indices[row])
+                text, score = decoded[index]
+                ocr_predictions[candidate] = {
+                    "text": text,
+                    "score": score,
+                    "center": learned["centers"][index].float().cpu().tolist(),
+                    "half_extent": learned["half_extents"][index].float().cpu().tolist(),
+                }
+
     ring_diagnostics = None
     chemical_predictions = None
     if args.aromatic_ring_fusion:
@@ -209,6 +355,12 @@ def main() -> None:
         atom_threshold=0.0,
         bond_threshold=logit_threshold,
     )
+    if args.enable_ocr:
+        diagnostics["ocr"] = apply_atom_ocr(
+            scene,
+            diagnostics["selected_atom_candidate_indices"],
+            ocr_predictions,
+        )
     scene, aromatic = apply_aromatic_consistency(
         scene, "demote-noncycle-clear-atoms"
     )
@@ -247,7 +399,12 @@ def main() -> None:
         "model_version": args.model_version,
         "checkpoint": args.checkpoint,
         "source_checkpoint": source_checkpoint,
-        "chemistry_mode": "all_text_atoms_as_carbon_placeholder",
+        "chemistry_mode": (
+            "v0109_open_byte_ctc" if args.enable_ocr else "all_text_atoms_as_carbon_placeholder"
+        ),
+        "role_checkpoint": args.role_checkpoint if args.enable_ocr else None,
+        "bbox_checkpoint": args.bbox_checkpoint if args.enable_ocr else None,
+        "ocr_checkpoint": args.ocr_checkpoint if args.enable_ocr else None,
         "inference_seconds": time.perf_counter() - started,
         "vertices": int(atoms["atom_mask"].sum()),
         "candidate_atom_pairs": len(pairs),

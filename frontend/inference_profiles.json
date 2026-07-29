@@ -1,5 +1,36 @@
 {
   "profiles": {
+    "structure-v01010-direct-aromatic-ocr": {
+      "version": "v0.10.10",
+      "label": "Direct AtomPair + 芳香环 + 开放 OCR v0.10.10",
+      "checkpoint": "outputs/checkpoints/chemvector-v0103-direct-atom-pair-style10k/selected.pt",
+      "checkpoint_sha256": "e0d769b457fdbcac2d405fa234ccd108c80640db63cb35a1d8ed36446eea0614",
+      "role_checkpoint_sha256": "f7f8fe2e7df510ee9dfea36712cb90bdc4a386dd5d3db6973bc5079cd23c5f1b",
+      "bbox_checkpoint_sha256": "2370263a2a59b26d31939108ea9ebf0744fb73bc27f21dc0638719ad6033aece",
+      "ocr_checkpoint_sha256": "dff869139c8e63451794ce8083932c06344d407774f652dc3baa18729abc8540",
+      "protocol": "v0.10.3 全 AtomPair 骨架 + v0.10.4 完整芳香环 + v0.10.5 TEXT role + v0.10.8 learned bbox + v0.10.9 开放 byte CTC；fresh 1k OCR state 98.00%、整图 exact 33.3%",
+      "available": true,
+      "recommended": true,
+      "module": "chemvector.infer_direct_atom_pair_bond",
+      "arguments": [
+        "--model-version",
+        "v0.10.10-direct-aromatic-ocr",
+        "--checkpoint",
+        "outputs/checkpoints/chemvector-v0103-direct-atom-pair-style10k/selected.pt",
+        "--role-checkpoint",
+        "outputs/checkpoints/chemvector-v0105-direct-atom-role-style10k/selected.pt",
+        "--bbox-checkpoint",
+        "outputs/checkpoints/chemvector-v0108-direct-atom-text-bbox-style10k/selected.pt",
+        "--ocr-checkpoint",
+        "outputs/checkpoints/chemvector-v0109-correct-label-ocr-style10k/selected.pt",
+        "--enable-ocr",
+        "--aromatic-ring-fusion",
+        "--aromatic-mean-threshold",
+        "0.40",
+        "--aromatic-minimum-threshold",
+        "0.05"
+      ]
+    },
     "structure-v0104-direct-aromatic-carbon": {
       "version": "v0.10.4",
       "label": "Direct AtomPair + 完整芳香环 v0.10.4（文字按 C 占位）",
@@ -43,7 +74,7 @@
       "checkpoint": "outputs/checkpoints/chemvector-v0992-chemical-retype-verifier-final/best.pt",
       "protocol": "v0.9.89 one-move 后冻结 presence；候选级 verifier 只允许对一条已存在键执行 SINGLE/DOUBLE/TRIPLE/AROMATIC RETYPE；validation 与 locked internal 双域提升；不启用长键 rescue；未接 OCR",
       "available": true,
-      "recommended": true,
+      "recommended": false,
       "module": "chemvector.infer_joint_object_structure",
       "arguments": [
         "--model-version",

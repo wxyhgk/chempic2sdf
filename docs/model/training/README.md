@@ -26,8 +26,8 @@
 
 ## 训练时间线
 
-当前已完成：[v0.10.9 正确标签 Full CTC](20260729-v0.10.9-correct-label-full-ctc.md)
-（最终 OCR 组合门 GO）。
+当前已完成：[v0.10.10 统一 OCR 推理接入](20260730-v0.10.10-unified-ocr-inference.md)
+（工程 GO，默认前端 profile 已切换）。
 
 | 编号 | 阶段 | 主要结论 | 状态 |
 |---|---|---|---|
@@ -612,3 +612,9 @@ ChemScene 顺序只训练真实 TEXT crop，并显式解除 Pixel Encoder runtim
 在独立 fresh 1k 将 TEXT `82.93%→93.13%`、state `95.24%→98.00%`、整图 exact
 `18.9%→33.3%`；6/6 Pixel Encoder tensor 确认发生变化，最终组合门正式 GO。详见
 `20260729-v0.10.9-correct-label-full-ctc.md`。
+
+v0.10.10 无新训练，将 v0.10.3 Direct AtomPair、v0.10.4 芳香环、v0.10.5 role、v0.10.8
+bbox 和 v0.10.9 CTC 接入同一推理链；文字写回后重新裁剪 bond port。GDG906 的 B/B/N/N/F
+全部正确识别并生成有效 SDF，但结构仍为 85/107 对真值 84/104，不宣称图 exact。前端新增并
+推荐 `structure-v01010-direct-aromatic-ocr`，运行中动态生效。详见
+`20260730-v0.10.10-unified-ocr-inference.md`。

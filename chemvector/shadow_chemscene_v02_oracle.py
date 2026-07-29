@@ -463,6 +463,7 @@ def build_oracle_chemistry_shadow_scene(
     parse_chemscene_v0_2(scene)
     diagnostics = {
         "selected_atom_candidates": len(selected_atoms),
+        "selected_atom_candidate_indices": selected_atoms,
         "rescued_endpoint_atom_candidates": len(rescued_atoms),
         "oracle_matched_atoms": len(oracle_atom_by_candidate),
         "selected_bond_candidates": len(selected_bonds),

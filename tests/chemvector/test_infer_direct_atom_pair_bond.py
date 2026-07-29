@@ -1,6 +1,6 @@
 import torch
 
-from chemvector.infer_direct_atom_pair_bond import direct_scene_tensors
+from chemvector.infer_direct_atom_pair_bond import apply_atom_ocr, direct_scene_tensors
 
 
 def test_direct_scene_tensors_encode_pair_incidence_without_distance_filter() -> None:
@@ -40,3 +40,39 @@ def test_direct_scene_tensors_only_overrides_changed_chemical_predictions() -> N
 
     assert result["bond_types"][0, :4].argmax().item() == 0
     assert result["bond_types"][1, :4].tolist() == [0.0, 0.0, 0.0, 1.0]
+
+
+def test_apply_atom_ocr_updates_chemistry_and_reclips_ports() -> None:
+    scene = {
+        "schema_version": "chemscene-0.2",
+        "molecule_id": "test",
+        "units": "q1023",
+        "canvas": {"width": 768, "height": 768},
+        "atom_objects": [
+            {"id": 0, "anchor": [200, 500], "role": "IMPLICIT",
+             "chemical": {"element": "C", "formal_charge": 0, "isotope": 0,
+                          "aromatic": False, "explicit_h_count": 0, "no_implicit": False,
+                          "radical_electrons": 0, "canonical_chiral_tag": "CHI_UNSPECIFIED"},
+             "text": None, "incident_ports": []},
+            {"id": 1, "anchor": [800, 500], "role": "IMPLICIT",
+             "chemical": {"element": "C", "formal_charge": 0, "isotope": 0,
+                          "aromatic": False, "explicit_h_count": 0, "no_implicit": False,
+                          "radical_electrons": 0, "canonical_chiral_tag": "CHI_UNSPECIFIED"},
+             "text": None, "incident_ports": []},
+        ],
+        "bond_objects": [
+            {"id": 0, "atom_refs": [0, 1], "ports": [[200, 500], [800, 500]],
+             "display_type": "SINGLE", "chemical_type": "SINGLE", "direction": "NONE",
+             "stereo": "STEREONONE", "bbox": None}
+        ],
+    }
+    result = apply_atom_ocr(
+        scene, [4, 7],
+        {4: {"text": "NH2+", "score": -0.1, "center": [0.2, 0.5],
+             "half_extent": [0.04, 0.02]}},
+    )
+    assert result["parsed_text"] == 1
+    assert scene["atom_objects"][0]["chemical"]["element"] == "N"
+    assert scene["atom_objects"][0]["chemical"]["formal_charge"] == 1
+    assert scene["atom_objects"][0]["chemical"]["explicit_h_count"] == 2
+    assert scene["bond_objects"][0]["ports"][0] != [200, 500]
