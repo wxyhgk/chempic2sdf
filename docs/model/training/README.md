@@ -26,7 +26,7 @@
 
 ## 训练时间线
 
-当前已完成：[v0.10.5 Anchor-Centered Atom Role](20260729-v0.10.5-anchor-atom-role.md)。
+当前运行中：[v0.10.6 Deployed Atom OCR](20260729-v0.10.6-deployed-atom-ocr.md)。
 
 | 编号 | 阶段 | 主要结论 | 状态 |
 |---|---|---|---|
@@ -585,3 +585,8 @@ role exact 为 0；GD906 的 N/N/B/F 坐标均在 1.5px 内匹配，但全部被
 1k 将 role exact `0%→44.7%`、role accuracy `72.92%→99.62%`、TEXT precision/recall 提至
 `99.47%/99.11%`，正式 GO。
 详见 `20260729-v0.10.5-anchor-atom-role.md`。
+
+v0.10.6 在 fresh calibration 500 上否决现成 v0.8.8 CTC 的直接复用：固定半径和预测 extent
+候选中最佳原子状态 accuracy 仅 56.3%、TEXT raw accuracy 9.3%、整图 exact 0.2%。当前从
+v0.8.8 初始化，在 v0.10.5 预测 TEXT 与预测 extent 1.5× crop 上用 GT 可见字符串微调；误报
+TEXT 使用 blank 监督，结构与角色门冻结。详见 `20260729-v0.10.6-deployed-atom-ocr.md`。

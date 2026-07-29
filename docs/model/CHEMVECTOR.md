@@ -10,7 +10,7 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
 
 - 稳定 tag：`v0.7.12`。
 - 当前稳定推理基线：`v0.7.10`。
-- 当前开发包版本：`v0.10.5`；当前研究实验编号：`v0.10.5`。
+- 当前开发包版本：`v0.10.6`；当前研究实验编号：`v0.10.6`。
 - v0.9.28 已接入冻结的完整图片到 SDF Object Shadow；稳定默认仍为 `v0.7.10`。
 - 版本从 `v0.7` 开始，每次发布增加 `0.0.1`。
 - 根目录 `VERSION` 是开发版本的唯一来源。
@@ -129,6 +129,9 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
   v0.10.4 全部结构模块，新增 anchor-centered 12/20/32px 原始像素角色门。6 图 smoke 已通过，
   正式通用三域 10k 将 role exact `0%→44.7%`、role accuracy `72.92%→99.62%`、TEXT
   precision/recall 提至 `99.47%/99.11%`。角色门 GO，下一步只对 TEXT 输出运行现有 CTC。
+- v0.10.6 先否决 v0.8.8 CTC 直接适配：fresh calibration 500 最佳原子状态 accuracy 仅
+  56.3%。随后固定 v0.10.5 角色门与预测 extent 1.5× crop，从 v0.8.8 初始化微调部署 CTC；
+  结构全部冻结，通用三域 10k 训练运行中。
 - v0.9.28 冻结八组件完整对象链路。USPTO clean 100 的 SDF valid 为 77%、非立体 exact 21%、
   化学 exact 19%；GD906 无效预测也保留 diagnostic SDF 与渲染图。可试用，但不替换稳定默认。
 - v0.9.29 在 USPTO clean 1k 上将 SDF 图分解为四层：纯骨架 72.4%、原子类型+骨架 29.2%、
