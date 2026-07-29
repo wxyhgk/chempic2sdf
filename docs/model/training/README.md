@@ -26,7 +26,7 @@
 
 ## 训练时间线
 
-当前运行中：[v0.10.3 Direct AtomPair Bond](20260729-v0.10.3-direct-atom-pair-bond.md)。
+当前已完成：[v0.10.3 Direct AtomPair Bond](20260729-v0.10.3-direct-atom-pair-bond.md)。
 
 | 编号 | 阶段 | 主要结论 | 状态 |
 |---|---|---|---|
@@ -567,6 +567,7 @@ proposal recall 95.33%→95.35%，但 Bond exact 32.9%→23.1%、Full exact 26.0
 v0.10.3 不再微调 Dense Bond 或追逐其 latent 表征。冻结 vision、Atom、旧 Bond 和 set 后，
 对 set 最终保留的所有 AtomObject 无序对读取尺度归一化 `9x32` 特征 ribbon，直接判断
 `None/四种化学键`。不输入绝对长度和位置，也不使用最近邻、键长或空白中点过滤。6 图 smoke
-已验证确定性训练、反传和 checkpoint 重载；正式 10k 以 fresh calibration 500 选阈值、
-独立 fresh evaluation 1k 做 `Bond exact +5pp` 门控。详见
+已验证确定性训练、反传和 checkpoint 重载；正式 10k 在独立 fresh evaluation 1k 将 Bond
+exact `30.6%→45.3%`，edge recall `95.15%→95.61%`，通过 `+5pp/-1pp` 门控。架构 GO；
+chemical Bond exact 为 18.3%，推理编译接入前默认前端不切换。详见
 `20260729-v0.10.3-direct-atom-pair-bond.md`。

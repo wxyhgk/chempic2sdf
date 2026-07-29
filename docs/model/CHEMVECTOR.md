@@ -119,7 +119,8 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
 - v0.10.3 冻结 vision、Atom、旧 Dense Bond 和 set，仅复用最终 AtomObject。新 2.27M
   Direct AtomPair Bond 对全部无序 Atom 对读取 stride-4 `9x32` 二维 ribbon，直接输出
   `None/SINGLE/DOUBLE/TRIPLE/AROMATIC`；不设邻居数、键长或空白中点过滤。6 图工程 smoke
-  已通过，正式 10k fresh 门控运行中，默认前端暂不切换。
+  和正式 10k 均完成。独立 fresh 1k Bond exact `30.6%→45.3%`、edge recall
+  `95.15%→95.61%`，通过 `+5pp/-1pp` 门控；架构 GO，推理编译接入前默认前端不切换。
 - v0.9.28 冻结八组件完整对象链路。USPTO clean 100 的 SDF valid 为 77%、非立体 exact 21%、
   化学 exact 19%；GD906 无效预测也保留 diagnostic SDF 与渲染图。可试用，但不替换稳定默认。
 - v0.9.29 在 USPTO clean 1k 上将 SDF 图分解为四层：纯骨架 72.4%、原子类型+骨架 29.2%、
