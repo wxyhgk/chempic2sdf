@@ -55,3 +55,20 @@ def test_training_crops_use_chemscene_order_after_atom_reordering() -> None:
     )
     assert len(crops) == 2
     assert labels == ["O", "N"]
+
+
+def test_training_crops_accept_learned_bbox_geometry() -> None:
+    sample = {"image": Image.new("RGB", (768, 768), "white")}
+    scenes = [{"atom_objects": [{"text": {"value": "Cl"}}]}]
+    atoms = {"atom_geometry": torch.zeros(1, 1, 8)}
+    learned = {
+        "centers": torch.tensor([[0.5, 0.5]]),
+        "half_extents": torch.tensor([[20.0 / 768.0, 10.0 / 768.0]]),
+    }
+    crops, labels = training_crops(
+        [sample], scenes, atoms, torch.tensor([[0]]), torch.tensor([0]),
+        torch.tensor([0]), torch.tensor([0]), 1.0, learned
+    )
+    assert len(crops) == 1
+    assert crops[0].shape == (3, 48, 192)
+    assert labels == ["Cl"]

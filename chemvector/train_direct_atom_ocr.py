@@ -18,6 +18,7 @@ from chemvector.data import chemscene_atom_labels
 from chemvector.direct_atom_role import enumerate_selected_atoms
 from chemvector.evaluate_direct_atom_ocr import (
     collect,
+    load_bbox,
     load_ctc,
     load_role,
     summarize,
@@ -36,13 +37,15 @@ from chemvector.evaluate_direct_atom_ocr import crop_tensor
 
 DEFAULT_ROLE = "outputs/checkpoints/chemvector-v0105-direct-atom-role-style10k/selected.pt"
 DEFAULT_CTC = "outputs/checkpoints/chemvector-v088-pretrained-bbox-ctc-10k/best.pt"
-DEFAULT_OUTPUT = "outputs/checkpoints/chemvector-v0106-deployed-atom-ocr-style10k"
+DEFAULT_BBOX = "outputs/checkpoints/chemvector-v0108-direct-atom-text-bbox-style10k/selected.pt"
+DEFAULT_OUTPUT = "outputs/checkpoints/chemvector-v0109-correct-label-ocr-style10k"
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--role-checkpoint", default=DEFAULT_ROLE)
     parser.add_argument("--initial-ctc-checkpoint", default=DEFAULT_CTC)
+    parser.add_argument("--bbox-checkpoint", default=DEFAULT_BBOX)
     parser.add_argument("--style-train-samples", type=int, default=6_668)
     parser.add_argument("--chemvision-replay-samples", type=int, default=1_666)
     parser.add_argument("--font-v2-replay-samples", type=int, default=1_666)
@@ -50,8 +53,10 @@ def parse_args():
     parser.add_argument("--fresh-eval-samples", type=int, default=1_000)
     parser.add_argument("--batch-size", type=int, default=6)
     parser.add_argument("--learning-rate", type=float, default=1e-4)
-    parser.add_argument("--extent-scale", type=float, default=1.5)
-    parser.add_argument("--true-text-only", action="store_true")
+    parser.add_argument("--extent-scale", type=float, default=1.0)
+    parser.add_argument(
+        "--true-text-only", action=argparse.BooleanOptionalAction, default=True
+    )
     parser.add_argument("--validate-every-total-samples", type=int, default=2_500)
     parser.add_argument("--output-dir", default=DEFAULT_OUTPUT)
     parser.add_argument("--seed", type=int, default=20260729)
@@ -67,6 +72,7 @@ def training_crops(
     sample_indices,
     text_rows,
     extent_scale,
+    learned_boxes=None,
 ):
     images = [
         sample["image"].convert("RGB").resize((768, 768), Image.Resampling.BICUBIC)
@@ -75,12 +81,18 @@ def training_crops(
     labels_by_sample = [chemscene_atom_labels(scene) for scene in scenes]
     crops = []
     labels = []
-    for row in text_rows.tolist():
+    for output_index, row in enumerate(text_rows.tolist()):
         batch_index = int(sample_indices[row])
         atom_index = int(atom_indices[row])
-        geometry = atoms["atom_geometry"][batch_index, atom_index].float().cpu() * 768
-        x, y = geometry[4:6].tolist()
-        extent_x, extent_y = geometry[6:8].tolist()
+        if learned_boxes is None:
+            geometry = atoms["atom_geometry"][batch_index, atom_index].float().cpu() * 768
+            x, y = geometry[4:6].tolist()
+            extent_x, extent_y = geometry[6:8].tolist()
+        else:
+            x, y = (learned_boxes["centers"][output_index].float().cpu() * 768).tolist()
+            extent_x, extent_y = (
+                learned_boxes["half_extents"][output_index].float().cpu() * 768
+            ).tolist()
         half_width = max(extent_x * extent_scale, 1.0)
         half_height = max(extent_y * extent_scale, 1.0)
         crops.append(
@@ -129,13 +141,18 @@ def main():
     output.mkdir(parents=True, exist_ok=True)
     role, role_payload = load_role(args.role_checkpoint, device)
     ocr, _ = load_ctc(args.initial_ctc_checkpoint, device)
+    bbox, _ = load_bbox(args.bbox_checkpoint, device)
     ocr.requires_grad_(True)
     ocr.unfreeze_pixel_encoder()
+    initial_pixel_state = {
+        name: value.detach().cpu().clone()
+        for name, value in ocr.pixel_encoder.state_dict().items()
+    }
     training_args = role_payload["training_args"]
     vision, atom, bond, set_head, source = load_components(
         training_args["source_checkpoint"], training_args["grounded_graph_checkpoint"], device
     )
-    for module in (vision, atom, bond, set_head, role):
+    for module in (vision, atom, bond, set_head, role, bbox):
         module.eval().requires_grad_(False)
     config = PredictedProposalConfig(**source["proposal_config"])
     collator = AtomBondSceneCollator(
@@ -149,7 +166,14 @@ def main():
     calibration_records = fresh[: args.fresh_calibration_samples]
     evaluation_records = fresh[args.fresh_calibration_samples :]
     optimizer = torch.optim.AdamW(ocr.parameters(), lr=args.learning_rate, weight_decay=1e-4)
-    audit = {"data_gate": verify_data_gate(), "fresh": fresh_audit, "sealed_test_read": False}
+    audit = {
+        "data_gate": verify_data_gate(),
+        "fresh": fresh_audit,
+        "label_protocol": "chemscene-atom-object-order",
+        "bbox_checkpoint": args.bbox_checkpoint,
+        "pixel_encoder_runtime_unfrozen": True,
+        "sealed_test_read": False,
+    }
     domain_counts = {
         "style_train": args.style_train_samples,
         "chemvision_replay": args.chemvision_replay_samples,
@@ -181,6 +205,13 @@ def main():
                 pixels, atoms["atom_geometry"][..., :2], atom_indices, sample_indices
             ).sigmoid()
         text_rows = torch.where(role_probabilities >= role_threshold)[0]
+        with torch.no_grad(), torch.autocast(device_type="cuda", dtype=torch.bfloat16):
+            learned_boxes = bbox(
+                pixels,
+                atoms["atom_geometry"][..., :2],
+                atom_indices[text_rows],
+                sample_indices[text_rows],
+            )
         crops, labels = training_crops(
             samples,
             batch["scenes"],
@@ -190,6 +221,7 @@ def main():
             sample_indices,
             text_rows,
             args.extent_scale,
+            learned_boxes,
         )
         if args.true_text_only:
             retained = [index for index, label in enumerate(labels) if label]
@@ -216,9 +248,9 @@ def main():
         if seen % args.validate_every_total_samples < len(samples) or seen == total_target:
             records = collect(
                 role, ocr, modules, calibration_records, collator, config,
-                role_threshold, device, args.batch_size
+                role_threshold, device, args.batch_size, bbox
             )
-            validation = summarize(records, "extent_1.50")
+            validation = summarize(records, "learned_bbox")
             validation.update({"samples_seen": seen, "elapsed_seconds": time.perf_counter() - started})
             score = (validation["state_exact_rate"], validation["state_accuracy"], validation["text_raw_accuracy"])
             save(output / "last.pt", ocr, optimizer, args, seen, validation, audit)
@@ -228,11 +260,17 @@ def main():
             print(json.dumps({"validation": validation}), flush=True)
     payload = torch.load(output / "best.pt", map_location="cpu", weights_only=False)
     ocr.load_state_dict(payload["pretrained_ctc_ocr"])
+    pixel_encoder_max_abs_delta = max(
+        float((value.detach().cpu() - initial_pixel_state[name]).abs().max())
+        for name, value in ocr.pixel_encoder.state_dict().items()
+    )
     calibration_gate = {
         "state_accuracy_min": 0.95,
         "state_exact_rate_min": 0.20,
         "passed": payload["validation"]["state_accuracy"] >= 0.95
-        and payload["validation"]["state_exact_rate"] >= 0.20,
+        and payload["validation"]["state_exact_rate"] >= 0.20
+        and pixel_encoder_max_abs_delta > 0.0,
+        "pixel_encoder_max_abs_delta": pixel_encoder_max_abs_delta,
     }
     if not calibration_gate["passed"]:
         report = {
@@ -252,9 +290,9 @@ def main():
         return
     records = collect(
         role, ocr, modules, evaluation_records, collator, config,
-        role_threshold, device, args.batch_size
+        role_threshold, device, args.batch_size, bbox
     )
-    evaluation = summarize(records, "extent_1.50")
+    evaluation = summarize(records, "learned_bbox")
     gate = {
         "passed": evaluation["state_accuracy"] >= 0.95
         and evaluation["state_exact_rate"] >= 0.20

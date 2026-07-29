@@ -26,8 +26,8 @@
 
 ## 训练时间线
 
-当前已完成：[v0.10.8 文字框与原子身份协议修复](20260729-v0.10.8-text-bbox-protocol-fix.md)
-（bbox 组件 GO，最终组合门待继续）。
+当前已完成：[v0.10.9 正确标签 Full CTC](20260729-v0.10.9-correct-label-full-ctc.md)
+（最终 OCR 组合门 GO）。
 
 | 编号 | 阶段 | 主要结论 | 状态 |
 |---|---|---|---|
@@ -606,3 +606,9 @@ v0.10.8 修复 ChemScene AtomObject 身份协议，并从干净 v0.8.8 重算得
 TEXT `68.87%→82.93%`、state `91.43%→95.24%`、exact `6.6%→18.9%`。bbox 组件 GO，
 最终 20% exact 组合门仍差 1.1pp。详见
 `20260729-v0.10.8-text-bbox-protocol-fix.md`。
+
+v0.10.9 从干净 v0.8.8 初始化，固定 v0.10.5 role 与 v0.10.8 learned bbox，按正确
+ChemScene 顺序只训练真实 TEXT crop，并显式解除 Pixel Encoder runtime freeze。三域 10k
+在独立 fresh 1k 将 TEXT `82.93%→93.13%`、state `95.24%→98.00%`、整图 exact
+`18.9%→33.3%`；6/6 Pixel Encoder tensor 确认发生变化，最终组合门正式 GO。详见
+`20260729-v0.10.9-correct-label-full-ctc.md`。

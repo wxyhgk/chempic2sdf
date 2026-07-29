@@ -127,8 +127,11 @@ class ChemicalCTCOCRTest(unittest.TestCase):
             PretrainedPixelCTCConfig(d_model=32, layers=1, heads=4)
         )
         model.unfreeze_pixel_encoder()
+        model.pixel_encoder_loaded = True
+        model(torch.zeros((1, 3, 48, 192))).sum().backward()
         self.assertFalse(model.pixel_encoder_frozen)
         self.assertTrue(all(item.requires_grad for item in model.pixel_encoder.parameters()))
+        self.assertTrue(all(item.grad is not None for item in model.pixel_encoder.parameters()))
 
     def test_conditioned_ctc_accepts_mask_and_anchor_channels(self) -> None:
         model = ConditionedPixelCTCOCR(

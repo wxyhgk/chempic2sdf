@@ -140,6 +140,9 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
 - v0.10.8 修复原子身份协议后，同一 v0.8.8 的当前 crop TEXT 为 69.34%，Oracle bbox 为
   85.23%。冻结结构/角色/OCR训练 274k anchor-local bbox 头，fresh 1k 的 TEXT 提至 82.93%、
   state 95.24%、exact 18.9%；bbox 组件 GO，最终 20% exact 组合门仍未通过。
+- v0.10.9 从干净 v0.8.8 初始化，按正确 ChemScene 标签、v0.10.8 learned bbox 真正解冻
+  758,945 参数 CTC。fresh 1k 的 TEXT 达到 93.13%、state 98.00%、整图 exact 33.3%；
+  6/6 Pixel Encoder tensor 均变化，最终 OCR 组合门 GO。
 - v0.9.28 冻结八组件完整对象链路。USPTO clean 100 的 SDF valid 为 77%、非立体 exact 21%、
   化学 exact 19%；GD906 无效预测也保留 diagnostic SDF 与渲染图。可试用，但不替换稳定默认。
 - v0.9.29 在 USPTO clean 1k 上将 SDF 图分解为四层：纯骨架 72.4%、原子类型+骨架 29.2%、
