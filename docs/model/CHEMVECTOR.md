@@ -131,7 +131,8 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
   precision/recall 提至 `99.47%/99.11%`。角色门 GO，下一步只对 TEXT 输出运行现有 CTC。
 - v0.10.6 先否决 v0.8.8 CTC 直接适配：fresh calibration 500 最佳原子状态 accuracy 仅
   56.3%。随后固定 v0.10.5 角色门与预测 extent 1.5× crop，从 v0.8.8 初始化微调部署 CTC；
-  结构全部冻结，通用三域 10k 训练运行中。
+  2.5k 和 5k 均塌缩为全 blank，TEXT accuracy 0%，提前停止于 6k。正式 NO-GO，独立 fresh
+  eval 1k 未读取；下一版拆分真实 TEXT CTC 与 blank gate。
 - v0.9.28 冻结八组件完整对象链路。USPTO clean 100 的 SDF valid 为 77%、非立体 exact 21%、
   化学 exact 19%；GD906 无效预测也保留 diagnostic SDF 与渲染图。可试用，但不替换稳定默认。
 - v0.9.29 在 USPTO clean 1k 上将 SDF 图分解为四层：纯骨架 72.4%、原子类型+骨架 29.2%、
