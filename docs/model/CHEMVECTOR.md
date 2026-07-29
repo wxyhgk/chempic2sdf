@@ -127,7 +127,8 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
   skeleton 逐位不变。编译器 GO，开放 OCR 接入前默认前端仍不切换。
 - v0.10.5 针对旧 Atom role head 在 fresh 1k 上 TEXT recall 仅 `0.0094%` 的明确缺口，冻结
   v0.10.4 全部结构模块，新增 anchor-centered 12/20/32px 原始像素角色门。6 图 smoke 已通过，
-  正式通用三域 10k 训练运行中；MR-TADF 不参与训练或阈值选择。
+  正式通用三域 10k 将 role exact `0%→44.7%`、role accuracy `72.92%→99.62%`、TEXT
+  precision/recall 提至 `99.47%/99.11%`。角色门 GO，下一步只对 TEXT 输出运行现有 CTC。
 - v0.9.28 冻结八组件完整对象链路。USPTO clean 100 的 SDF valid 为 77%、非立体 exact 21%、
   化学 exact 19%；GD906 无效预测也保留 diagnostic SDF 与渲染图。可试用，但不替换稳定默认。
 - v0.9.29 在 USPTO clean 1k 上将 SDF 图分解为四层：纯骨架 72.4%、原子类型+骨架 29.2%、

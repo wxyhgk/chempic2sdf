@@ -26,7 +26,7 @@
 
 ## 训练时间线
 
-当前运行中：[v0.10.5 Anchor-Centered Atom Role](20260729-v0.10.5-anchor-atom-role.md)。
+当前已完成：[v0.10.5 Anchor-Centered Atom Role](20260729-v0.10.5-anchor-atom-role.md)。
 
 | 编号 | 阶段 | 主要结论 | 状态 |
 |---|---|---|---|
@@ -581,5 +581,7 @@ Full chemical exact `18.2%→28.1%`、边级键型 accuracy `93.48%→94.95%`。
 
 v0.10.5 先审计出旧 Atom role head 在 fresh 1k 的 TEXT recall 仅 `1/10,607=0.0094%`，整图
 role exact 为 0；GD906 的 N/N/B/F 坐标均在 1.5px 内匹配，但全部被判为 IMPLICIT。新角色门
-只读 anchor 周围 12/20/32px 原始像素，冻结 v0.10.4 结构与 OCR，通用三域 10k 训练运行中。
+只读 anchor 周围 12/20/32px 原始像素，冻结 v0.10.4 结构与 OCR。通用三域 10k 在独立 fresh
+1k 将 role exact `0%→44.7%`、role accuracy `72.92%→99.62%`、TEXT precision/recall 提至
+`99.47%/99.11%`，正式 GO。
 详见 `20260729-v0.10.5-anchor-atom-role.md`。

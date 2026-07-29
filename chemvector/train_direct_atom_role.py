@@ -244,7 +244,7 @@ def main() -> None:
         optimizer.step()
         seen += len(samples)
         if seen % 1000 < len(samples):
-            print(json.dumps({"samples_seen": seen, "loss": float(loss), "domain_seen": domain_seen}), flush=True)
+            print(json.dumps({"samples_seen": seen, "loss": float(loss.detach()), "domain_seen": domain_seen}), flush=True)
         if seen % args.validate_every_total_samples < len(samples) or seen == total_target:
             predictions = collect(
                 model, vision, atom, bond, set_head, calibration_records, collator,
