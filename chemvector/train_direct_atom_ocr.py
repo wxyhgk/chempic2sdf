@@ -14,7 +14,7 @@ import torch
 
 from chemvector.atom_bond_scene import AtomBondSceneConfig
 from chemvector.ctc_ocr import ctc_loss, encode_text
-from chemvector.data import rendered_atom_labels
+from chemvector.data import chemscene_atom_labels
 from chemvector.direct_atom_role import enumerate_selected_atoms
 from chemvector.evaluate_direct_atom_ocr import (
     collect,
@@ -58,19 +58,28 @@ def parse_args():
     return parser.parse_args()
 
 
-def training_crops(samples, atoms, mapping, atom_indices, sample_indices, text_rows, extent_scale):
+def training_crops(
+    samples,
+    scenes,
+    atoms,
+    mapping,
+    atom_indices,
+    sample_indices,
+    text_rows,
+    extent_scale,
+):
     images = [
         sample["image"].convert("RGB").resize((768, 768), Image.Resampling.BICUBIC)
         for sample in samples
     ]
-    labels_by_sample = [rendered_atom_labels(sample) for sample in samples]
+    labels_by_sample = [chemscene_atom_labels(scene) for scene in scenes]
     crops = []
     labels = []
     for row in text_rows.tolist():
         batch_index = int(sample_indices[row])
         atom_index = int(atom_indices[row])
         geometry = atoms["atom_geometry"][batch_index, atom_index].float().cpu() * 768
-        x, y = geometry[:2].tolist()
+        x, y = geometry[4:6].tolist()
         extent_x, extent_y = geometry[6:8].tolist()
         half_width = max(extent_x * extent_scale, 1.0)
         half_height = max(extent_y * extent_scale, 1.0)
@@ -121,6 +130,7 @@ def main():
     role, role_payload = load_role(args.role_checkpoint, device)
     ocr, _ = load_ctc(args.initial_ctc_checkpoint, device)
     ocr.requires_grad_(True)
+    ocr.unfreeze_pixel_encoder()
     training_args = role_payload["training_args"]
     vision, atom, bond, set_head, source = load_components(
         training_args["source_checkpoint"], training_args["grounded_graph_checkpoint"], device
@@ -172,7 +182,14 @@ def main():
             ).sigmoid()
         text_rows = torch.where(role_probabilities >= role_threshold)[0]
         crops, labels = training_crops(
-            samples, atoms, mapping, atom_indices, sample_indices, text_rows, args.extent_scale
+            samples,
+            batch["scenes"],
+            atoms,
+            mapping,
+            atom_indices,
+            sample_indices,
+            text_rows,
+            args.extent_scale,
         )
         if args.true_text_only:
             retained = [index for index, label in enumerate(labels) if label]

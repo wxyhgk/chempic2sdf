@@ -16,9 +16,42 @@ def test_training_crops_assign_blank_to_unmatched_text_proposal() -> None:
         )
     }
     mapping = torch.tensor([[0, -1]])
+    scenes = [{"atom_objects": [{"text": {"value": "N"}}]}]
     crops, labels = training_crops(
-        [sample], atoms, mapping, torch.tensor([0, 1]), torch.tensor([0, 0]),
+        [sample], scenes, atoms, mapping, torch.tensor([0, 1]), torch.tensor([0, 0]),
         torch.tensor([0, 1]), 1.5
     )
     assert len(crops) == 2
     assert labels == ["N", ""]
+
+
+def test_training_crops_use_chemscene_order_after_atom_reordering() -> None:
+    sample = {
+        "image": Image.new("RGB", (768, 768), "white"),
+        "layers": {
+            "atoms": [
+                {"atom_id": 0, "visible_text": True, "text": "N"},
+                {"atom_id": 1, "visible_text": True, "text": "O"},
+            ]
+        },
+        "chemmol": {"atoms": []},
+    }
+    scenes = [
+        {
+            "atom_objects": [
+                {"text": {"value": "O"}},
+                {"text": {"value": "N"}},
+            ]
+        }
+    ]
+    atoms = {
+        "atom_geometry": torch.tensor(
+            [[[0.2, 0.2, 0, 0, 0, 0, 0.02, 0.02], [0.8, 0.8, 0, 0, 0, 0, 0.02, 0.02]]]
+        )
+    }
+    crops, labels = training_crops(
+        [sample], scenes, atoms, torch.tensor([[0, 1]]), torch.tensor([0, 1]),
+        torch.tensor([0, 0]), torch.tensor([0, 1]), 1.5
+    )
+    assert len(crops) == 2
+    assert labels == ["O", "N"]

@@ -116,6 +116,17 @@ def rendered_atom_labels(sample: dict) -> dict[int, tuple[str, bool]]:
     return labels
 
 
+def chemscene_atom_labels(scene: dict) -> dict[int, tuple[str, bool]]:
+    """Return labels indexed by ChemScene AtomObject ID, not source atom ID."""
+
+    labels = {}
+    for index, atom in enumerate(scene["atom_objects"]):
+        text = atom.get("text")
+        visible = text is not None
+        labels[index] = (str(text["value"]) if visible else "", visible)
+    return labels
+
+
 def load_reject_keys(path: str | Path | None) -> set[str]:
     if path is None:
         return set()

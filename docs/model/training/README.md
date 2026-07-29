@@ -26,7 +26,8 @@
 
 ## 训练时间线
 
-当前已完成：[v0.10.7 True-Text-Only CTC](20260729-v0.10.7-true-text-ctc.md)（NO-GO）。
+当前已完成：[v0.10.8 文字框与原子身份协议修复](20260729-v0.10.8-text-bbox-protocol-fix.md)
+（bbox 组件 GO，最终组合门待继续）。
 
 | 编号 | 阶段 | 主要结论 | 状态 |
 |---|---|---|---|
@@ -595,5 +596,13 @@ NO-GO。详见 `20260729-v0.10.6-deployed-atom-ocr.md`。
 v0.10.7 不继承 v0.10.6 blank-collapse 权重，从 v0.8.8 重新初始化；训练只保留 v0.10.5
 预测 TEXT 中已匹配且 GT 可见字符串非空的 crop，blank 与误报不进入 CTC loss。角色门、结构
 与 crop 协议冻结。7.5k 最佳 TEXT raw 仅 10.11%、state accuracy 56.45%、exact 0.2%；10k
-轻微回退。正式 NO-GO，下一步训练文字 bbox/分割定位。详见
+轻微回退。v0.10.8 已证明这些数值来自 AtomObject/atom_id 标签错配，且 Pixel Encoder 实际
+未解冻；本轮 checkpoint 作废，不能用于能力判断。详见
 `20260729-v0.10.7-true-text-ctc.md`。
+
+v0.10.8 修复 ChemScene AtomObject 身份协议，并从干净 v0.8.8 重算得到当前 crop TEXT
+69.34%、Oracle bbox TEXT 85.23%。冻结结构、角色门和 CTC，只训练 274,148 参数的
+16/32/48px anchor-local bbox 回归头。三域 10k 在 fresh 1k 将 mean IoU `0.570→0.839`、
+TEXT `68.87%→82.93%`、state `91.43%→95.24%`、exact `6.6%→18.9%`。bbox 组件 GO，
+最终 20% exact 组合门仍差 1.1pp。详见
+`20260729-v0.10.8-text-bbox-protocol-fix.md`。

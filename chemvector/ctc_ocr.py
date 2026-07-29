@@ -427,12 +427,19 @@ class PretrainedPixelCTCOCR(nn.Module):
         )
         self.output = nn.Linear(self.config.d_model, CTC_VOCAB_SIZE)
         self.pixel_encoder_loaded = False
+        self.pixel_encoder_frozen = False
         if self.config.freeze_pixel_encoder:
             self.freeze_pixel_encoder()
 
     def freeze_pixel_encoder(self) -> None:
         for parameter in self.pixel_encoder.parameters():
             parameter.requires_grad_(False)
+        self.pixel_encoder_frozen = True
+
+    def unfreeze_pixel_encoder(self) -> None:
+        for parameter in self.pixel_encoder.parameters():
+            parameter.requires_grad_(True)
+        self.pixel_encoder_frozen = False
 
     def trainable_parameter_count(self) -> int:
         return sum(parameter.numel() for parameter in self.parameters() if parameter.requires_grad)
@@ -473,7 +480,7 @@ class PretrainedPixelCTCOCR(nn.Module):
             raise ValueError("CTC OCR pixels must have shape [batch, 3, height, width]")
         if not self.pixel_encoder_loaded:
             raise RuntimeError("Pretrained pixel encoder checkpoint has not been loaded")
-        if self.config.freeze_pixel_encoder:
+        if self.pixel_encoder_frozen:
             with torch.no_grad():
                 features = self.pixel_encoder(pixels)
         else:

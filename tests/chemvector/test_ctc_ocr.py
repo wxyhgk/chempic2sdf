@@ -122,6 +122,14 @@ class ChemicalCTCOCRTest(unittest.TestCase):
         self.assertEqual(logits.shape, (2, 48, 257))
         self.assertTrue(all(not item.requires_grad for item in model.pixel_encoder.parameters()))
 
+    def test_pretrained_pixel_ctc_can_be_explicitly_unfrozen(self) -> None:
+        model = PretrainedPixelCTCOCR(
+            PretrainedPixelCTCConfig(d_model=32, layers=1, heads=4)
+        )
+        model.unfreeze_pixel_encoder()
+        self.assertFalse(model.pixel_encoder_frozen)
+        self.assertTrue(all(item.requires_grad for item in model.pixel_encoder.parameters()))
+
     def test_conditioned_ctc_accepts_mask_and_anchor_channels(self) -> None:
         model = ConditionedPixelCTCOCR(
             ConditionedPixelCTCConfig(

@@ -135,7 +135,11 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
   eval 1k 未读取；下一版拆分真实 TEXT CTC 与 blank gate。
 - v0.10.7 从干净 v0.8.8 重新初始化，保持 v0.10.5 角色门，只用已匹配且 GT 字符串非空的
   部署 crop 训练 CTC，移除全部 blank 目标。没有 blank collapse，但 7.5k 最佳 TEXT raw 仅
-  10.11%、state accuracy 56.45%、exact 0.2%，正式 NO-GO；下一步训练独立文字 bbox/分割。
+  10.11%、state accuracy 56.45%、exact 0.2%。v0.10.8 复核确认该结果来自空间 AtomObject
+  与源 atom_id 标签错配，且 Pixel Encoder 实际未解冻；checkpoint 已废弃。
+- v0.10.8 修复原子身份协议后，同一 v0.8.8 的当前 crop TEXT 为 69.34%，Oracle bbox 为
+  85.23%。冻结结构/角色/OCR训练 274k anchor-local bbox 头，fresh 1k 的 TEXT 提至 82.93%、
+  state 95.24%、exact 18.9%；bbox 组件 GO，最终 20% exact 组合门仍未通过。
 - v0.9.28 冻结八组件完整对象链路。USPTO clean 100 的 SDF valid 为 77%、非立体 exact 21%、
   化学 exact 19%；GD906 无效预测也保留 diagnostic SDF 与渲染图。可试用，但不替换稳定默认。
 - v0.9.29 在 USPTO clean 1k 上将 SDF 图分解为四层：纯骨架 72.4%、原子类型+骨架 29.2%、
