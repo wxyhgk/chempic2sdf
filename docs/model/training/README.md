@@ -26,8 +26,8 @@
 
 ## 训练时间线
 
-当前已完成：[v0.10.13 Safe Deletion Action 50k](20260730-v0.10.13-safe-deletion-action-50k.md)
-（single-delete oracle GO，learned route-select NO-GO，未运行 confirm）。
+当前已完成：[v0.10.14 Unsafe Certificate OOF](20260730-v0.10.14-unsafe-certificate-oof.md)
+（独立 unsafe certificate nested OOF NO-GO，未运行 confirm）。
 
 | 编号 | 阶段 | 主要结论 | 状态 |
 |---|---|---|---|
@@ -636,3 +636,9 @@ single-delete oracle 将 Atom exact `50.43%→61.40%`、Skeleton `45.95%→55.04
 均零 break；但 63,374 参数 learned head 训练 50k 后，没有 checkpoint 同时达到零 harmful、
 Skeleton `+2.5pp` 和 winner recall 25%。因此在 route-select 直接 NO-GO，42k confirm
 保持 `000` 且未读取。详见 `20260730-v0.10.13-safe-deletion-action-50k.md`。
+
+v0.10.14 将 safety 与 utility ranking 解耦，对 route-select 8k 运行 molecule-grouped
+五折 OOF：三折训练、一折校准、一折评估，每折三个 seed。保守 ensemble 的 Atom/Skeleton
+分别提高 `+2.15pp/+1.84pp`，但 407 次执行仍有 3 次 harmful，winner recall 仅 17.03%，
+正式 NO-GO。取证证明 420D pooled feature 丢失逐邻边 chemical type 对应关系；confirm 与
+sealed test 均未读取。详见 `20260730-v0.10.14-unsafe-certificate-oof.md`。

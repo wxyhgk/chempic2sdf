@@ -155,6 +155,10 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
 - v0.10.13 的方向性 single-delete oracle 在全新 8k 上将 Atom exact `50.43%→61.40%`、
   Skeleton `45.95%→55.04%`，证明动作空间有效；63k learned action head 训练 50k 后仍无法
   同时达到零 harmful、Skeleton `+2.5pp` 和 25% recall，route-select NO-GO，confirm 未读。
+- v0.10.14 将 unsafe certificate 与 utility ranking 解耦并运行 molecule-grouped nested OOF。
+  三 seed 保守 ensemble 将 Atom/Skeleton 提高 `+2.15pp/+1.84pp`，但 407 次执行仍有 3 次
+  harmful，winner recall 17.03%；正式 NO-GO，confirm 未读。失败取证转向逐邻边键级一致的
+  structural-twin certificate。
 - v0.9.28 冻结八组件完整对象链路。USPTO clean 100 的 SDF valid 为 77%、非立体 exact 21%、
   化学 exact 19%；GD906 无效预测也保留 diagnostic SDF 与渲染图。可试用，但不替换稳定默认。
 - v0.9.29 在 USPTO clean 1k 上将 SDF 图分解为四层：纯骨架 72.4%、原子类型+骨架 29.2%、
