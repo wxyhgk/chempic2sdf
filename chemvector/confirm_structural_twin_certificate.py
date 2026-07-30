@@ -194,13 +194,35 @@ def _collect_confirm_samples(args, manifest, models, device):
     samples = []
     coordinate_collisions = []
     total_seen = 0
+    commitment = json.loads(
+        (DATA_ROOT / "commitment.json").read_text(encoding="utf-8")
+    )
+    tar_entries = [
+        row
+        for row in commitment["tars"]
+        if row["path"].startswith("route_confirm/shards/")
+    ]
+    if len(tar_entries) != EXPECTED_CONFIRM_SHARDS:
+        raise ValueError("Committed route-confirm shard count differs")
+    shards_root = confirm_root / "shards"
+    opened_shards = []
     os.chmod(confirm_root, 0o500)
     try:
-        shards = sorted((confirm_root / "shards").glob("route_confirm-*.tar"))
-        if len(shards) != EXPECTED_CONFIRM_SHARDS:
-            raise ValueError(
-                f"Expected {EXPECTED_CONFIRM_SHARDS} confirm shards, found {len(shards)}"
-            )
+        if stat.S_IMODE(shards_root.stat().st_mode) != 0:
+            raise RuntimeError("route-confirm shards directory was not sealed")
+        os.chmod(shards_root, 0o500)
+        shards = []
+        for entry in tar_entries:
+            path = DATA_ROOT / Path(entry["path"]).relative_to("route_confirm")
+            if stat.S_IMODE(path.stat().st_mode) != 0:
+                raise RuntimeError(f"route-confirm shard was not sealed: {path}")
+            os.chmod(path, 0o400)
+            opened_shards.append(path)
+            if path.stat().st_size != entry["bytes"]:
+                raise ValueError(f"Committed route-confirm shard size differs: {path}")
+            if _sha256_file(path) != entry["sha256"]:
+                raise ValueError(f"Committed route-confirm shard SHA differs: {path}")
+            shards.append(path)
         dataset = ChemVectorIterableDataset(
             [str(path) for path in shards],
             sequence_version="0.4",
@@ -260,6 +282,10 @@ def _collect_confirm_samples(args, manifest, models, device):
                     flush=True,
                 )
     finally:
+        for path in reversed(opened_shards):
+            os.chmod(path, 0o000)
+        if shards_root.exists():
+            os.chmod(shards_root, 0o000)
         os.chmod(confirm_root, 0o000)
     restored_mode = stat.S_IMODE(confirm_root.stat().st_mode)
     if restored_mode != 0:
