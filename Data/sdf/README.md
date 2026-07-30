@@ -5,6 +5,13 @@
 训练加载器可直接从现有 JSON 动态生成旧序列标签；Visual SVG 容量集使用独立的
 确定性构建器生成，不需要重建 75GB WebDataset。
 
+## ChemVector Safe Suppression v0.1
+
+[Safe Suppression v0.1](chemvector_safe_suppression_v0_1/README.md) 为 `v0.10.13`
+提供 12,500 个全新 scaffold 分子和 50,000 张未见图片。它将 8,000 张 route-select 与
+42,000 张 `000` route-confirm 严格隔离，并用方向性删除动作替代存在标签偏差的
+same-GT identity 目标。旧 sealed test 在该版本中继续保持未读。
+
 ## Visual SVG v0.1
 
 [Visual SVG v0.1](visual_svg_v0_1/README.md) 分成两层：`visual-primitives-0.1`
