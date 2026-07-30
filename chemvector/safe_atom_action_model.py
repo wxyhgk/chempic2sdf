@@ -65,7 +65,7 @@ def delete_action_features(
             & (torch.arange(len(anchors)) != removed)
         )[0]
         witness_distances = distances[removed, witnesses]
-        weights = torch.softmax(-witness_distances / 4.0, dim=0)
+        weights = torch.softmax(-witness_distances / 4.0, dim=0).float()
         pooled_feature = (atom_features[witnesses] * weights[:, None]).sum(dim=0)
         pooled_geometry_delta = (
             (geometry[witnesses] - geometry[removed]).abs() * weights[:, None]

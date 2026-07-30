@@ -89,6 +89,7 @@ def test_action_feature_distance_matches_float64_candidate_enumeration() -> None
     assert double_distance < 16.0
     features, removed = delete_action_features(sample, presence_threshold=0.5)
     assert features.shape == (2, ACTION_FEATURE_DIM)
+    assert features.dtype == torch.float32
     assert removed.tolist() == [0, 1]
 
 
