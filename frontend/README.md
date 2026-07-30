@@ -76,6 +76,10 @@ test `527→533`，internal 两域分别 `239→244` 和 `288→289`，presence 
 运行时模型注册表位于 `frontend/inference_profiles.json`。服务端每次读取 profile API、
 浏览器每次打开上传面板时都会重新加载该文件，因此新增或更新 profile 后不需要重启
 前端服务，也不需要手动刷新网页。只有修改 `frontend/server.py` 本身时才需要重启。
+`structure-v01016-structural-twin-ocr` 是非推荐 shadow profile：它在 v0.10.10 的 Direct
+AtomPair 输出后删除至多一个获证重复 AtomObject，并同步删除全部入射 pair，再运行原有 OCR
+与 SDF 编译。40 张开发集端到端 A/B 将 SDF valid `18→24`、chemical exact `5→6`，零回退；
+新的未见端到端回归完成前，推荐 profile 仍为 v0.10.10。
 `v0.9.28 Object Shadow` 是历史完整对象 shadow：固定八个 checkpoint 及 SHA，
 直接输出 ChemScene、有效或 diagnostic SDF 和对应渲染图。它用于真实图片试用和公开 benchmark，
 现在保留为对照，不再是默认推荐 profile。

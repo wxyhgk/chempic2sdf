@@ -26,8 +26,8 @@
 
 ## 训练时间线
 
-当前进行中：[v0.10.16 Structural Twin 推理接入](20260730-v0.10.16-structural-twin-inference.md)
-（shadow profile 已实现，端到端 SDF pilot 待执行）。
+当前已完成：[v0.10.16 Structural Twin 推理接入](20260730-v0.10.16-structural-twin-inference.md)
+（40 张端到端 pilot 工程 GO，shadow 可用，默认仍为 v0.10.10）。
 
 | 编号 | 阶段 | 主要结论 | 状态 |
 |---|---|---|---|
@@ -648,3 +648,8 @@ structural-twin 规则，再由冻结 ranking 每图最多选一次。未见 rou
 4,605 次，0 harmful、0 coverage loss，Atom/Skeleton exact 分别 `+5.99pp/+5.13pp`，单侧
 95% safe precision 下界 99.93497%，结构门正式 GO。完整 OCR/SDF/chemical exact 未回归，
 默认前端仍为 v0.10.10。详见 `20260730-v0.10.15-structural-twin-certificate.md`。
+
+v0.10.16 将完整候选接入 Direct AtomPair 输出之后、OCR/芳香环/SDF 编译之前，并同步过滤
+removed query 的全部入射 pair。固定 20 action + 20 control 的端到端 A/B 中，执行协议 40/40
+正确，SDF valid `18→24`、非立体 exact `9→12`、chemical exact `5→6`，所有回退为 0，
+control OCR 与图零变化。工程 GO；该 pilot 来自开发集，前端 profile 暂保持非推荐。
