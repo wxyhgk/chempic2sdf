@@ -303,3 +303,27 @@ USPTO 标签未参与。
 ```text
 outputs/evaluations/uspto-clean-1k-v0941-bond-utility-router/
 ```
+
+## v0.10.16 Structural Twin 公开 100 配对回归
+
+使用 USPTO clean 1k 官方 manifest 中前 100 条 ready 记录，按原顺序同时运行 v0.10.10
+Direct+OCR 与 v0.10.16 structural-twin shadow。样本不按触发或结果筛选。
+
+| 指标 | v0.10.10 | v0.10.16 | paired break |
+|---|---:|---:|---:|
+| SDF valid | 43 | 43 | 0 |
+| 非立体 exact | 0 | 0 | 0 |
+| chemical exact | 0 | 0 | 0 |
+
+v0.10.16 自然触发 3 张；三张均未破坏 valid。其余 97 张的 OCR 标签与预测图全部一致。
+该结果通过未见公开非回退门，但两路 exact 都是 0，说明 USPTO 风格上的主要瓶颈仍在基础
+Atom/Bond/OCR 链路，不能将本结果解释为公开准确率提升。
+
+输出：
+
+```text
+outputs/evaluations/uspto-clean-100-v01016-structural-twin-ab/
+```
+
+报告 SHA256：
+`7d6794ab950c015c9b75db0ddf5084ac03326a007c899dd22568e5373c508571`。
