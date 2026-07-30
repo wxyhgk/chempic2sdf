@@ -220,8 +220,15 @@ def collect_samples(
             sample, presence_threshold=presence_threshold
         )
         sample["action_labels"] = _compact_labels(labels)
+        rendered_anchors = torch.tensor(
+            [
+                [float(item["image_x"]), float(item["image_y"])]
+                for item in record["render"]["atoms"]
+            ],
+            dtype=torch.float64,
+        ) / 768.0
         sample["minimum_target_distance_px"] = _minimum_target_distance(
-            sample["target_anchors"]
+            rendered_anchors
         )
         samples.append(sample)
     return samples
