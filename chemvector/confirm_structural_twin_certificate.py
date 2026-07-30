@@ -95,6 +95,16 @@ def _minimum_target_distance(target_anchors: torch.Tensor) -> float:
     return float(distance.min())
 
 
+def _committed_confirm_tars(
+    commitment: dict, *, data_root: Path = DATA_ROOT
+) -> list[tuple[Path, dict]]:
+    return [
+        (data_root / row["path"], row)
+        for row in commitment["tars"]
+        if row["path"].startswith("route_confirm/shards/")
+    ]
+
+
 def _load_frozen_manifest(path: Path) -> tuple[dict, str, str]:
     manifest_sha = _sha256_file(path)
     manifest = json.loads(path.read_text(encoding="utf-8"))
@@ -197,11 +207,7 @@ def _collect_confirm_samples(args, manifest, models, device):
     commitment = json.loads(
         (DATA_ROOT / "commitment.json").read_text(encoding="utf-8")
     )
-    tar_entries = [
-        row
-        for row in commitment["tars"]
-        if row["path"].startswith("route_confirm/shards/")
-    ]
+    tar_entries = _committed_confirm_tars(commitment)
     if len(tar_entries) != EXPECTED_CONFIRM_SHARDS:
         raise ValueError("Committed route-confirm shard count differs")
     shards_root = confirm_root / "shards"
@@ -212,8 +218,7 @@ def _collect_confirm_samples(args, manifest, models, device):
             raise RuntimeError("route-confirm shards directory was not sealed")
         os.chmod(shards_root, 0o500)
         shards = []
-        for entry in tar_entries:
-            path = DATA_ROOT / Path(entry["path"]).relative_to("route_confirm")
+        for path, entry in tar_entries:
             if stat.S_IMODE(path.stat().st_mode) != 0:
                 raise RuntimeError(f"route-confirm shard was not sealed: {path}")
             os.chmod(path, 0o400)
