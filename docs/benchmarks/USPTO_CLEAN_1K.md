@@ -327,3 +327,34 @@ outputs/evaluations/uspto-clean-100-v01016-structural-twin-ab/
 
 报告 SHA256：
 `7d6794ab950c015c9b75db0ddf5084ac03326a007c899dd22568e5373c508571`。
+
+## v0.10.16 Structural Twin 公开 1K 配对回归
+
+固定使用官方 manifest 的前 1,000 条记录，拆为四个互斥的 250 样本分片运行后合并。
+structural-twin 自然触发 15 张；这 15 张同时运行 v0.10.10 baseline 和 v0.10.16 candidate。
+其余 985 张经确定性验证无动作，因此使用 identity 结果，避免重复执行相同推理链。
+
+| 指标 | v0.10.10 | v0.10.16 | rescue | break |
+|---|---:|---:|---:|---:|
+| SDF valid | 474 | 474 | 0 | 0 |
+| 非立体 exact | 0 | 0 | 0 | 0 |
+| chemical exact | 0 | 0 | 0 | 0 |
+
+15 张触发样本的 OCR 文本 multiset 全部保持不变。Atom 数误差在 10 张改善、5 张变差；
+Bond 数误差在 5 张改善、10 张变差。985 张无动作样本的 OCR 和预测图均无变化。
+
+该测试通过公开 1k 配对非回退门，但不能宣称准确率提升：两路完整 exact 都仍为 0。
+structural-twin 是安全的窄范围重复节点修复，不是 USPTO 风格下基础 Atom/Bond/OCR 错误的
+主要解法，后续不再沿该证书继续局部优化。
+
+合并输出：
+
+```text
+outputs/evaluations/uspto-clean-1k-v01016-structural-twin-ab/
+```
+
+报告 SHA256：
+`cb1a3f8e432b711e608378ef7849518d99b6458682ad63766dd615b488dd9897`。
+
+配置 SHA256：
+`8a63051649f8e7c808f3ea0066af156957b008ade6d7a62d00054e5bafe5baf8`。
