@@ -26,8 +26,8 @@
 
 ## 训练时间线
 
-当前已完成：[v0.10.12 安全近重复 Affinity 40k](20260730-v0.10.12-safe-duplicate-affinity-40k.md)
-（能力 GO，预注册 identity precision 门未过，默认部署 NO-GO）。
+当前已完成：[v0.10.13 Safe Deletion Action 50k](20260730-v0.10.13-safe-deletion-action-50k.md)
+（single-delete oracle GO，learned route-select NO-GO，未运行 confirm）。
 
 | 编号 | 阶段 | 主要结论 | 状态 |
 |---|---|---|---|
@@ -630,3 +630,9 @@ v0.10.12 将训练扩至最多 50k，并用 4k route-select / 3,974 route-confir
 `46.53%→50.15%`，162/144 rescue、Atom/Skeleton break 均为 0；但 identity precision
 99.33% 未达到预注册 99.9%，因此默认部署仍 NO-GO。选模同时修复为安全资格优先并永久保存
 每个 step。详见 `20260730-v0.10.12-safe-duplicate-affinity-40k.md`。
+
+v0.10.13 用方向性 `DELETE(node)` action 替代 same-GT identity。全新 route-select 8k 的
+single-delete oracle 将 Atom exact `50.43%→61.40%`、Skeleton `45.95%→55.04%`，两桶
+均零 break；但 63,374 参数 learned head 训练 50k 后，没有 checkpoint 同时达到零 harmful、
+Skeleton `+2.5pp` 和 winner recall 25%。因此在 route-select 直接 NO-GO，42k confirm
+保持 `000` 且未读取。详见 `20260730-v0.10.13-safe-deletion-action-50k.md`。
