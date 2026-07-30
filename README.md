@@ -3,11 +3,11 @@
 ChemPic2SDF 是面向化学结构图片识别的视觉到结构项目。v0.8 开始将图片建模为
 Junction、TextObject 和 BondObject 组成的 ChemScene，再通过确定性编译导出 SDF。
 
-当前稳定 tag：`v0.7.12`。当前稳定推理基线为 `v0.7.10`；开发版本 `v0.8.33`。
-当前端到端 shadow 仍为 `v0.7.38`；v0.8.33 是冻结 geometry 的 presence selector
-实验 checkpoint，默认推理尚未替换。
+当前完成的研究 tag：`v0.10.15`。当前稳定推理基线为 `v0.10.10`；开发版本
+`v0.10.15`。v0.10.15 的 structural-twin 组件已通过 42k confirm 结构门，但完整
+OCR/SDF/chemical exact 尚未回归，因此默认推理暂不替换。
 
-当前研究实验为 `v0.9.92`。从 v0.9.86 开始，版本门控重新以 ChemVision/full-v0 普通结构的
+当前研究实验为 `v0.10.15`。从 v0.9.86 开始，版本门控重新以 ChemVision/full-v0 普通结构的
 双域 validation 和 locked internal test 为主；MR-TADF 长键只保留为专项诊断，不再主导模型方向。
 此前的 locked internal100 继续作为历史回归护栏。MR-TADF 仍然只测不训，不参与阈值拟合或
 hard replay。

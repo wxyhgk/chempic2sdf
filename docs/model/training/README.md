@@ -26,8 +26,8 @@
 
 ## 训练时间线
 
-当前进行中：[v0.10.15 Structural Twin Certificate](20260730-v0.10.15-structural-twin-certificate.md)
-（route-select GO，冻结候选与 route-confirm 待执行）。
+当前已完成：[v0.10.15 Structural Twin Certificate](20260730-v0.10.15-structural-twin-certificate.md)
+（42k route-confirm 结构门 GO，完整 SDF 部署回归待执行）。
 
 | 编号 | 阶段 | 主要结论 | 状态 |
 |---|---|---|---|
@@ -642,3 +642,9 @@ v0.10.14 将 safety 与 utility ranking 解耦，对 route-select 8k 运行 mole
 分别提高 `+2.15pp/+1.84pp`，但 407 次执行仍有 3 次 harmful，winner recall 仅 17.03%，
 正式 NO-GO。取证证明 420D pooled feature 丢失逐邻边 chemical type 对应关系；confirm 与
 sealed test 均未读取。详见 `20260730-v0.10.14-unsafe-certificate-oof.md`。
+
+v0.10.15 不再训练 safety probability，改用 2px、非空等邻接、逐邻边 chemical type 一致的
+structural-twin 规则，再由冻结 ranking 每图最多选一次。未见 route-confirm 42k 实际执行
+4,605 次，0 harmful、0 coverage loss，Atom/Skeleton exact 分别 `+5.99pp/+5.13pp`，单侧
+95% safe precision 下界 99.93497%，结构门正式 GO。完整 OCR/SDF/chemical exact 未回归，
+默认前端仍为 v0.10.10。详见 `20260730-v0.10.15-structural-twin-certificate.md`。

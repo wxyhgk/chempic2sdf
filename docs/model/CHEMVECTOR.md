@@ -8,10 +8,10 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
 
 ## 当前版本
 
-- 稳定 tag：`v0.7.12`。
-- 当前稳定推理基线：`v0.7.10`。
-- 当前开发包版本：`v0.10.7`；当前研究实验编号：`v0.10.7`。
-- v0.9.28 已接入冻结的完整图片到 SDF Object Shadow；稳定默认仍为 `v0.7.10`。
+- 当前完成的研究 tag：`v0.10.15`。
+- 当前稳定推理基线：`v0.10.10`。
+- 当前开发包版本：`v0.10.15`；当前研究实验编号：`v0.10.15`。
+- v0.10.15 structural-twin 已通过结构门；完整 SDF 回归前默认仍为 `v0.10.10`。
 - 版本从 `v0.7` 开始，每次发布增加 `0.0.1`。
 - 根目录 `VERSION` 是开发版本的唯一来源。
 
@@ -159,6 +159,10 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
   三 seed 保守 ensemble 将 Atom/Skeleton 提高 `+2.15pp/+1.84pp`，但 407 次执行仍有 3 次
   harmful，winner recall 17.03%；正式 NO-GO，confirm 未读。失败取证转向逐邻边键级一致的
   structural-twin certificate。
+- v0.10.15 用 2px structural-twin 规则保护逐邻接和逐边键级，再由冻结 ranking 每图最多删除
+  一次。未见 42k confirm 执行 4,605 次，0 harmful/coverage loss，Atom/Skeleton exact
+  `+5.99pp/+5.13pp`，95% safe precision 下界 99.93497%，结构组件 GO。完整 SDF 回归前默认
+  仍为 v0.10.10。
 - v0.9.28 冻结八组件完整对象链路。USPTO clean 100 的 SDF valid 为 77%、非立体 exact 21%、
   化学 exact 19%；GD906 无效预测也保留 diagnostic SDF 与渲染图。可试用，但不替换稳定默认。
 - v0.9.29 在 USPTO clean 1k 上将 SDF 图分解为四层：纯骨架 72.4%、原子类型+骨架 29.2%、
