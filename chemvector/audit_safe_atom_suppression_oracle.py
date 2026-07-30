@@ -15,6 +15,10 @@ import time
 
 import torch
 
+from Data.sdf.chemsvg_sequence_v4 import (
+    ChemSVGCoordinateCollisionError,
+    serialize_chemsvg_v4,
+)
 from chemvector.atom_bond_scene import AtomBondSceneConfig
 from chemvector.data import ChemVectorIterableDataset
 from chemvector.direct_atom_pair_bond import enumerate_unordered_atom_pairs
@@ -223,8 +227,12 @@ def collect_samples(
     return samples
 
 
-def _summarize(samples: list[dict], presence_threshold: float) -> dict:
+def _summarize(
+    samples: list[dict], presence_threshold: float, *, forced_failures: int = 0
+) -> dict:
     totals = defaultdict(int)
+    totals["samples"] = forced_failures
+    totals["coordinate_collision_failures"] = forced_failures
     cases = []
     for sample in samples:
         kept = torch.ones(len(sample["anchors"]), dtype=torch.bool)
@@ -337,38 +345,76 @@ def main() -> None:
     )
     iterator = iter(dataset)
     samples = []
+    coordinate_collisions = []
+    total_seen = 0
     for records in _batches(iterator, args.batch_size):
         if args.limit is not None:
-            remaining = args.limit - len(samples)
+            remaining = args.limit - total_seen
             if remaining <= 0:
                 break
             records = records[:remaining]
-        samples.extend(
-            collect_samples(
-                direct,
-                vision,
-                atom,
-                bond,
-                set_head,
-                records,
-                collator,
-                config,
-                atom_threshold,
-                presence_threshold,
-                device,
+        total_seen += len(records)
+        valid_records = []
+        for record in records:
+            try:
+                serialize_chemsvg_v4(record["chemmol"], record["render"])
+            except ChemSVGCoordinateCollisionError:
+                anchors = torch.tensor(
+                    [
+                        [float(atom["image_x"]), float(atom["image_y"])]
+                        for atom in record["render"]["atoms"]
+                    ],
+                    dtype=torch.float64,
+                ) / 768.0
+                coordinate_collisions.append(
+                    {
+                        "key": record["key"],
+                        "molecule_id": record["chemmol"]["molecule_id"],
+                        "minimum_target_distance_px": _minimum_target_distance(anchors),
+                    }
+                )
+            else:
+                valid_records.append(record)
+        if valid_records:
+            samples.extend(
+                collect_samples(
+                    direct,
+                    vision,
+                    atom,
+                    bond,
+                    set_head,
+                    valid_records,
+                    collator,
+                    config,
+                    atom_threshold,
+                    presence_threshold,
+                    device,
+                )
             )
-        )
-        if len(samples) % 500 < len(records):
-            print(json.dumps({"samples_collected": len(samples)}), flush=True)
-        if args.limit is not None and len(samples) >= args.limit:
+        if total_seen % 500 < len(records):
+            print(
+                json.dumps(
+                    {
+                        "samples_seen": total_seen,
+                        "samples_cached": len(samples),
+                        "coordinate_collisions": len(coordinate_collisions),
+                    }
+                ),
+                flush=True,
+            )
+        if args.limit is not None and total_seen >= args.limit:
             break
     expected = args.limit or 8_000
-    if len(samples) != expected:
-        raise ValueError(f"Route-select sample count differs: {len(samples)} != {expected}")
+    if total_seen != expected or len(samples) + len(coordinate_collisions) != expected:
+        raise ValueError(
+            "Route-select coverage differs: "
+            f"seen={total_seen} cached={len(samples)} collisions={len(coordinate_collisions)} "
+            f"expected={expected}"
+        )
 
     close_molecules = {
         sample["molecule_id"]
-        for sample in samples
+        for sample in [*samples, *coordinate_collisions]
         if sample["minimum_target_distance_px"] <= 16.0
     }
     buckets = {
@@ -380,8 +426,20 @@ def main() -> None:
             sample for sample in samples if sample["molecule_id"] not in close_molecules
         ],
     }
+    forced_by_bucket = {
+        "all": len(coordinate_collisions),
+        "close_distinct": sum(
+            row["molecule_id"] in close_molecules for row in coordinate_collisions
+        ),
+        "general": sum(
+            row["molecule_id"] not in close_molecules for row in coordinate_collisions
+        ),
+    }
     metrics = {
-        name: _summarize(rows, presence_threshold) for name, rows in buckets.items()
+        name: _summarize(
+            rows, presence_threshold, forced_failures=forced_by_bucket[name]
+        )
+        for name, rows in buckets.items()
     }
     oracle_gate = {
         "minimum_atom_exact_delta": 0.03,
@@ -410,6 +468,8 @@ def main() -> None:
         "maximum_action_distance_px": 16.0,
         "primary_match_radius_px": 6.0,
         "secondary_match_radius_px": 10.0,
+        "input_samples": total_seen,
+        "coordinate_collisions": coordinate_collisions,
         "samples": samples,
     }
     cache_output = Path(args.cache_output)
@@ -421,7 +481,9 @@ def main() -> None:
         "cache": {
             "path": str(cache_output),
             "sha256": _sha256_file(cache_output),
-            "samples": len(samples),
+            "input_samples": total_seen,
+            "cached_samples": len(samples),
+            "coordinate_collision_failures": len(coordinate_collisions),
         },
         "base": {
             "direct_checkpoint": args.direct_checkpoint,
