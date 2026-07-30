@@ -26,8 +26,8 @@
 
 ## 训练时间线
 
-当前已完成：[v0.10.11 近重复 AtomObject Affinity](20260730-v0.10.11-duplicate-atom-affinity.md)
-（机制 GO，默认部署 NO-GO）。
+当前已完成：[v0.10.12 安全近重复 Affinity 40k](20260730-v0.10.12-safe-duplicate-affinity-40k.md)
+（能力 GO，预注册 identity precision 门未过，默认部署 NO-GO）。
 
 | 编号 | 阶段 | 主要结论 | 状态 |
 |---|---|---|---|
@@ -624,3 +624,9 @@ Oracle 在 fresh 1k 将 Skeleton `45.2%→53.0%`；固定图规则达到 51.7% �
 参数 learned affinity 三域 10k 后达到 50.1%、49 rescue/0 skeleton break，但出现 3 次合法
 近邻误合并和 1 次 Atom break，机制 GO、默认部署 NO-GO。详见
 `20260730-v0.10.11-duplicate-atom-affinity.md`。
+
+v0.10.12 将训练扩至最多 50k，并用 4k route-select / 3,974 route-confirm 取代 500/1k
+小校准。40k winner 在 confirm 将 Atom exact `51.21%→55.28%`、Skeleton
+`46.53%→50.15%`，162/144 rescue、Atom/Skeleton break 均为 0；但 identity precision
+99.33% 未达到预注册 99.9%，因此默认部署仍 NO-GO。选模同时修复为安全资格优先并永久保存
+每个 step。详见 `20260730-v0.10.12-safe-duplicate-affinity-40k.md`。

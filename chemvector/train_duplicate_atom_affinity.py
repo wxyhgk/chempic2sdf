@@ -185,15 +185,19 @@ def select_threshold(samples: list[dict], presence_threshold: float) -> tuple[di
         and row["skeleton_break"] == 0
         and row["pair_precision"] >= 0.999
     ]
-    selected = max(
-        eligible or grid,
-        key=lambda row: (
-            row["skeleton_exact_rate"],
-            row["atom_exact_rate"],
-            row["pair_precision"],
-            row["threshold"],
-        ),
-    )
+    if eligible:
+        selected = max(
+            eligible,
+            key=lambda row: (
+                row["skeleton_exact_rate"],
+                row["atom_exact_rate"],
+                row["pair_precision"],
+                row["threshold"],
+            ),
+        )
+    else:
+        selected = max(grid, key=lambda row: row["threshold"])
+    selected = {**selected, "safety_eligible": bool(eligible)}
     return selected, grid
 
 
@@ -417,11 +421,21 @@ def main() -> None:
                 }
             )
             score = (
+                int(validation["safety_eligible"]),
                 validation["skeleton_exact_rate"],
                 validation["atom_exact_rate"],
                 validation["pair_precision"],
             )
             save(output_dir / "last.pt", model, optimizer, args, seen, validation, audit)
+            save(
+                output_dir / f"samples-{seen:06d}.pt",
+                model,
+                optimizer,
+                args,
+                seen,
+                validation,
+                audit,
+            )
             if best_score is None or score > best_score:
                 best_score = score
                 save(output_dir / "best.pt", model, optimizer, args, seen, validation, audit)
@@ -435,7 +449,8 @@ def main() -> None:
     payload = torch.load(output_dir / "best.pt", map_location="cpu", weights_only=False)
     model.load_state_dict(payload["model"])
     calibration_gate = {
-        "passed": payload["validation"]["skeleton_exact_rate"] >= 0.47
+        "passed": payload["validation"].get("safety_eligible", True)
+        and payload["validation"]["skeleton_exact_rate"] >= 0.47
         and payload["validation"]["skeleton_break"] == 0
         and payload["validation"]["protected_close_merges"] == 0
         and payload["validation"]["pair_precision"] >= 0.999
