@@ -8,10 +8,12 @@ from chemvector.safe_atom_action_model import (
     delete_action_features,
     safe_atom_action_loss,
 )
+from chemvector.train_safe_atom_action import _summarize_threshold, utility_class
 
 
 def _sample() -> dict:
     return {
+        "key": "sample",
         "anchors": torch.tensor([[0.0, 0.0], [1.0, 0.0], [2.0, 0.0], [100.0, 0.0]]) / 768.0,
         "atom_features": torch.arange(4 * 128, dtype=torch.float32).reshape(4, 128) / 512.0,
         "atom_geometry": torch.arange(4 * 8, dtype=torch.float32).reshape(4, 8) / 32.0,
@@ -66,3 +68,57 @@ def test_small_action_model_backpropagates_all_losses() -> None:
     losses["total"].backward()
     assert all(parameter.grad is not None for parameter in model.parameters())
     assert all(torch.isfinite(value) for value in losses.values())
+
+
+def test_utility_class_and_cached_validation_use_strict_directional_action() -> None:
+    baseline = (0, 0, -1, -1)
+    assert utility_class(baseline, {"safe": True, "utility": (0, 0, 0, -1)}) == 1
+    assert utility_class(baseline, {"safe": True, "utility": (0, 1, 0, 0)}) == 2
+    assert utility_class(baseline, {"safe": True, "utility": (1, 1, 0, 0)}) == 3
+    assert utility_class(baseline, {"safe": False, "utility": (1, 1, 0, 0)}) == 0
+
+    sample = _sample()
+    sample["action_labels"] = {
+        "baseline_utility": baseline,
+        "winner_removed_nodes": [0],
+        "actions": [
+            {"removed": 0, "safe": True, "strict_gain": True, "utility": (1, 1, 0, 0)},
+            {"removed": 1, "safe": False, "strict_gain": False, "utility": baseline},
+            {"removed": 2, "safe": False, "strict_gain": False, "utility": baseline},
+        ],
+    }
+    output = {
+        "sample_indices": torch.tensor([0, 0, 0]),
+        "removed_nodes": torch.tensor([0, 1, 2]),
+        "safe_targets": torch.tensor([True, False, False]),
+        "winner_targets": torch.tensor([True, False, False]),
+        "safety_logits": torch.tensor([20.0, -20.0, -20.0]),
+        "utility_logits": torch.tensor(
+            [[-10.0, -10.0, -10.0, 10.0], [10.0, -10.0, -10.0, -10.0], [10.0, -10.0, -10.0, -10.0]]
+        ),
+        "rank_logits": torch.tensor([10.0, -10.0, -10.0]),
+    }
+    metrics = _summarize_threshold(
+        [sample],
+        output,
+        threshold=0.999,
+        presence_threshold=0.85,
+        forced_failures=0,
+    )
+    assert metrics["executed_actions"] == 1
+    assert metrics["harmful_actions"] == 0
+    assert metrics["atom_exact_delta"] == 1.0
+    assert metrics["skeleton_exact_delta"] == 1.0
+
+    output["rank_logits"] = torch.full((3,), -20.0)
+    no_action = _summarize_threshold(
+        [sample],
+        output,
+        threshold=0.999,
+        presence_threshold=0.85,
+        forced_failures=0,
+    )
+    assert no_action["executed_actions"] == 0
+    assert no_action["harmful_actions"] == 0
+    assert no_action["atom_break"] == 0
+    assert no_action["skeleton_break"] == 0
