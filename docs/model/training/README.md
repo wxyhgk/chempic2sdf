@@ -26,8 +26,8 @@
 
 ## 训练时间线
 
-当前已完成：[v0.10.10 统一 OCR 推理接入](20260730-v0.10.10-unified-ocr-inference.md)
-（工程 GO，默认前端 profile 已切换）。
+当前已完成：[v0.10.11 近重复 AtomObject Affinity](20260730-v0.10.11-duplicate-atom-affinity.md)
+（机制 GO，默认部署 NO-GO）。
 
 | 编号 | 阶段 | 主要结论 | 状态 |
 |---|---|---|---|
@@ -618,3 +618,9 @@ bbox 和 v0.10.9 CTC 接入同一推理链；文字写回后重新裁剪 bond po
 全部正确识别并生成有效 SDF，但结构仍为 85/107 对真值 84/104，不宣称图 exact。前端新增并
 推荐 `structure-v01010-direct-aromatic-ocr`，运行中动态生效。详见
 `20260730-v0.10.10-unified-ocr-inference.md`。
+
+v0.10.11 定位并处理“同一视觉原子产生多个 AtomObject 且复制邻接”的集合错误。零训练
+Oracle 在 fresh 1k 将 Skeleton `45.2%→53.0%`；固定图规则达到 51.7% 且 0 break。27,045
+参数 learned affinity 三域 10k 后达到 50.1%、49 rescue/0 skeleton break，但出现 3 次合法
+近邻误合并和 1 次 Atom break，机制 GO、默认部署 NO-GO。详见
+`20260730-v0.10.11-duplicate-atom-affinity.md`。
