@@ -26,8 +26,8 @@
 
 ## 训练时间线
 
-当前已完成：[v0.10.14 Unsafe Certificate OOF](20260730-v0.10.14-unsafe-certificate-oof.md)
-（独立 unsafe certificate nested OOF NO-GO，未运行 confirm）。
+当前进行中：[v0.10.15 Structural Twin Certificate](20260730-v0.10.15-structural-twin-certificate.md)
+（route-select GO，冻结候选与 route-confirm 待执行）。
 
 | 编号 | 阶段 | 主要结论 | 状态 |
 |---|---|---|---|
