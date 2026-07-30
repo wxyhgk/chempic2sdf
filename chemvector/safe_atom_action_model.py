@@ -49,7 +49,10 @@ def delete_action_features(
     atom_features = sample["atom_features"].float()
     geometry = sample["atom_geometry"].float()
     scores = sample["scores"].float()
-    distances = torch.cdist(anchors, anchors) * 768.0
+    # Keep action enumeration and feature extraction on the same numeric path.
+    # float32 cdist can move a 15.999px pair above the 16px candidate boundary.
+    distance_anchors = sample["anchors"].double()
+    distances = torch.cdist(distance_anchors, distance_anchors) * 768.0
     adjacency = predicted_adjacency(sample, presence_threshold)
     pair_probability = {}
     for row, pair in enumerate(sample["pairs"].tolist()):

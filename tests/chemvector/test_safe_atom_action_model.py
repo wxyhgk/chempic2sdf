@@ -54,6 +54,44 @@ def test_pair_order_does_not_change_directional_delete_features() -> None:
     assert torch.equal(expected, actual)
 
 
+def test_action_feature_distance_matches_float64_candidate_enumeration() -> None:
+    anchors = torch.tensor(
+        [
+            [0.2768707275390625, 0.5091146230697632],
+            [0.2587483823299408, 0.5193888545036316],
+            *[[2.0 + index, 2.0] for index in range(28)],
+        ],
+        dtype=torch.float32,
+    )
+    pairs = torch.tensor(
+        [[left, right] for left in range(30) for right in range(left + 1, 30)],
+        dtype=torch.long,
+    )
+    sample = {
+        "anchors": anchors,
+        "atom_features": torch.zeros((30, 128)),
+        "atom_geometry": torch.zeros((30, 8)),
+        "scores": torch.full((30,), 0.5),
+        "pairs": pairs,
+        "probabilities": torch.full((len(pairs),), 0.01),
+        "chemical": torch.zeros(len(pairs), dtype=torch.long),
+    }
+    float_distance = float(
+        torch.cdist(sample["anchors"], sample["anchors"])[0, 1] * 768.0
+    )
+    double_distance = float(
+        torch.cdist(sample["anchors"].double(), sample["anchors"].double())[
+            0, 1
+        ]
+        * 768.0
+    )
+    assert float_distance > 16.0
+    assert double_distance < 16.0
+    features, removed = delete_action_features(sample, presence_threshold=0.5)
+    assert features.shape == (2, ACTION_FEATURE_DIM)
+    assert removed.tolist() == [0, 1]
+
+
 def test_small_action_model_backpropagates_all_losses() -> None:
     model = SafeAtomActionModel()
     assert model.parameter_count() < 100_000
