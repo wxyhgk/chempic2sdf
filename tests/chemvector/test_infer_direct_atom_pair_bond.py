@@ -1,6 +1,57 @@
+from torch import nn
 import torch
 
-from chemvector.infer_direct_atom_pair_bond import apply_atom_ocr, direct_scene_tensors
+from chemvector.infer_direct_atom_pair_bond import (
+    apply_atom_ocr,
+    apply_structural_twin_suppression,
+    direct_scene_tensors,
+)
+
+
+class _Ranking(nn.Module):
+    def __init__(self, *, first_rank: float = 8.0) -> None:
+        super().__init__()
+        self.marker = nn.Parameter(torch.zeros(()))
+        self.first_rank = first_rank
+
+    def forward(self, features: torch.Tensor) -> dict[str, torch.Tensor]:
+        rows = len(features)
+        rank = torch.arange(rows, 0, -1, device=features.device).float()
+        rank[0] = self.first_rank
+        utility = torch.zeros((rows, 4), device=features.device)
+        utility[:, 3] = 10.0
+        return {
+            "safety_logits": torch.full((rows,), 10.0, device=features.device),
+            "utility_logits": utility,
+            "rank_logits": rank,
+        }
+
+
+def _duplicate_live_outputs(*, chemical_mismatch: bool = False):
+    atom_mask = torch.tensor([[False, True, False, True, False, True]])
+    atom_features = torch.zeros((1, 6, 128))
+    atom_geometry = torch.zeros((1, 6, 8))
+    atom_geometry[0, 1, :2] = torch.tensor([0.25, 0.25])
+    atom_geometry[0, 3, :2] = torch.tensor([0.251, 0.25])
+    atom_geometry[0, 5, :2] = torch.tensor([0.55, 0.25])
+    atoms = {
+        "atom_mask": atom_mask,
+        "atom_features": atom_features,
+        "atom_geometry": atom_geometry,
+        "atom_scores": torch.full((1, 6), 0.5),
+    }
+    pairs = torch.tensor([[1, 3], [1, 5], [3, 5]])
+    chemical = torch.tensor(
+        [[8.0, 0.0, 0.0, 0.0], [8.0, 0.0, 0.0, 0.0], [8.0, 0.0, 0.0, 0.0]]
+    )
+    if chemical_mismatch:
+        chemical[2] = torch.tensor([0.0, 8.0, 0.0, 0.0])
+    output = {
+        "presence_logits": torch.tensor([-8.0, 8.0, 8.0]),
+        "chemical_logits": chemical,
+        "hidden": torch.arange(3 * 4, dtype=torch.float32).reshape(3, 4),
+    }
+    return atoms, pairs, output
 
 
 def test_direct_scene_tensors_encode_pair_incidence_without_distance_filter() -> None:
@@ -76,3 +127,37 @@ def test_apply_atom_ocr_updates_chemistry_and_reclips_ports() -> None:
     assert scene["atom_objects"][0]["chemical"]["formal_charge"] == 1
     assert scene["atom_objects"][0]["chemical"]["explicit_h_count"] == 2
     assert scene["bond_objects"][0]["ports"][0] != [200, 500]
+
+
+def test_structural_twin_suppression_remaps_queries_and_drops_incident_pairs() -> None:
+    atoms, pairs, output = _duplicate_live_outputs()
+    filtered_pairs, filtered_output, diagnostics = apply_structural_twin_suppression(
+        atoms,
+        pairs,
+        output,
+        _Ranking(),
+        presence_threshold=0.85,
+    )
+    assert diagnostics["executed"]
+    assert diagnostics["removed_candidate_index"] == 1
+    assert diagnostics["removed_compact_index"] == 0
+    assert diagnostics["witness_compact_indices"] == [1]
+    assert atoms["atom_mask"].tolist() == [[False, False, False, True, False, True]]
+    assert filtered_pairs.tolist() == [[3, 5]]
+    assert filtered_output["presence_logits"].tolist() == [8.0]
+    assert filtered_output["hidden"].tolist() == output["hidden"][2:].tolist()
+
+
+def test_structural_twin_suppression_protects_chemical_mismatch() -> None:
+    atoms, pairs, output = _duplicate_live_outputs(chemical_mismatch=True)
+    filtered_pairs, filtered_output, diagnostics = apply_structural_twin_suppression(
+        atoms,
+        pairs,
+        output,
+        _Ranking(),
+        presence_threshold=0.85,
+    )
+    assert not diagnostics["executed"]
+    assert diagnostics["certified_actions"] == 0
+    assert torch.equal(filtered_pairs, pairs)
+    assert filtered_output is output

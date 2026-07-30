@@ -1,5 +1,37 @@
 {
   "profiles": {
+    "structure-v01016-structural-twin-ocr": {
+      "version": "v0.10.16",
+      "label": "Structural Twin + Direct AtomPair + OCR v0.10.16（shadow）",
+      "checkpoint": "outputs/checkpoints/chemvector-v0103-direct-atom-pair-style10k/selected.pt",
+      "checkpoint_sha256": "e0d769b457fdbcac2d405fa234ccd108c80640db63cb35a1d8ed36446eea0614",
+      "action_ranking_checkpoint_sha256": "43272dfc84e57e4f06ba344eb33a5850e8b62e4bf426c706f7975ae686bcdd18",
+      "protocol": "v0.10.15 结构规则 + 冻结 ranking 每图最多删除一个重复 AtomObject；随后复用 v0.10.10 芳香环、role、bbox、开放 OCR 和 SDF 编译；42k 结构 confirm GO，端到端回归中",
+      "available": true,
+      "recommended": false,
+      "module": "chemvector.infer_direct_atom_pair_bond",
+      "arguments": [
+        "--model-version",
+        "v0.10.16-structural-twin-direct-aromatic-ocr",
+        "--checkpoint",
+        "outputs/checkpoints/chemvector-v0103-direct-atom-pair-style10k/selected.pt",
+        "--role-checkpoint",
+        "outputs/checkpoints/chemvector-v0105-direct-atom-role-style10k/selected.pt",
+        "--bbox-checkpoint",
+        "outputs/checkpoints/chemvector-v0108-direct-atom-text-bbox-style10k/selected.pt",
+        "--ocr-checkpoint",
+        "outputs/checkpoints/chemvector-v0109-correct-label-ocr-style10k/selected.pt",
+        "--enable-ocr",
+        "--structural-twin-suppression",
+        "--action-ranking-checkpoint",
+        "outputs/checkpoints/chemvector-v01013-safe-atom-action-50k/samples-030000.pt",
+        "--aromatic-ring-fusion",
+        "--aromatic-mean-threshold",
+        "0.40",
+        "--aromatic-minimum-threshold",
+        "0.05"
+      ]
+    },
     "structure-v01010-direct-aromatic-ocr": {
       "version": "v0.10.10",
       "label": "Direct AtomPair + 芳香环 + 开放 OCR v0.10.10",

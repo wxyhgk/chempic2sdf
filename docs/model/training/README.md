@@ -26,8 +26,8 @@
 
 ## 训练时间线
 
-当前已完成：[v0.10.15 Structural Twin Certificate](20260730-v0.10.15-structural-twin-certificate.md)
-（42k route-confirm 结构门 GO，完整 SDF 部署回归待执行）。
+当前进行中：[v0.10.16 Structural Twin 推理接入](20260730-v0.10.16-structural-twin-inference.md)
+（shadow profile 已实现，端到端 SDF pilot 待执行）。
 
 | 编号 | 阶段 | 主要结论 | 状态 |
 |---|---|---|---|

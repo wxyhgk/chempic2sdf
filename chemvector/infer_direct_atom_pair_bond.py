@@ -40,6 +40,15 @@ from chemvector.predicted_incidence import (
     decode_predicted_bond_proposals,
 )
 from chemvector.ocr import parse_atom_display_text
+from chemvector.safe_atom_action_model import (
+    SafeAtomActionConfig,
+    SafeAtomActionModel,
+    delete_action_features,
+)
+from chemvector.structural_twin_certificate import (
+    StructuralTwinCertificateConfig,
+    structural_twin_witnesses,
+)
 from chemvector.shadow_chemscene_v02_oracle import (
     _render_sdf,
     _write_empty_sdf,
@@ -62,6 +71,9 @@ DEFAULT_BBOX_CHECKPOINT = (
 )
 DEFAULT_OCR_CHECKPOINT = (
     "outputs/checkpoints/chemvector-v0109-correct-label-ocr-style10k/selected.pt"
+)
+DEFAULT_ACTION_RANKING_CHECKPOINT = (
+    "outputs/checkpoints/chemvector-v01013-safe-atom-action-50k/samples-030000.pt"
 )
 
 
@@ -159,6 +171,134 @@ def load_direct_model(
     return model, payload
 
 
+def load_action_ranking_model(
+    checkpoint: str, device: torch.device
+) -> tuple[SafeAtomActionModel, dict]:
+    payload = torch.load(checkpoint, map_location="cpu", weights_only=False)
+    if payload.get("checkpoint_schema_version") != "safe-atom-action-0.1":
+        raise ValueError("Checkpoint is not a safe Atom action ranking model")
+    model = SafeAtomActionModel(SafeAtomActionConfig(**payload["config"])).to(device)
+    model.load_state_dict(payload["model"], strict=True)
+    model.eval().requires_grad_(False)
+    return model, payload
+
+
+@torch.no_grad()
+def apply_structural_twin_suppression(
+    atoms: dict[str, torch.Tensor],
+    pairs: torch.Tensor,
+    direct_output: dict[str, torch.Tensor],
+    ranking: SafeAtomActionModel,
+    *,
+    presence_threshold: float,
+) -> tuple[torch.Tensor, dict[str, torch.Tensor], dict]:
+    """Execute at most one frozen v0.10.15 deletion before OCR/compilation."""
+
+    if atoms["atom_mask"].size(0) != 1:
+        raise ValueError("Structural-twin inference currently requires batch size 1")
+    if pairs.shape != (len(direct_output["presence_logits"]), 2):
+        raise ValueError("Structural-twin pair/output count differs")
+    selected = torch.where(atoms["atom_mask"][0])[0]
+    remap = torch.full(
+        (atoms["atom_mask"].size(1),),
+        -1,
+        device=pairs.device,
+        dtype=torch.long,
+    )
+    remap[selected] = torch.arange(len(selected), device=pairs.device)
+    compact_pairs = remap[pairs]
+    if bool((compact_pairs < 0).any()):
+        raise ValueError("Structural-twin pair references an unselected AtomObject")
+    sample = {
+        "anchors": atoms["atom_geometry"][0, selected, :2].float().cpu(),
+        "atom_features": atoms["atom_features"][0, selected].float().cpu(),
+        "atom_geometry": atoms["atom_geometry"][0, selected].float().cpu(),
+        "scores": atoms["atom_scores"][0, selected].float().cpu(),
+        "pairs": compact_pairs.cpu(),
+        "probabilities": direct_output["presence_logits"].float().sigmoid().cpu(),
+        "chemical": direct_output["chemical_logits"].float().argmax(-1).cpu(),
+    }
+    features, removed_nodes = delete_action_features(
+        sample, presence_threshold=presence_threshold
+    )
+    diagnostics = {
+        "enabled": True,
+        "candidate_actions": len(removed_nodes),
+        "certified_actions": 0,
+        "qualified_actions": 0,
+        "executed": False,
+        "removed_candidate_index": None,
+        "removed_compact_index": None,
+        "witness_compact_indices": [],
+        "ranking_score": None,
+        "utility_class": None,
+        "atoms_before": int(atoms["atom_mask"].sum()),
+        "atoms_after": int(atoms["atom_mask"].sum()),
+        "pairs_before": len(pairs),
+        "pairs_after": len(pairs),
+    }
+    if not len(removed_nodes):
+        return pairs, direct_output, diagnostics
+    certificate = StructuralTwinCertificateConfig()
+    witnesses = [
+        structural_twin_witnesses(
+            sample,
+            int(removed),
+            presence_threshold=presence_threshold,
+            config=certificate,
+        )
+        for removed in removed_nodes.tolist()
+    ]
+    certified = torch.tensor([bool(rows) for rows in witnesses], dtype=torch.bool)
+    diagnostics["certified_actions"] = int(certified.sum())
+    if not bool(certified.any()):
+        return pairs, direct_output, diagnostics
+    ranking_device = next(ranking.parameters()).device
+    output = ranking(features.to(ranking_device))
+    utility = output["utility_logits"].argmax(-1).cpu()
+    ranking_score = (
+        output["rank_logits"]
+        + torch.nn.functional.logsigmoid(output["safety_logits"])
+    ).float().cpu()
+    qualified = torch.where(
+        certified & (utility > 0) & (ranking_score > 0.0)
+    )[0]
+    diagnostics["qualified_actions"] = len(qualified)
+    if not len(qualified):
+        return pairs, direct_output, diagnostics
+    row = int(qualified[ranking_score[qualified].argmax()])
+    removed_compact = int(removed_nodes[row])
+    removed_candidate = int(selected[removed_compact])
+    atoms["atom_mask"][0, removed_candidate] = False
+    keep_pairs = (pairs[:, 0] != removed_candidate) & (
+        pairs[:, 1] != removed_candidate
+    )
+    filtered_output = {
+        name: (
+            value[keep_pairs]
+            if isinstance(value, torch.Tensor)
+            and value.ndim >= 1
+            and len(value) == len(keep_pairs)
+            else value
+        )
+        for name, value in direct_output.items()
+    }
+    filtered_pairs = pairs[keep_pairs]
+    diagnostics.update(
+        {
+            "executed": True,
+            "removed_candidate_index": removed_candidate,
+            "removed_compact_index": removed_compact,
+            "witness_compact_indices": list(witnesses[row]),
+            "ranking_score": float(ranking_score[row]),
+            "utility_class": int(utility[row]),
+            "atoms_after": int(atoms["atom_mask"].sum()),
+            "pairs_after": len(filtered_pairs),
+        }
+    )
+    return filtered_pairs, filtered_output, diagnostics
+
+
 def direct_scene_tensors(
     atoms: dict[str, torch.Tensor],
     pairs: torch.Tensor,
@@ -212,6 +352,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--bbox-checkpoint", default=DEFAULT_BBOX_CHECKPOINT)
     parser.add_argument("--ocr-checkpoint", default=DEFAULT_OCR_CHECKPOINT)
     parser.add_argument("--enable-ocr", action="store_true")
+    parser.add_argument("--structural-twin-suppression", action="store_true")
+    parser.add_argument(
+        "--action-ranking-checkpoint", default=DEFAULT_ACTION_RANKING_CHECKPOINT
+    )
     parser.add_argument("--source-checkpoint")
     parser.add_argument("--grounded-graph-checkpoint")
     parser.add_argument("--aromatic-ring-fusion", action="store_true")
@@ -232,6 +376,11 @@ def main() -> None:
     started = time.perf_counter()
 
     direct, direct_payload = load_direct_model(args.checkpoint, device)
+    action_ranking = None
+    if args.structural_twin_suppression:
+        action_ranking, _ = load_action_ranking_model(
+            args.action_ranking_checkpoint, device
+        )
     role = bbox = ctc = None
     role_threshold = None
     if args.enable_ocr:
@@ -289,6 +438,18 @@ def main() -> None:
             pairs,
             sample_indices,
         )
+
+        suppression_diagnostics = {"enabled": False, "executed": False}
+        if action_ranking is not None:
+            pairs, direct_output, suppression_diagnostics = (
+                apply_structural_twin_suppression(
+                    atoms,
+                    pairs,
+                    direct_output,
+                    action_ranking,
+                    presence_threshold=probability_threshold,
+                )
+            )
 
         ocr_predictions = {}
         if args.enable_ocr:
@@ -368,6 +529,7 @@ def main() -> None:
     diagnostics["direct_atom_pairs"] = len(pairs)
     diagnostics["direct_presence_threshold"] = probability_threshold
     diagnostics["aromatic_ring_fusion"] = ring_diagnostics
+    diagnostics["structural_twin_suppression"] = suppression_diagnostics
     errors = []
     predicted = None
     decode_path = "direct_atom_pair"
@@ -405,6 +567,12 @@ def main() -> None:
         "role_checkpoint": args.role_checkpoint if args.enable_ocr else None,
         "bbox_checkpoint": args.bbox_checkpoint if args.enable_ocr else None,
         "ocr_checkpoint": args.ocr_checkpoint if args.enable_ocr else None,
+        "structural_twin_suppression": args.structural_twin_suppression,
+        "action_ranking_checkpoint": (
+            args.action_ranking_checkpoint
+            if args.structural_twin_suppression
+            else None
+        ),
         "inference_seconds": time.perf_counter() - started,
         "vertices": int(atoms["atom_mask"].sum()),
         "candidate_atom_pairs": len(pairs),
