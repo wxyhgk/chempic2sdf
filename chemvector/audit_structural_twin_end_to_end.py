@@ -34,6 +34,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--samples-per-bucket", type=int, default=20)
     parser.add_argument("--output-dir", default=DEFAULT_OUTPUT)
     parser.add_argument("--device", choices=("cpu", "cuda"), default="cuda")
+    parser.add_argument("--reuse-existing", action="store_true")
     return parser.parse_args()
 
 
@@ -179,7 +180,9 @@ def _metrics(output: Path, expected: Chem.Mol) -> tuple[dict, Chem.Mol | None]:
     predicted = _read_mol(output / "prediction-repaired.sdf")
     return (
         {
-            "sdf_valid": predicted is not None,
+            "sdf_valid": bool(metrics["sdf_valid"] and predicted is not None),
+            "sdf_readable": predicted is not None,
+            "decode_path": metrics["diagnostics"]["decode_path"],
             "nonstereo_exact": bool(
                 predicted is not None
                 and sdf_graph_match(expected, predicted, use_chirality=False)
@@ -216,6 +219,12 @@ def _summary(records: list[dict]) -> dict:
         ),
         "baseline_sdf_valid": sum(row["baseline"]["sdf_valid"] for row in records),
         "candidate_sdf_valid": sum(row["candidate"]["sdf_valid"] for row in records),
+        "baseline_sdf_readable": sum(
+            row["baseline"]["sdf_readable"] for row in records
+        ),
+        "candidate_sdf_readable": sum(
+            row["candidate"]["sdf_readable"] for row in records
+        ),
         "sdf_valid_breaks": sum(
             row["baseline"]["sdf_valid"] and not row["candidate"]["sdf_valid"]
             for row in records
@@ -263,7 +272,7 @@ def main() -> None:
     rows = _load_rows()
     selected = _select_samples(report, rows, args.samples_per_bucket)
     output = Path(args.output_dir)
-    if output.exists() and any(output.iterdir()):
+    if output.exists() and any(output.iterdir()) and not args.reuse_existing:
         raise RuntimeError(f"End-to-end pilot output is not empty: {output}")
     output.mkdir(parents=True, exist_ok=True)
     config = {
@@ -276,9 +285,10 @@ def main() -> None:
     }
     _write_json(output / "config.json", config)
     input_dir = output / "inputs"
-    input_dir.mkdir()
+    input_dir.mkdir(exist_ok=args.reuse_existing)
     archives: dict[str, tarfile.TarFile] = {}
     records = []
+    (output / "records.jsonl").write_text("", encoding="utf-8")
     RDLogger.DisableLog("rdApp.*")
     try:
         for index, row in enumerate(selected):
@@ -298,12 +308,21 @@ def main() -> None:
                 raise ValueError(f"Ground-truth SDF is invalid for {key}")
             baseline_dir = output / "baseline" / key
             candidate_dir = output / "candidate" / key
-            baseline_run = _run(
-                _command(image_path, baseline_dir, args.device, candidate=False)
-            )
-            candidate_run = _run(
-                _command(image_path, candidate_dir, args.device, candidate=True)
-            )
+            if args.reuse_existing:
+                baseline_run = {
+                    "returncode": 0,
+                    "seconds": 0.0,
+                    "stdout": "reused",
+                    "stderr": "",
+                }
+                candidate_run = dict(baseline_run)
+            else:
+                baseline_run = _run(
+                    _command(image_path, baseline_dir, args.device, candidate=False)
+                )
+                candidate_run = _run(
+                    _command(image_path, candidate_dir, args.device, candidate=True)
+                )
             if baseline_run["returncode"] or candidate_run["returncode"]:
                 raise RuntimeError(
                     f"Inference command failed for {key}: baseline={baseline_run} candidate={candidate_run}"
