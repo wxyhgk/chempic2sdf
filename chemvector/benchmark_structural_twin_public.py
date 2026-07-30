@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import csv
 import json
 from pathlib import Path
@@ -33,6 +34,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--samples", type=int, default=100)
     parser.add_argument("--output-dir", default=DEFAULT_OUTPUT)
     parser.add_argument("--device", choices=("cpu", "cuda"), default="cuda")
+    parser.add_argument("--conditional-baseline", action="store_true")
     return parser.parse_args()
 
 
@@ -43,6 +45,13 @@ def _summarize(records: list[dict]) -> dict:
         "samples": len(records),
         "actions_executed": len(action),
         "action_keys": [row["key"] for row in action],
+        "baseline_inference_runs": sum(
+            row["baseline_source"] == "executed_v01010" for row in records
+        ),
+        "baseline_no_action_identities": sum(
+            row["baseline_source"] == "candidate_no_action_identity"
+            for row in records
+        ),
         "baseline_sdf_valid": sum(row["baseline"]["sdf_valid"] for row in records),
         "candidate_sdf_valid": sum(row["candidate"]["sdf_valid"] for row in records),
         "sdf_valid_rescues": sum(
@@ -119,6 +128,12 @@ def main() -> None:
         "selection": f"first {args.samples} ready rows in official manifest order",
         "samples": args.samples,
         "device": args.device,
+        "conditional_baseline": args.conditional_baseline,
+        "conditional_baseline_evidence": (
+            "USPTO clean fixed first100: 97 no-action outputs had zero OCR/graph differences"
+            if args.conditional_baseline
+            else None
+        ),
     }
     _write_json(output / "config.json", config)
     records = []
@@ -136,14 +151,33 @@ def main() -> None:
             raise ValueError(f"Public ground-truth SDF is invalid for {key}")
         baseline_dir = output / "baseline" / key
         candidate_dir = output / "candidate" / key
-        baseline_run = _run(_command(image, baseline_dir, args.device, candidate=False))
         candidate_run = _run(_command(image, candidate_dir, args.device, candidate=True))
-        if baseline_run["returncode"] or candidate_run["returncode"]:
+        if candidate_run["returncode"]:
             raise RuntimeError(
-                f"Public inference failed for {key}: baseline={baseline_run} candidate={candidate_run}"
+                f"Public candidate inference failed for {key}: {candidate_run}"
             )
-        baseline, baseline_mol = _metrics(baseline_dir, expected)
         candidate, candidate_mol = _metrics(candidate_dir, expected)
+        if args.conditional_baseline and not candidate["suppression"]["executed"]:
+            baseline = copy.deepcopy(candidate)
+            baseline["suppression"] = {"enabled": False, "executed": False}
+            baseline_mol = candidate_mol
+            baseline_run = {
+                "returncode": 0,
+                "seconds": 0.0,
+                "stdout": "candidate no-action identity",
+                "stderr": "",
+            }
+            baseline_source = "candidate_no_action_identity"
+        else:
+            baseline_run = _run(
+                _command(image, baseline_dir, args.device, candidate=False)
+            )
+            if baseline_run["returncode"]:
+                raise RuntimeError(
+                    f"Public baseline inference failed for {key}: {baseline_run}"
+                )
+            baseline, baseline_mol = _metrics(baseline_dir, expected)
+            baseline_source = "executed_v01010"
         graph_equal = bool(
             baseline_mol is not None
             and candidate_mol is not None
@@ -161,6 +195,7 @@ def main() -> None:
             "baseline": baseline,
             "candidate": candidate,
             "baseline_candidate_graph_equal": graph_equal,
+            "baseline_source": baseline_source,
             "baseline_seconds": baseline_run["seconds"],
             "candidate_seconds": candidate_run["seconds"],
         }
