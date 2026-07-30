@@ -31,6 +31,7 @@ DEFAULT_OUTPUT = "outputs/evaluations/uspto-clean-100-v01016-structural-twin-ab"
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", default=DEFAULT_MANIFEST)
+    parser.add_argument("--start", type=int, default=0)
     parser.add_argument("--samples", type=int, default=100)
     parser.add_argument("--output-dir", default=DEFAULT_OUTPUT)
     parser.add_argument("--device", choices=("cpu", "cuda"), default="cuda")
@@ -107,13 +108,13 @@ def _summarize(records: list[dict]) -> dict:
 
 def main() -> None:
     args = parse_args()
-    if args.samples < 1:
-        raise ValueError("samples must be positive")
+    if args.samples < 1 or args.start < 0:
+        raise ValueError("samples must be positive and start must be non-negative")
     manifest = Path(args.manifest)
     root = manifest.parent
     with manifest.open(newline="", encoding="utf-8") as handle:
         rows = [row for row in csv.DictReader(handle) if row["status"] == "ready"]
-    rows = rows[: args.samples]
+    rows = rows[args.start : args.start + args.samples]
     if len(rows) != args.samples:
         raise ValueError("Public manifest contains fewer ready rows than requested")
     output = Path(args.output_dir)
@@ -125,7 +126,11 @@ def main() -> None:
         "model_tag": "v0.10.16",
         "manifest": str(manifest),
         "manifest_sha256": _sha256_file(manifest),
-        "selection": f"first {args.samples} ready rows in official manifest order",
+        "selection": (
+            f"ready rows [{args.start}, {args.start + args.samples}) "
+            "in official manifest order"
+        ),
+        "start": args.start,
         "samples": args.samples,
         "device": args.device,
         "conditional_baseline": args.conditional_baseline,
