@@ -82,6 +82,30 @@ def add_ocr_visual_features(
     return result
 
 
+def add_ocr_cross_score_features(
+    features: dict[str, float],
+    *,
+    old_model_new_text_score: float,
+    new_model_old_text_score: float,
+) -> dict[str, float]:
+    """Attach the two missing cells of the model-by-candidate score matrix."""
+    if not all(
+        math.isfinite(value)
+        for value in (old_model_new_text_score, new_model_old_text_score)
+    ):
+        raise ValueError("OCR cross scores must be finite")
+    result = dict(features)
+    result["old_model_new_text_score"] = float(old_model_new_text_score)
+    result["new_model_old_text_score"] = float(new_model_old_text_score)
+    result["old_model_preference_margin"] = float(
+        result["old_score"] - old_model_new_text_score
+    )
+    result["new_model_preference_margin"] = float(
+        result["new_score"] - new_model_old_text_score
+    )
+    return result
+
+
 class OCRUtilityRouter(nn.Module):
     def __init__(self, input_dim: int, hidden_dim: int = 64) -> None:
         super().__init__()

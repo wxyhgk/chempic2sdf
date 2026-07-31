@@ -4,6 +4,7 @@ import torch
 
 from chemvector.ocr_utility_router import (
     OCRUtilityRouter,
+    add_ocr_cross_score_features,
     add_ocr_visual_features,
     conservative_frontier,
     ocr_utility_features,
@@ -11,6 +12,15 @@ from chemvector.ocr_utility_router import (
 
 
 class OCRUtilityRouterTests(unittest.TestCase):
+    def test_cross_scores_include_both_model_preferences(self) -> None:
+        values = add_ocr_cross_score_features(
+            {"old_score": -0.1, "new_score": -0.2},
+            old_model_new_text_score=-0.8,
+            new_model_old_text_score=-0.5,
+        )
+        self.assertAlmostEqual(values["old_model_preference_margin"], 0.7)
+        self.assertAlmostEqual(values["new_model_preference_margin"], 0.3)
+
     def test_visual_features_are_paired_and_fixed(self) -> None:
         values = add_ocr_visual_features({}, torch.zeros(48), torch.ones(48))
         self.assertEqual(len(values), 144)

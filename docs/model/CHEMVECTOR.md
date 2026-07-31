@@ -8,9 +8,9 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
 
 ## 当前版本
 
-- 当前完成的研究 tag：`v0.10.19`。
+- 当前完成的研究 tag：`v0.10.20`。
 - 当前部署默认：`v0.10.10`；当前公开能力基线：`v0.9.41`。
-- 当前开发包版本：`v0.10.19`；当前研究实验编号：`v0.10.19`。
+- 当前开发包版本：`v0.10.20`；当前研究实验编号：`v0.10.20`。
 - v0.10.15 structural-twin 已通过结构门；完整 SDF 回归前默认仍为 `v0.10.10`。
 - v0.10.16 已将 structural-twin 接入 OCR/SDF 统一推理。固定 40 张开发集 A/B 的 SDF valid
   `18→24`、非立体 exact `9→12`、chemical exact `5→6`，零回退；工程 GO，仍为非推荐
@@ -23,6 +23,8 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
   `160→162`，Skeleton/valid/exact 全部 paired break 为 0；作为保守 shadow。
 - v0.10.19 为双 OCR router 加入 144 个成对视觉特征。validation break-0 rescue 达 394，
   但独立 fresh 2k confirm 为 185 rescue/3 break，三次均是 `O/OH`；NO-GO，不接前端。
+- v0.10.20 再加入两模型对两候选的 CTC 交叉分数；独立 fresh 2k 为 348 rescue/5 break，
+  且最高错误概率 0.994。单对象概率门正式停止，转图级双候选反事实验证。
 - 版本从 `v0.7` 开始，每次发布增加 `0.0.1`。
 - 根目录 `VERSION` 是开发版本的唯一来源。
 

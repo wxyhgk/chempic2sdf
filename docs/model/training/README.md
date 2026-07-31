@@ -26,8 +26,8 @@
 
 ## 训练时间线
 
-当前已完成：[v0.10.19 图像感知双 OCR 路由](20260731-v0.10.19-visual-ocr-utility-router.md)
-（内部 validation 零-break rescue 394，但 fresh 2k confirm 为 185 rescue/3 break；NO-GO）。
+当前已完成：[v0.10.20 交叉打分双 OCR 路由](20260731-v0.10.20-cross-score-ocr-utility-router.md)
+（fresh 2k confirm 为 348 rescue/5 break；证明单对象概率 router 不能作为安全证书，NO-GO）。
 
 最新表示消融：[v0.9.41 文字框内部 Bond Veto Pilot](20260731-v0.9.41-text-interior-bond-veto-pilot.md)
 （USPTO 前 100 只触发 1 张，全部指标 `0 rescue / 0 break`；NO-GO，不建立新版本）。
@@ -680,3 +680,8 @@ v0.10.19 在同一双 OCR router 中加入主/专家各 48 维视觉描述及其
 下一段 2,000 张中 route 194 次，出现 185 rescue/3 break，均为 `O/OH` 显式氢混淆。
 正式 NO-GO，未运行 USPTO、未接前端。详见
 `20260731-v0.10.19-visual-ocr-utility-router.md`。
+
+v0.10.20 补齐两 OCR 对两候选的 `2x2` CTC 交叉打分，输入为 198 维。独立第三段 fresh
+2k 在固定 `0.95` 下 route 364 次、348 rescue、5 break；最高错误概率 `0.994`，错误包含
+`O/Cl`、`O/OH`、`N/NH`。因此停止堆局部 router 特征，下一步改为图级双候选反事实。
+详见 `20260731-v0.10.20-cross-score-ocr-utility-router.md`。

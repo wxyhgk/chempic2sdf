@@ -37,6 +37,7 @@ from chemvector.chemscene_graph_corrector import (
 from chemvector.ctc_ocr import (
     PretrainedPixelCTCConfig,
     PretrainedPixelCTCOCR,
+    ctc_text_log_score,
     decode_ctc_with_score,
     detected_text_crops,
 )
@@ -81,6 +82,7 @@ from chemvector.junction_aware_bond_selector import (
 from chemvector.ocr import OCRTextCodec, atom_display_text, parse_atom_display_text
 from chemvector.ocr_utility_router import (
     OCRUtilityRouter,
+    add_ocr_cross_score_features,
     add_ocr_visual_features,
     ocr_utility_features,
 )
@@ -1176,7 +1178,7 @@ class ChemSceneHybridPipeline:
         anchor_crops: torch.Tensor | None,
         *,
         include_visual: bool = False,
-    ) -> tuple[list[tuple[str, float]], torch.Tensor | None]:
+    ) -> tuple[list[tuple[str, float]], torch.Tensor | None, torch.Tensor]:
         with torch.autocast(device_type=self.device.type, dtype=torch.bfloat16):
             if include_visual:
                 shifted_logits, shifted_visual = model.forward_with_visual_descriptor(
@@ -1187,7 +1189,7 @@ class ChemSceneHybridPipeline:
                 shifted_visual = None
         shifted = [decode_ctc_with_score(row.float()) for row in shifted_logits]
         if anchor_crops is None:
-            return shifted, shifted_visual
+            return shifted, shifted_visual, shifted_logits
         with torch.autocast(device_type=self.device.type, dtype=torch.bfloat16):
             if include_visual:
                 anchor_logits, anchor_visual = model.forward_with_visual_descriptor(
@@ -1211,14 +1213,28 @@ class ChemSceneHybridPipeline:
             )
         ]
         if not include_visual:
-            return selected, None
+            selected_logits = torch.stack(
+                [
+                    shifted_logits[index]
+                    if choose_shifted
+                    else anchor_logits[index]
+                    for index, choose_shifted in enumerate(use_shifted)
+                ]
+            )
+            return selected, None, selected_logits
         selected_visual = torch.stack(
             [
                 shifted_visual[index] if choose_shifted else anchor_visual[index]
                 for index, choose_shifted in enumerate(use_shifted)
             ]
         )
-        return selected, selected_visual
+        selected_logits = torch.stack(
+            [
+                shifted_logits[index] if choose_shifted else anchor_logits[index]
+                for index, choose_shifted in enumerate(use_shifted)
+            ]
+        )
+        return selected, selected_visual, selected_logits
 
     def _route_ocr_predictions(
         self,
@@ -1226,6 +1242,8 @@ class ChemSceneHybridPipeline:
         expert: list[tuple[str, float]],
         primary_visual: torch.Tensor | None = None,
         expert_visual: torch.Tensor | None = None,
+        primary_logits: torch.Tensor | None = None,
+        expert_logits: torch.Tensor | None = None,
     ) -> tuple[list[tuple[str, float]], int, int]:
         if len(primary) != len(expert) or self.ocr_utility_router is None:
             raise ValueError("OCR utility routing inputs differ")
@@ -1242,6 +1260,7 @@ class ChemSceneHybridPipeline:
             name.startswith("old_visual_")
             for name in self.ocr_utility_feature_names
         )
+        uses_cross_scores = "old_model_new_text_score" in self.ocr_utility_feature_names
         for index in disagreements:
             row = ocr_utility_features(*primary[index], *expert[index])
             if uses_visual:
@@ -1249,6 +1268,22 @@ class ChemSceneHybridPipeline:
                     raise ValueError("Visual OCR router requires paired descriptors")
                 row = add_ocr_visual_features(
                     row, primary_visual[index], expert_visual[index]
+                )
+            if uses_cross_scores:
+                if primary_logits is None or expert_logits is None:
+                    raise ValueError("Cross-score OCR router requires paired logits")
+                row = add_ocr_cross_score_features(
+                    row,
+                    old_model_new_text_score=ctc_text_log_score(
+                        primary_logits[index],
+                        expert[index][0],
+                        normalize_by_bytes=True,
+                    ),
+                    new_model_old_text_score=ctc_text_log_score(
+                        expert_logits[index],
+                        primary[index][0],
+                        normalize_by_bytes=True,
+                    ),
                 )
             rows.append(row)
         features = torch.tensor(
@@ -1460,14 +1495,14 @@ class ChemSceneHybridPipeline:
                             for name in self.ocr_utility_feature_names
                         )
                     )
-                    predictions, primary_visual = self._decode_ctc_crops(
+                    predictions, primary_visual, primary_logits = self._decode_ctc_crops(
                         self.ctc_ocr,
                         crops,
                         anchor_crops,
                         include_visual=include_visual,
                     )
                     if self.expert_ctc_ocr is not None:
-                        expert_predictions, expert_visual = self._decode_ctc_crops(
+                        expert_predictions, expert_visual, expert_logits = self._decode_ctc_crops(
                             self.expert_ctc_ocr,
                             crops,
                             anchor_crops,
@@ -1479,6 +1514,8 @@ class ChemSceneHybridPipeline:
                                 expert_predictions,
                                 primary_visual,
                                 expert_visual,
+                                primary_logits,
+                                expert_logits,
                             )
                         )
                         utility_disagreements += disagreements

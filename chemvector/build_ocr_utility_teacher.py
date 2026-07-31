@@ -12,13 +12,21 @@ import random
 import torch
 
 from Data.sdf.chemmol_webdataset import ChemMolWebDataset
-from chemvector.ctc_ocr import decode_ctc_with_score, detected_text_crops
+from chemvector.ctc_ocr import (
+    ctc_text_log_score,
+    decode_ctc_with_score,
+    detected_text_crops,
+)
 from chemvector.dual_vertex_selector import TEXT_ROLE
 from chemvector.evaluate_direct_atom_ocr import load_ctc
 from chemvector.image_io import image_tensor
 from chemvector.infer_chemscene_hybrid import ChemSceneHybridPipeline
 from chemvector.layer_ocr import colorize_visible_text
-from chemvector.ocr_utility_router import add_ocr_visual_features, ocr_utility_features
+from chemvector.ocr_utility_router import (
+    add_ocr_cross_score_features,
+    add_ocr_visual_features,
+    ocr_utility_features,
+)
 from chemvector.pretrain_ctc_ocr import stable_seed
 from chemvector.text_object import decode_text_objects
 
@@ -96,9 +104,9 @@ def decode_with_fallback(model, shifted, anchor, margin: float):
     shifted_values = [decode_ctc_with_score(row) for row in shifted_logits]
     anchor_values = [decode_ctc_with_score(row) for row in anchor_logits]
     return [
-        (*shifted_item, shifted_descriptors[index])
+        (*shifted_item, shifted_descriptors[index], shifted_logits[index])
         if shifted_item[1] >= anchor_item[1] + margin
-        else (*anchor_item, anchor_descriptors[index])
+        else (*anchor_item, anchor_descriptors[index], anchor_logits[index])
         for index, (shifted_item, anchor_item) in enumerate(
             zip(shifted_values, anchor_values)
         )
@@ -194,8 +202,8 @@ def main() -> None:
                 target = expected.get(point_index)
                 if target is None:
                     continue
-                old_text, old_score, old_visual = old_value
-                new_text, new_score, new_visual = new_value
+                old_text, old_score, old_visual, old_logits = old_value
+                new_text, new_score, new_visual, new_logits = new_value
                 old_exact = old_text == target
                 new_exact = new_text == target
                 label = (
@@ -221,12 +229,20 @@ def main() -> None:
                         "old_score": old_score,
                         "new_score": new_score,
                         "label": label,
-                        "features": add_ocr_visual_features(
-                            ocr_utility_features(
-                                old_text, old_score, new_text, new_score
+                        "features": add_ocr_cross_score_features(
+                            add_ocr_visual_features(
+                                ocr_utility_features(
+                                    old_text, old_score, new_text, new_score
+                                ),
+                                old_visual,
+                                new_visual,
                             ),
-                            old_visual,
-                            new_visual,
+                            old_model_new_text_score=ctc_text_log_score(
+                                old_logits, new_text, normalize_by_bytes=True
+                            ),
+                            new_model_old_text_score=ctc_text_log_score(
+                                new_logits, old_text, normalize_by_bytes=True
+                            ),
                         ),
                     }
                 )
