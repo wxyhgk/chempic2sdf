@@ -172,6 +172,9 @@ def main() -> None:
         "--ctc-ocr-checkpoint",
         default="outputs/checkpoints/chemvector-v088-pretrained-bbox-ctc-10k/best.pt",
     )
+    parser.add_argument("--expert-ctc-ocr-checkpoint")
+    parser.add_argument("--ocr-utility-router-checkpoint")
+    parser.add_argument("--ocr-utility-router-threshold", type=float, default=0.95)
     parser.add_argument(
         "--text-bbox-checkpoint",
         default="outputs/checkpoints/chemvector-v089-text-bbox-offset-9k-45k/best.pt",
@@ -281,6 +284,9 @@ def main() -> None:
         "selector_checkpoint": args.selector_checkpoint,
         "graph_corrector_checkpoint": args.graph_corrector_checkpoint,
         "ctc_ocr_checkpoint": args.ctc_ocr_checkpoint,
+        "expert_ctc_ocr_checkpoint": args.expert_ctc_ocr_checkpoint,
+        "ocr_utility_router_checkpoint": args.ocr_utility_router_checkpoint,
+        "ocr_utility_router_threshold": args.ocr_utility_router_threshold,
         "text_bbox_checkpoint": args.text_bbox_checkpoint,
         "ctc_anchor_fallback_margin": args.ctc_anchor_fallback_margin,
         "bond_set_selector_checkpoint": args.bond_set_selector_checkpoint,
@@ -311,6 +317,10 @@ def main() -> None:
             ),
             "graph_corrector": checkpoint_component(args.graph_corrector_checkpoint),
             "ctc_ocr": checkpoint_component(args.ctc_ocr_checkpoint),
+            "expert_ctc_ocr": checkpoint_component(args.expert_ctc_ocr_checkpoint),
+            "ocr_utility_router": checkpoint_component(
+                args.ocr_utility_router_checkpoint
+            ),
             "text_bbox": checkpoint_component(args.text_bbox_checkpoint),
             "bond_set_selector": checkpoint_component(
                 args.bond_set_selector_checkpoint
@@ -387,6 +397,17 @@ def main() -> None:
         ),
         bond_utility_break_budget=args.bond_utility_break_budget,
         text_interior_bond_veto=args.text_interior_bond_veto,
+        expert_ctc_ocr_checkpoint=(
+            Path(args.expert_ctc_ocr_checkpoint)
+            if args.expert_ctc_ocr_checkpoint
+            else None
+        ),
+        ocr_utility_router_checkpoint=(
+            Path(args.ocr_utility_router_checkpoint)
+            if args.ocr_utility_router_checkpoint
+            else None
+        ),
+        ocr_utility_router_threshold=args.ocr_utility_router_threshold,
     )
 
     records_path = output_dir / "records.jsonl"

@@ -79,6 +79,7 @@ from chemvector.junction_aware_bond_selector import (
     select_and_group_bonds,
 )
 from chemvector.ocr import OCRTextCodec, atom_display_text, parse_atom_display_text
+from chemvector.ocr_utility_router import OCRUtilityRouter, ocr_utility_features
 from chemvector.pretrain_dense_bond_object import _apply_detector
 from chemvector.pretrain_bond_set_selector import (
     load_line_band_reader,
@@ -540,6 +541,9 @@ class ChemSceneHybridPipeline:
         bond_utility_router_checkpoint: Path | None = None,
         bond_utility_break_budget: str = "0",
         text_interior_bond_veto: bool = False,
+        expert_ctc_ocr_checkpoint: Path | None = None,
+        ocr_utility_router_checkpoint: Path | None = None,
+        ocr_utility_router_threshold: float = 0.95,
     ) -> None:
         if junction_projection_score_source not in {"detector", "selector"}:
             raise ValueError(
@@ -776,6 +780,45 @@ class ChemSceneHybridPipeline:
             self.ctc_ocr.load_state_dict(ctc_payload["pretrained_ctc_ocr"])
             self.ctc_ocr.pixel_encoder_loaded = True
             self.ctc_ocr.eval().requires_grad_(False)
+        self.expert_ctc_ocr_checkpoint = expert_ctc_ocr_checkpoint
+        self.expert_ctc_ocr = None
+        self.ocr_utility_router = None
+        self.ocr_utility_feature_names = None
+        self.ocr_utility_feature_mean = None
+        self.ocr_utility_feature_std = None
+        self.ocr_utility_router_threshold = ocr_utility_router_threshold
+        if bool(expert_ctc_ocr_checkpoint) != bool(ocr_utility_router_checkpoint):
+            raise ValueError("Expert CTC OCR and OCR utility router must be used together")
+        if expert_ctc_ocr_checkpoint is not None:
+            if self.ctc_ocr is None:
+                raise ValueError("Expert CTC OCR requires a primary CTC checkpoint")
+            if not 0.0 <= ocr_utility_router_threshold <= 1.0:
+                raise ValueError("OCR utility router threshold must lie in [0, 1]")
+            expert_payload = torch.load(
+                expert_ctc_ocr_checkpoint, map_location="cpu", weights_only=False
+            )
+            expert_config = PretrainedPixelCTCConfig(**expert_payload["config"])
+            if expert_config != self.ctc_ocr.config:
+                raise ValueError("Primary and expert CTC OCR configs differ")
+            self.expert_ctc_ocr = PretrainedPixelCTCOCR(expert_config).to(device)
+            self.expert_ctc_ocr.load_state_dict(
+                expert_payload["pretrained_ctc_ocr"]
+            )
+            self.expert_ctc_ocr.pixel_encoder_loaded = True
+            self.expert_ctc_ocr.eval().requires_grad_(False)
+            router_payload = torch.load(
+                ocr_utility_router_checkpoint, map_location="cpu", weights_only=False
+            )
+            if router_payload.get("checkpoint_schema_version") != "ocr-utility-router-0.1":
+                raise ValueError("OCR utility router checkpoint schema differs")
+            self.ocr_utility_router = OCRUtilityRouter(
+                router_payload["input_dim"], router_payload["hidden_dim"]
+            ).to(device)
+            self.ocr_utility_router.load_state_dict(router_payload["router"])
+            self.ocr_utility_router.eval().requires_grad_(False)
+            self.ocr_utility_feature_names = router_payload["feature_names"]
+            self.ocr_utility_feature_mean = router_payload["feature_mean"].to(device)
+            self.ocr_utility_feature_std = router_payload["feature_std"].to(device)
         self.codec = OCRTextCodec(max_length=self.base.config.ocr_max_length)
         self.bond_set_selector = None
         self.bond_set_selector_payload = None
@@ -1119,6 +1162,66 @@ class ChemSceneHybridPipeline:
             raise ValueError("Single-image Junction inference received a batch")
         return results[0]
 
+    def _decode_ctc_crops(
+        self,
+        model: PretrainedPixelCTCOCR,
+        shifted_crops: torch.Tensor,
+        anchor_crops: torch.Tensor | None,
+    ) -> list[tuple[str, float]]:
+        with torch.autocast(device_type=self.device.type, dtype=torch.bfloat16):
+            shifted_logits = model(shifted_crops)
+        shifted = [decode_ctc_with_score(row.float()) for row in shifted_logits]
+        if anchor_crops is None:
+            return shifted
+        with torch.autocast(device_type=self.device.type, dtype=torch.bfloat16):
+            anchor_logits = model(anchor_crops)
+        anchor = [decode_ctc_with_score(row.float()) for row in anchor_logits]
+        return [
+            shifted_item
+            if shifted_item[1]
+            >= anchor_item[1] + float(self.ctc_anchor_fallback_margin)
+            else anchor_item
+            for shifted_item, anchor_item in zip(shifted, anchor)
+        ]
+
+    def _route_ocr_predictions(
+        self,
+        primary: list[tuple[str, float]],
+        expert: list[tuple[str, float]],
+    ) -> tuple[list[tuple[str, float]], int, int]:
+        if len(primary) != len(expert) or self.ocr_utility_router is None:
+            raise ValueError("OCR utility routing inputs differ")
+        selected = list(primary)
+        disagreements = [
+            index
+            for index, (old, new) in enumerate(zip(primary, expert))
+            if old[0] != new[0]
+        ]
+        if not disagreements:
+            return selected, 0, 0
+        rows = [
+            ocr_utility_features(*primary[index], *expert[index])
+            for index in disagreements
+        ]
+        features = torch.tensor(
+            [
+                [row[name] for name in self.ocr_utility_feature_names]
+                for row in rows
+            ],
+            device=self.device,
+            dtype=torch.float32,
+        )
+        features = (
+            features - self.ocr_utility_feature_mean
+        ) / self.ocr_utility_feature_std
+        with torch.autocast(device_type=self.device.type, dtype=torch.bfloat16):
+            probabilities = self.ocr_utility_router(features).float().sigmoid()
+        routes = probabilities >= self.ocr_utility_router_threshold
+        for row, route in zip(disagreements, routes.tolist()):
+            if route:
+                selected[row] = expert[row]
+        return selected, len(disagreements), int(routes.sum())
+
     def _junctions_batch(
         self,
         pixels: torch.Tensor,
@@ -1267,6 +1370,8 @@ class ChemSceneHybridPipeline:
             point_mask[batch_index, : len(points)] = True
         if include_ocr and self.ctc_ocr is not None:
             label_batches = []
+            utility_disagreements = 0
+            utility_routes = 0
             for batch_index, (points, selected_roles) in enumerate(
                 zip(point_batches, selected_role_batches)
             ):
@@ -1279,12 +1384,7 @@ class ChemSceneHybridPipeline:
                     text_role=TEXT_ROLE,
                 )
                 if len(crops):
-                    with torch.autocast(
-                        device_type=self.device.type,
-                        dtype=torch.bfloat16,
-                    ):
-                        logits = self.ctc_ocr(crops)
-                    predictions = [decode_ctc_with_score(row.float()) for row in logits]
+                    anchor_crops = None
                     if self.ctc_anchor_fallback_margin is not None:
                         anchor_objects = [
                             {
@@ -1305,27 +1405,35 @@ class ChemSceneHybridPipeline:
                             raise ValueError(
                                 "Anchor and shifted OCR crop assignments differ"
                             )
-                        with torch.autocast(
-                            device_type=self.device.type,
-                            dtype=torch.bfloat16,
-                        ):
-                            anchor_logits = self.ctc_ocr(anchor_crops)
-                        anchor_predictions = [
-                            decode_ctc_with_score(row.float())
-                            for row in anchor_logits
-                        ]
-                        predictions = [
-                            shifted
-                            if shifted[1]
-                            >= anchor[1] + self.ctc_anchor_fallback_margin
-                            else anchor
-                            for shifted, anchor in zip(
-                                predictions, anchor_predictions
+                    predictions = self._decode_ctc_crops(
+                        self.ctc_ocr, crops, anchor_crops
+                    )
+                    if self.expert_ctc_ocr is not None:
+                        expert_predictions = self._decode_ctc_crops(
+                            self.expert_ctc_ocr, crops, anchor_crops
+                        )
+                        predictions, disagreements, routes = (
+                            self._route_ocr_predictions(
+                                predictions, expert_predictions
                             )
-                        ]
+                        )
+                        utility_disagreements += disagreements
+                        utility_routes += routes
                     for point_index, (label, _) in zip(label_indices, predictions):
                         labels[point_index] = label
                 label_batches.append(labels)
+            self.component_diagnostics.update(
+                {
+                    "ocr_utility_router_enabled": self.ocr_utility_router is not None,
+                    "ocr_utility_disagreements": utility_disagreements,
+                    "ocr_utility_routes": utility_routes,
+                    "ocr_utility_threshold": (
+                        self.ocr_utility_router_threshold
+                        if self.ocr_utility_router is not None
+                        else None
+                    ),
+                }
+            )
             flat_labels = [label for labels in label_batches for label in labels]
         elif include_ocr:
             ocr_features = self.base.ocr_source(pixels, features)
@@ -1849,6 +1957,9 @@ def main() -> None:
     parser.add_argument("--graph-corrector-checkpoint")
     parser.add_argument("--ocr-checkpoint")
     parser.add_argument("--ctc-ocr-checkpoint")
+    parser.add_argument("--expert-ctc-ocr-checkpoint")
+    parser.add_argument("--ocr-utility-router-checkpoint")
+    parser.add_argument("--ocr-utility-router-threshold", type=float, default=0.95)
     parser.add_argument("--text-bbox-checkpoint")
     parser.add_argument("--ctc-anchor-fallback-margin", type=float)
     parser.add_argument("--bond-set-selector-checkpoint")
@@ -1967,6 +2078,17 @@ def main() -> None:
         ),
         bond_utility_break_budget=args.bond_utility_break_budget,
         text_interior_bond_veto=args.text_interior_bond_veto,
+        expert_ctc_ocr_checkpoint=(
+            Path(args.expert_ctc_ocr_checkpoint)
+            if args.expert_ctc_ocr_checkpoint
+            else None
+        ),
+        ocr_utility_router_checkpoint=(
+            Path(args.ocr_utility_router_checkpoint)
+            if args.ocr_utility_router_checkpoint
+            else None
+        ),
+        ocr_utility_router_threshold=args.ocr_utility_router_threshold,
     )
     load_seconds = time.perf_counter() - started
     source = Image.open(args.image)
@@ -2139,6 +2261,9 @@ def main() -> None:
         "graph_corrector_checkpoint": args.graph_corrector_checkpoint,
         "ocr_checkpoint": args.ocr_checkpoint,
         "ctc_ocr_checkpoint": args.ctc_ocr_checkpoint,
+        "expert_ctc_ocr_checkpoint": args.expert_ctc_ocr_checkpoint,
+        "ocr_utility_router_checkpoint": args.ocr_utility_router_checkpoint,
+        "ocr_utility_router_threshold": args.ocr_utility_router_threshold,
         "text_bbox_checkpoint": args.text_bbox_checkpoint,
         "atom_decode_mode": args.atom_decode_mode,
         "bond_set_selector_checkpoint": args.bond_set_selector_checkpoint,

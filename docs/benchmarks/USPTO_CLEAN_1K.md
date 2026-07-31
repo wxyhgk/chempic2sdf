@@ -388,3 +388,33 @@ outputs/evaluations/uspto-clean-1k-v0941-v0109-ocr-swap/
 - summary SHA256：`18fee99d680c791f9e792f7c28e257d494c6860c53f60648b70f36745025de82`
 - decomposition SHA256：`61339a4327f7f81b8a4ab1b67a3232f64a3e2e6dedbc4055fa24b65919be1db1`
 - config SHA256：`9b67995ecbc75ab89e810a9010eba84022801ee9b75475a9612adfdd13bdbd48`
+
+## v0.10.18 保守双 OCR 路由
+
+v0.10.18 保持 v0.9.41 全部结构组件和 v0.8.8 主 OCR，同时加载 v0.10.9 OCR 专家。只有旧新
+文字不同且内部 utility router 概率不低于固定 `0.95` 时才采用专家结果。USPTO 不参与 router
+训练、checkpoint 或阈值选择。
+
+| 指标 | v0.9.41 | v0.10.18 | rescue | break |
+|---|---:|---:|---:|---:|
+| SDF valid | 704 | 704 | 0 | 0 |
+| Skeleton exact | 727 | 727 | 0 | 0 |
+| Atom-typed skeleton | 293 | 301 | 8 | 0 |
+| Bond-typed skeleton | 591 | 591 | 0 | 0 |
+| Labeled graph exact | 237 | 244 | 7 | 0 |
+| 非立体 SDF exact | 203 | 209 | 6 | 0 |
+| Chemical exact | 160 | 162 | 2 | 0 |
+
+1,378 个 OCR 分歧中只 route 12 次，改变 9 张图片。该版本的收益明显小于 v0.10.17，但完整
+1k 所有 paired 指标零回退，因此作为独立的保守 shadow，而不是用汇总净收益掩盖局部破坏。
+
+输出：
+
+```text
+outputs/evaluations/uspto-clean-1k-v01018-ocr-router-t095/
+```
+
+- Router SHA256：`26cc1f3233e583925273cfe83b64c6a5016c9ecccd7b792228f8aeabf29c175b`
+- summary SHA256：`b526fe821cb16bb89c4ac0500fdd8f72ff620ade840a401e404054269c27f1b0`
+- decomposition SHA256：`11192db46c7f29db48a1d7ff631533df2243f43733c2ee7c4fac1171fe510c8d`
+- config SHA256：`52c9c3fce831926c3aee1ea936d95b83c9356757015fdde2c5ab21e41eecdb21`

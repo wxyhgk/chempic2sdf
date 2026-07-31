@@ -26,8 +26,8 @@
 
 ## 训练时间线
 
-当前已完成：[v0.10.17 BondObject 主线 OCR 替换](20260731-v0.10.17-bondobject-ocr-swap.md)
-（USPTO 1k valid `70.4%→78.5%`、chemical exact `16.0%→21.5%`；能力 GO，保持 shadow）。
+当前已完成：[v0.10.18 保守双 OCR 路由](20260731-v0.10.18-conservative-ocr-router.md)
+（USPTO 1k Atom-typed +8、chemical exact +2，所有 paired break 为 0；保守 shadow GO）。
 
 最新表示消融：[v0.9.41 文字框内部 Bond Veto Pilot](20260731-v0.9.41-text-interior-bond-veto-pilot.md)
 （USPTO 前 100 只触发 1 张，全部指标 `0 rescue / 0 break`；NO-GO，不建立新版本）。
@@ -668,3 +668,9 @@ v0.10.9 正确标签开放 CTC。两个内部 held-out 域 matched OCR 分别提
 USPTO clean 1k 的 Skeleton 保持 72.7%，SDF valid `70.4%→78.5%`、chemical exact
 `16.0%→21.5%`；但分别有 17/20 个 paired break，因此能力 GO、部署保持非推荐 shadow。
 详见 `20260731-v0.10.17-bondobject-ocr-swap.md`。
+
+v0.10.18 使用内部 4,000 张双 OCR teacher 训练 50→64→32→1 utility router。validation
+break-0 阈值在首次 internal test 出现 2 个 break，未接公开集；固定更保守的 `0.95` 后，
+fresh 2k confirm 为 10 rescue/0 break。USPTO clean 1k 只 route 12 次，Atom-typed
+`293→301`、labeled graph `237→244`、chemical exact `160→162`，所有 paired break 为 0。
+详见 `20260731-v0.10.18-conservative-ocr-router.md`。

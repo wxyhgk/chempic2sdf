@@ -152,6 +152,16 @@ class BenchmarkFrontendTests(unittest.TestCase):
             profile["arguments"],
         )
 
+    def test_v01018_conservative_ocr_router_profile_is_shadow(self) -> None:
+        profile = load_inference_profiles()[
+            "structure-v01018-conservative-ocr-router"
+        ]
+        self.assertEqual(profile["version"], "v0.10.18")
+        self.assertTrue(profile["available"])
+        self.assertFalse(profile["recommended"])
+        self.assertIn("--ocr-utility-router-checkpoint", profile["arguments"])
+        self.assertIn("0.95", profile["arguments"])
+
     def test_runtime_inference_profile_registry_is_reloaded(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             registry = Path(directory) / "profiles.json"
