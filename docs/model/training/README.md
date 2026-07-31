@@ -26,11 +26,8 @@
 
 ## 训练时间线
 
-当前已完成：[v0.10.20 交叉打分双 OCR 路由](20260731-v0.10.20-cross-score-ocr-utility-router.md)
-（fresh 2k confirm 为 348 rescue/5 break；证明单对象概率 router 不能作为安全证书，NO-GO）。
-
-当前下一步：[v0.10.21 Invalid-only OCR Fallback 审计](20260731-v0.10.21-invalid-only-ocr-fallback-audit.md)
-（离线 USPTO 1k：valid 704→802、chemical exact 160→187，全部 0 break；待接统一推理）。
+当前已完成：[v0.10.21 Invalid-only OCR Fallback](20260731-v0.10.21-invalid-only-ocr-fallback-audit.md)
+（真实 USPTO 1k：valid 704→802、chemical exact 160→187，全部 0 break；shadow GO）。
 
 最新表示消融：[v0.9.41 文字框内部 Bond Veto Pilot](20260731-v0.9.41-text-interior-bond-veto-pilot.md)
 （USPTO 前 100 只触发 1 张，全部指标 `0 rescue / 0 break`；NO-GO，不建立新版本）。
@@ -679,7 +676,7 @@ fresh 2k confirm 为 10 rescue/0 break。USPTO clean 1k 只 route 12 次，Atom-
 详见 `20260731-v0.10.18-conservative-ocr-router.md`。
 
 v0.10.19 在同一双 OCR router 中加入主/专家各 48 维视觉描述及其差值，输入从 50 维增至
-194 维。validation break-0 rescue 从 81 墫至 394；但固定 `0.95` 在未消费 fresh_dev
+194 维。validation break-0 rescue 从 81 增至 394；但固定 `0.95` 在未消费 fresh_dev
 下一段 2,000 张中 route 194 次，出现 185 rescue/3 break，均为 `O/OH` 显式氢混淆。
 正式 NO-GO，未运行 USPTO、未接前端。详见
 `20260731-v0.10.19-visual-ocr-utility-router.md`。
@@ -689,6 +686,6 @@ v0.10.20 补齐两 OCR 对两候选的 `2x2` CTC 交叉打分，输入为 198 �
 `O/Cl`、`O/OH`、`N/NH`。因此停止堆局部 router 特征，下一步改为图级双候选反事实。
 详见 `20260731-v0.10.20-cross-score-ocr-utility-router.md`。
 
-v0.10.21 候选协议不训练 router，只在主分支 SDF 无效且专家分支有效时采用专家。已有 USPTO
-clean 1k 成对输出中 route 98 次，SDF valid `704→802`、nonstereo exact `203→232`、
-chemical exact `160→187`，所有指标 0 break。离线协议 GO；统一推理尚未接入，不创建 tag。
+v0.10.21 不训练 router，只在主分支 SDF 无效且专家分支有效时采用专家。统一推理重新运行
+USPTO clean 1k：触发 242 次、采用 98 次，SDF valid `704→802`、nonstereo exact
+`203→232`、chemical exact `160→187`，所有指标 0 break。作为非推荐 shadow 接入前端。

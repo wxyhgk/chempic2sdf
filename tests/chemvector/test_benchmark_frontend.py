@@ -162,6 +162,18 @@ class BenchmarkFrontendTests(unittest.TestCase):
         self.assertIn("--ocr-utility-router-checkpoint", profile["arguments"])
         self.assertIn("0.95", profile["arguments"])
 
+    def test_v01021_invalid_only_ocr_fallback_profile_is_shadow(self) -> None:
+        profile = load_inference_profiles()[
+            "structure-v01021-invalid-only-ocr-fallback"
+        ]
+        self.assertEqual(profile["version"], "v0.10.21")
+        self.assertTrue(profile["available"])
+        self.assertFalse(profile["recommended"])
+        self.assertIn(
+            "--invalid-fallback-ctc-ocr-checkpoint", profile["arguments"]
+        )
+        self.assertNotIn("--ocr-utility-router-checkpoint", profile["arguments"])
+
     def test_runtime_inference_profile_registry_is_reloaded(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             registry = Path(directory) / "profiles.json"

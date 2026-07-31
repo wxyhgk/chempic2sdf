@@ -32,6 +32,7 @@ from chemvector.image_io import image_tensor, prepare_input_image
 from chemvector.infer_chemscene_hybrid import (
     ChemSceneHybridPipeline,
     compile_scene_with_aromatic_fallback,
+    load_compatible_fallback_ctc_ocr,
 )
 
 
@@ -173,6 +174,7 @@ def main() -> None:
         default="outputs/checkpoints/chemvector-v088-pretrained-bbox-ctc-10k/best.pt",
     )
     parser.add_argument("--expert-ctc-ocr-checkpoint")
+    parser.add_argument("--invalid-fallback-ctc-ocr-checkpoint")
     parser.add_argument("--ocr-utility-router-checkpoint")
     parser.add_argument("--ocr-utility-router-threshold", type=float, default=0.95)
     parser.add_argument(
@@ -233,6 +235,12 @@ def main() -> None:
 
     if args.samples is not None and args.samples < 1:
         raise ValueError("samples must be positive")
+    if args.invalid_fallback_ctc_ocr_checkpoint and (
+        args.expert_ctc_ocr_checkpoint or args.ocr_utility_router_checkpoint
+    ):
+        raise ValueError(
+            "Invalid-only OCR fallback cannot be combined with utility OCR routing"
+        )
     RDLogger.DisableLog("rdApp.*")
     device = torch.device(args.device)
     manifest_path = Path(args.benchmark_manifest)
@@ -285,6 +293,9 @@ def main() -> None:
         "graph_corrector_checkpoint": args.graph_corrector_checkpoint,
         "ctc_ocr_checkpoint": args.ctc_ocr_checkpoint,
         "expert_ctc_ocr_checkpoint": args.expert_ctc_ocr_checkpoint,
+        "invalid_fallback_ctc_ocr_checkpoint": (
+            args.invalid_fallback_ctc_ocr_checkpoint
+        ),
         "ocr_utility_router_checkpoint": args.ocr_utility_router_checkpoint,
         "ocr_utility_router_threshold": args.ocr_utility_router_threshold,
         "text_bbox_checkpoint": args.text_bbox_checkpoint,
@@ -318,6 +329,9 @@ def main() -> None:
             "graph_corrector": checkpoint_component(args.graph_corrector_checkpoint),
             "ctc_ocr": checkpoint_component(args.ctc_ocr_checkpoint),
             "expert_ctc_ocr": checkpoint_component(args.expert_ctc_ocr_checkpoint),
+            "invalid_fallback_ctc_ocr": checkpoint_component(
+                args.invalid_fallback_ctc_ocr_checkpoint
+            ),
             "ocr_utility_router": checkpoint_component(
                 args.ocr_utility_router_checkpoint
             ),
@@ -350,6 +364,8 @@ def main() -> None:
         "uses_oracle_ocr": False,
         "uses_mr_tadf_for_tuning": False,
     }
+    if args.invalid_fallback_ctc_ocr_checkpoint:
+        config["protocol"] += " -> invalid-only dual OCR fallback"
     ensure_benchmark_config(output_dir / "benchmark_config.json", config)
     pipeline = ChemSceneHybridPipeline(
         Path(args.selector_checkpoint),
@@ -409,6 +425,15 @@ def main() -> None:
         ),
         ocr_utility_router_threshold=args.ocr_utility_router_threshold,
     )
+    fallback_ctc_ocr = None
+    if args.invalid_fallback_ctc_ocr_checkpoint:
+        if pipeline.ctc_ocr is None:
+            raise ValueError("Invalid-only OCR fallback requires a primary CTC OCR")
+        fallback_ctc_ocr = load_compatible_fallback_ctc_ocr(
+            args.invalid_fallback_ctc_ocr_checkpoint,
+            pipeline.ctc_ocr,
+            device,
+        )
 
     records_path = output_dir / "records.jsonl"
     loaded_records = (
@@ -421,7 +446,16 @@ def main() -> None:
     repaired_dir = output_dir / "repaired_chemsvg"
     sdf_dir = output_dir / "sdf"
     prepared_dir = output_dir / "prepared_inputs"
-    for directory in (raw_dir, repaired_dir, sdf_dir, prepared_dir):
+    primary_candidate_dir = output_dir / "primary_candidates"
+    fallback_candidate_dir = output_dir / "fallback_candidates"
+    for directory in (
+        raw_dir,
+        repaired_dir,
+        sdf_dir,
+        prepared_dir,
+        primary_candidate_dir,
+        fallback_candidate_dir,
+    ):
         directory.mkdir(parents=True, exist_ok=True)
     records_changed = duplicate_count > 0
     rerun_ids = set()
@@ -489,6 +523,16 @@ def main() -> None:
         }
         scene = None
         pending_sdf = None
+        fallback_info = {
+            "enabled": fallback_ctc_ocr is not None,
+            "triggered": False,
+            "selected": False,
+            "reason": "disabled" if fallback_ctc_ocr is None else "primary_valid",
+            "primary_valid": False,
+            "fallback_valid": False,
+            "primary_error": None,
+            "fallback_error": None,
+        }
         started = time.perf_counter()
         try:
             pixels = image_tensor(image).unsqueeze(0).to(device)
@@ -502,11 +546,76 @@ def main() -> None:
                 text_attach_radius_pixels=args.text_attach_radius_pixels,
                 atom_decode_mode=args.atom_decode_mode,
             )
+            primary_scene = scene
+            primary_diagnostics = diagnostics
+            if fallback_ctc_ocr is not None:
+                (
+                    primary_candidate_dir / f"{molecule_id}.chemscene.json"
+                ).write_text(
+                    json.dumps(primary_scene, ensure_ascii=False, indent=2) + "\n",
+                    encoding="utf-8",
+                )
+            try:
+                compiled = compile_scene_with_aromatic_fallback(primary_scene)
+                fallback_info["primary_valid"] = True
+            except Exception as primary_error:
+                fallback_info["primary_error"] = str(primary_error)
+                if fallback_ctc_ocr is None:
+                    raise
+                fallback_info["triggered"] = True
+                fallback_info["reason"] = "both_invalid"
+                primary_ctc_ocr = pipeline.ctc_ocr
+                pipeline.ctc_ocr = fallback_ctc_ocr
+                try:
+                    fallback_scene, fallback_diagnostics = pipeline.predict(
+                        pixels,
+                        molecule_id,
+                        bond_threshold=args.bond_threshold,
+                        graph_correction_mode=args.graph_correction_mode,
+                        junction_source=args.junction_source,
+                        endpoint_cluster_radius_pixels=(
+                            args.endpoint_cluster_radius_pixels
+                        ),
+                        text_attach_radius_pixels=args.text_attach_radius_pixels,
+                        atom_decode_mode=args.atom_decode_mode,
+                    )
+                finally:
+                    pipeline.ctc_ocr = primary_ctc_ocr
+                (
+                    fallback_candidate_dir / f"{molecule_id}.chemscene.json"
+                ).write_text(
+                    json.dumps(fallback_scene, ensure_ascii=False, indent=2) + "\n",
+                    encoding="utf-8",
+                )
+                try:
+                    compiled = compile_scene_with_aromatic_fallback(fallback_scene)
+                except Exception as fallback_error:
+                    fallback_info["fallback_error"] = str(fallback_error)
+                    scene = primary_scene
+                    diagnostics = primary_diagnostics
+                    raise primary_error
+                scene = fallback_scene
+                diagnostics = fallback_diagnostics
+                fallback_info.update(
+                    {
+                        "selected": True,
+                        "reason": "primary_invalid_fallback_valid",
+                        "fallback_valid": True,
+                    }
+                )
             raw_sequence = chemsvg_from_chemscene_v0_1(scene)
             (raw_dir / f"{molecule_id}.chemsvg.txt").write_text(
                 raw_sequence, encoding="utf-8"
             )
-            sdf, compiled_scene, aromatic_fallback = compile_scene_with_aromatic_fallback(scene)
+            sdf, compiled_scene, aromatic_fallback = compiled
+            if fallback_info["selected"]:
+                (fallback_candidate_dir / f"{molecule_id}.sdf").write_text(
+                    sdf, encoding="utf-8"
+                )
+            elif fallback_ctc_ocr is not None and fallback_info["primary_valid"]:
+                (primary_candidate_dir / f"{molecule_id}.sdf").write_text(
+                    sdf, encoding="utf-8"
+                )
             repaired_sequence = chemsvg_from_chemscene_v0_1(compiled_scene)
             (repaired_dir / f"{molecule_id}.chemsvg.txt").write_text(
                 repaired_sequence, encoding="utf-8"
@@ -532,6 +641,7 @@ def main() -> None:
                     "fingerprint_similarity": molecular_similarity(expected, delivered),
                     "aromatic_fallback": aromatic_fallback,
                     "diagnostics": diagnostics,
+                    "invalid_ocr_fallback": fallback_info,
                 }
             )
             prefix = "correct" if record["chemical_match"] else "wrong"
@@ -543,6 +653,7 @@ def main() -> None:
                 pending_sdf.unlink(missing_ok=True)
             record["error"] = str(error)
             record["failure_category"] = failure_category(error)
+            record["invalid_ocr_fallback"] = fallback_info
             if scene is not None:
                 try:
                     sequence = chemsvg_from_chemscene_v0_1(scene)

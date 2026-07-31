@@ -868,6 +868,26 @@ class UploadRepository:
                 if (run_dir / "prediction.chemscene.json").is_file()
                 else None
             ),
+            "candidate_primary_scene": (
+                f"{base}/candidate-primary.scene.json"
+                if (run_dir / "candidate-primary.chemscene.json").is_file()
+                else None
+            ),
+            "candidate_primary_sdf": (
+                f"{base}/candidate-primary.sdf"
+                if (run_dir / "candidate-primary.sdf").is_file()
+                else None
+            ),
+            "candidate_fallback_scene": (
+                f"{base}/candidate-fallback.scene.json"
+                if (run_dir / "candidate-fallback.chemscene.json").is_file()
+                else None
+            ),
+            "candidate_fallback_sdf": (
+                f"{base}/candidate-fallback.sdf"
+                if (run_dir / "candidate-fallback.sdf").is_file()
+                else None
+            ),
         }
         return result
 
@@ -880,6 +900,10 @@ class UploadRepository:
             "raw.chemsvg.txt": "prediction-parallel.chemsvg.txt",
             "repaired.chemsvg.txt": "prediction-repaired.chemsvg.txt",
             "scene.json": "prediction.chemscene.json",
+            "candidate-primary.scene.json": "candidate-primary.chemscene.json",
+            "candidate-primary.sdf": "candidate-primary.sdf",
+            "candidate-fallback.scene.json": "candidate-fallback.chemscene.json",
+            "candidate-fallback.sdf": "candidate-fallback.sdf",
         }
         filename = names.get(artifact)
         if filename is None:

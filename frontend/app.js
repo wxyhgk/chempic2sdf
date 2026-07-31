@@ -342,6 +342,10 @@ function renderUploadResult(payload) {
     artifactLink(artifacts.raw_chemsvg, "原始 ChemSVG"),
     artifactLink(artifacts.repaired_chemsvg, "修复后 ChemSVG"),
     artifactLink(artifacts.chemscene, "ChemScene JSON"),
+    artifactLink(artifacts.candidate_primary_scene, "主候选 ChemScene"),
+    artifactLink(artifacts.candidate_primary_sdf, "主候选 SDF"),
+    artifactLink(artifacts.candidate_fallback_scene, "专家候选 ChemScene"),
+    artifactLink(artifacts.candidate_fallback_sdf, "专家候选 SDF"),
   ].join("");
   elements.uploadResult.innerHTML = `
     <div class="upload-result-header">
@@ -369,6 +373,7 @@ function renderUploadResult(payload) {
       ${comparisonMetric("预测键 → 输出键", `${metrics.candidate_strokes ?? "-"} → ${metrics.repaired_strokes ?? "-"}`)}
       ${comparisonMetric("分子式", metrics.formula || "-")}
       ${comparisonMetric("芳香降级", metrics.aromatic_fallback === undefined ? "-" : metrics.aromatic_fallback ? "是" : "否")}
+      ${comparisonMetric("OCR Fallback", metrics.diagnostics?.invalid_ocr_fallback ? `${metrics.diagnostics.invalid_ocr_fallback.triggered ? "已触发" : "未触发"} / ${metrics.diagnostics.invalid_ocr_fallback.selected ? "采用专家" : "保留主分支"}` : "-")}
       ${comparisonMetric("自环/重复边", metrics.diagnostics ? `${metrics.diagnostics.self_loop_objects ?? 0} / ${metrics.diagnostics.duplicate_pair_objects ?? 0}` : "-")}
     </div>`;
 }
