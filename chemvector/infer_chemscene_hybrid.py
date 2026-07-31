@@ -79,7 +79,11 @@ from chemvector.junction_aware_bond_selector import (
     select_and_group_bonds,
 )
 from chemvector.ocr import OCRTextCodec, atom_display_text, parse_atom_display_text
-from chemvector.ocr_utility_router import OCRUtilityRouter, ocr_utility_features
+from chemvector.ocr_utility_router import (
+    OCRUtilityRouter,
+    add_ocr_visual_features,
+    ocr_utility_features,
+)
 from chemvector.pretrain_dense_bond_object import _apply_detector
 from chemvector.pretrain_bond_set_selector import (
     load_line_band_reader,
@@ -809,7 +813,10 @@ class ChemSceneHybridPipeline:
             router_payload = torch.load(
                 ocr_utility_router_checkpoint, map_location="cpu", weights_only=False
             )
-            if router_payload.get("checkpoint_schema_version") != "ocr-utility-router-0.1":
+            if router_payload.get("checkpoint_schema_version") not in {
+                "ocr-utility-router-0.1",
+                "ocr-utility-router-0.2",
+            }:
                 raise ValueError("OCR utility router checkpoint schema differs")
             self.ocr_utility_router = OCRUtilityRouter(
                 router_payload["input_dim"], router_payload["hidden_dim"]
@@ -1167,27 +1174,58 @@ class ChemSceneHybridPipeline:
         model: PretrainedPixelCTCOCR,
         shifted_crops: torch.Tensor,
         anchor_crops: torch.Tensor | None,
-    ) -> list[tuple[str, float]]:
+        *,
+        include_visual: bool = False,
+    ) -> tuple[list[tuple[str, float]], torch.Tensor | None]:
         with torch.autocast(device_type=self.device.type, dtype=torch.bfloat16):
-            shifted_logits = model(shifted_crops)
+            if include_visual:
+                shifted_logits, shifted_visual = model.forward_with_visual_descriptor(
+                    shifted_crops
+                )
+            else:
+                shifted_logits = model(shifted_crops)
+                shifted_visual = None
         shifted = [decode_ctc_with_score(row.float()) for row in shifted_logits]
         if anchor_crops is None:
-            return shifted
+            return shifted, shifted_visual
         with torch.autocast(device_type=self.device.type, dtype=torch.bfloat16):
-            anchor_logits = model(anchor_crops)
+            if include_visual:
+                anchor_logits, anchor_visual = model.forward_with_visual_descriptor(
+                    anchor_crops
+                )
+            else:
+                anchor_logits = model(anchor_crops)
+                anchor_visual = None
         anchor = [decode_ctc_with_score(row.float()) for row in anchor_logits]
-        return [
-            shifted_item
-            if shifted_item[1]
+        use_shifted = [
+            shifted_item[1]
             >= anchor_item[1] + float(self.ctc_anchor_fallback_margin)
-            else anchor_item
             for shifted_item, anchor_item in zip(shifted, anchor)
         ]
+        selected = [
+            shifted_item
+            if choose_shifted
+            else anchor_item
+            for shifted_item, anchor_item, choose_shifted in zip(
+                shifted, anchor, use_shifted
+            )
+        ]
+        if not include_visual:
+            return selected, None
+        selected_visual = torch.stack(
+            [
+                shifted_visual[index] if choose_shifted else anchor_visual[index]
+                for index, choose_shifted in enumerate(use_shifted)
+            ]
+        )
+        return selected, selected_visual
 
     def _route_ocr_predictions(
         self,
         primary: list[tuple[str, float]],
         expert: list[tuple[str, float]],
+        primary_visual: torch.Tensor | None = None,
+        expert_visual: torch.Tensor | None = None,
     ) -> tuple[list[tuple[str, float]], int, int]:
         if len(primary) != len(expert) or self.ocr_utility_router is None:
             raise ValueError("OCR utility routing inputs differ")
@@ -1199,10 +1237,20 @@ class ChemSceneHybridPipeline:
         ]
         if not disagreements:
             return selected, 0, 0
-        rows = [
-            ocr_utility_features(*primary[index], *expert[index])
-            for index in disagreements
-        ]
+        rows = []
+        uses_visual = any(
+            name.startswith("old_visual_")
+            for name in self.ocr_utility_feature_names
+        )
+        for index in disagreements:
+            row = ocr_utility_features(*primary[index], *expert[index])
+            if uses_visual:
+                if primary_visual is None or expert_visual is None:
+                    raise ValueError("Visual OCR router requires paired descriptors")
+                row = add_ocr_visual_features(
+                    row, primary_visual[index], expert_visual[index]
+                )
+            rows.append(row)
         features = torch.tensor(
             [
                 [row[name] for name in self.ocr_utility_feature_names]
@@ -1405,16 +1453,32 @@ class ChemSceneHybridPipeline:
                             raise ValueError(
                                 "Anchor and shifted OCR crop assignments differ"
                             )
-                    predictions = self._decode_ctc_crops(
-                        self.ctc_ocr, crops, anchor_crops
+                    include_visual = bool(
+                        self.ocr_utility_feature_names
+                        and any(
+                            name.startswith("old_visual_")
+                            for name in self.ocr_utility_feature_names
+                        )
+                    )
+                    predictions, primary_visual = self._decode_ctc_crops(
+                        self.ctc_ocr,
+                        crops,
+                        anchor_crops,
+                        include_visual=include_visual,
                     )
                     if self.expert_ctc_ocr is not None:
-                        expert_predictions = self._decode_ctc_crops(
-                            self.expert_ctc_ocr, crops, anchor_crops
+                        expert_predictions, expert_visual = self._decode_ctc_crops(
+                            self.expert_ctc_ocr,
+                            crops,
+                            anchor_crops,
+                            include_visual=include_visual,
                         )
                         predictions, disagreements, routes = (
                             self._route_ocr_predictions(
-                                predictions, expert_predictions
+                                predictions,
+                                expert_predictions,
+                                primary_visual,
+                                expert_visual,
                             )
                         )
                         utility_disagreements += disagreements

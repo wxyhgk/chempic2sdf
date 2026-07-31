@@ -4,12 +4,20 @@ import torch
 
 from chemvector.ocr_utility_router import (
     OCRUtilityRouter,
+    add_ocr_visual_features,
     conservative_frontier,
     ocr_utility_features,
 )
 
 
 class OCRUtilityRouterTests(unittest.TestCase):
+    def test_visual_features_are_paired_and_fixed(self) -> None:
+        values = add_ocr_visual_features({}, torch.zeros(48), torch.ones(48))
+        self.assertEqual(len(values), 144)
+        self.assertEqual(values["old_visual_00"], 0.0)
+        self.assertEqual(values["new_visual_47"], 1.0)
+        self.assertEqual(values["visual_delta_23"], 1.0)
+
     def test_features_include_parseable_atom_state(self) -> None:
         values = ocr_utility_features("NH", -1.2, "N", -0.4)
         self.assertEqual(values["old_parseable"], 1.0)

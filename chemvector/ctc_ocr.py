@@ -475,7 +475,7 @@ class PretrainedPixelCTCOCR(nn.Module):
             "initialized_bytes": initialized_bytes,
         }
 
-    def forward(self, pixels: torch.Tensor) -> torch.Tensor:
+    def _encode(self, pixels: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         if pixels.ndim != 4 or pixels.size(1) != 3:
             raise ValueError("CTC OCR pixels must have shape [batch, 3, height, width]")
         if not self.pixel_encoder_loaded:
@@ -490,6 +490,40 @@ class PretrainedPixelCTCOCR(nn.Module):
             raise ValueError("Pixel feature sequence exceeds maximum_time_steps")
         positions = torch.arange(sequence.size(1), device=sequence.device)
         hidden = self.context(sequence + self.position_embedding(positions).unsqueeze(0))
+        return features, hidden
+
+    @staticmethod
+    def _pool_channels(values: torch.Tensor, bins: int = 8) -> torch.Tensor:
+        return torch.nn.functional.adaptive_avg_pool1d(
+            values.unsqueeze(1), bins
+        ).squeeze(1)
+
+    def forward_with_visual_descriptor(
+        self, pixels: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """Return CTC logits and a small deployment-visible crop descriptor."""
+        features, hidden = self._encode(pixels)
+        temporal_mean = hidden.mean(dim=2)
+        temporal_max = hidden.amax(dim=2)
+        descriptor = torch.cat(
+            (
+                self._pool_channels(features.mean(dim=(2, 3))),
+                self._pool_channels(features.amax(dim=(2, 3))),
+                self._pool_channels(hidden.mean(dim=1)),
+                self._pool_channels(hidden.amax(dim=1)),
+                torch.nn.functional.adaptive_avg_pool1d(
+                    temporal_mean.unsqueeze(1), 8
+                ).squeeze(1),
+                torch.nn.functional.adaptive_max_pool1d(
+                    temporal_max.unsqueeze(1), 8
+                ).squeeze(1),
+            ),
+            dim=1,
+        )
+        return self.output(hidden), descriptor
+
+    def forward(self, pixels: torch.Tensor) -> torch.Tensor:
+        _, hidden = self._encode(pixels)
         return self.output(hidden)
 
 

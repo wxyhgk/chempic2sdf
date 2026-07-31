@@ -32,7 +32,10 @@ def main() -> None:
     args = parser.parse_args()
     checkpoint_path = Path(args.checkpoint)
     payload = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
-    if payload.get("checkpoint_schema_version") != "ocr-utility-router-0.1":
+    if payload.get("checkpoint_schema_version") not in {
+        "ocr-utility-router-0.1",
+        "ocr-utility-router-0.2",
+    }:
         raise ValueError("OCR utility router checkpoint schema differs")
     frontier = payload["validation_frontier"].get(args.break_budget)
     if frontier is None:

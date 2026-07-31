@@ -127,7 +127,7 @@ def main() -> None:
         if best_score is None or current_score > best_score:
             best_score = current_score
             best_payload = {
-                "checkpoint_schema_version": "ocr-utility-router-0.1",
+                "checkpoint_schema_version": "ocr-utility-router-0.2",
                 "router": {
                     key: value.detach().cpu() for key, value in model.state_dict().items()
                 },

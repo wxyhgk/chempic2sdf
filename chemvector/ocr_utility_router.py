@@ -13,6 +13,7 @@ from chemvector.pretrain_ctc_ocr import is_modifier_label
 
 COMMON_ELEMENTS = ("C", "N", "O", "F", "P", "S", "Cl", "Br", "I", "B", "Si", "Se", "H", "*")
 UTILITY_LABELS = ("new_rescue", "new_break", "both_exact", "both_wrong")
+OCR_VISUAL_DESCRIPTOR_DIM = 48
 
 
 def _parsed_features(prefix: str, text: str) -> dict[str, float]:
@@ -61,6 +62,24 @@ def ocr_utility_features(
     features.update(_parsed_features("old", old_text))
     features.update(_parsed_features("new", new_text))
     return features
+
+
+def add_ocr_visual_features(
+    features: dict[str, float],
+    old_descriptor: torch.Tensor,
+    new_descriptor: torch.Tensor,
+) -> dict[str, float]:
+    """Attach paired OCR visual evidence without labels or graph state."""
+    old = old_descriptor.detach().float().cpu().flatten()
+    new = new_descriptor.detach().float().cpu().flatten()
+    if old.numel() != OCR_VISUAL_DESCRIPTOR_DIM or new.numel() != old.numel():
+        raise ValueError("OCR visual descriptor shape differs")
+    result = dict(features)
+    for index, (old_value, new_value) in enumerate(zip(old.tolist(), new.tolist())):
+        result[f"old_visual_{index:02d}"] = float(old_value)
+        result[f"new_visual_{index:02d}"] = float(new_value)
+        result[f"visual_delta_{index:02d}"] = float(new_value - old_value)
+    return result
 
 
 class OCRUtilityRouter(nn.Module):

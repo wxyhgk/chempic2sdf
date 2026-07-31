@@ -122,6 +122,17 @@ class ChemicalCTCOCRTest(unittest.TestCase):
         self.assertEqual(logits.shape, (2, 48, 257))
         self.assertTrue(all(not item.requires_grad for item in model.pixel_encoder.parameters()))
 
+    def test_pretrained_pixel_ctc_emits_fixed_visual_descriptor(self) -> None:
+        model = PretrainedPixelCTCOCR(
+            PretrainedPixelCTCConfig(d_model=32, layers=1, heads=4)
+        )
+        model.pixel_encoder_loaded = True
+        pixels = torch.zeros((2, 3, 48, 192))
+        logits, descriptor = model.forward_with_visual_descriptor(pixels)
+        self.assertEqual(logits.shape, (2, 48, 257))
+        self.assertEqual(descriptor.shape, (2, 48))
+        self.assertTrue(torch.isfinite(descriptor).all())
+
     def test_pretrained_pixel_ctc_can_be_explicitly_unfrozen(self) -> None:
         model = PretrainedPixelCTCOCR(
             PretrainedPixelCTCConfig(d_model=32, layers=1, heads=4)

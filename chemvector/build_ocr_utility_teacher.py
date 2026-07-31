@@ -18,7 +18,7 @@ from chemvector.evaluate_direct_atom_ocr import load_ctc
 from chemvector.image_io import image_tensor
 from chemvector.infer_chemscene_hybrid import ChemSceneHybridPipeline
 from chemvector.layer_ocr import colorize_visible_text
-from chemvector.ocr_utility_router import ocr_utility_features
+from chemvector.ocr_utility_router import add_ocr_visual_features, ocr_utility_features
 from chemvector.pretrain_ctc_ocr import stable_seed
 from chemvector.text_object import decode_text_objects
 
@@ -34,6 +34,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--domain", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--samples", type=int, required=True)
+    parser.add_argument("--skip-samples", type=int, default=0)
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--color-probability", type=float, default=0.5)
     parser.add_argument("--anchor-fallback-margin", type=float, default=0.25)
@@ -87,21 +88,26 @@ def decode_with_fallback(model, shifted, anchor, margin: float):
         return []
     combined = torch.cat((shifted, anchor), dim=0)
     with torch.autocast(device_type=combined.device.type, dtype=torch.bfloat16):
-        logits = model(combined).float()
+        logits, descriptors = model.forward_with_visual_descriptor(combined)
+        logits = logits.float()
+        descriptors = descriptors.float()
     shifted_logits, anchor_logits = logits.chunk(2)
+    shifted_descriptors, anchor_descriptors = descriptors.chunk(2)
     shifted_values = [decode_ctc_with_score(row) for row in shifted_logits]
     anchor_values = [decode_ctc_with_score(row) for row in anchor_logits]
     return [
-        shifted_item
+        (*shifted_item, shifted_descriptors[index])
         if shifted_item[1] >= anchor_item[1] + margin
-        else anchor_item
-        for shifted_item, anchor_item in zip(shifted_values, anchor_values)
+        else (*anchor_item, anchor_descriptors[index])
+        for index, (shifted_item, anchor_item) in enumerate(
+            zip(shifted_values, anchor_values)
+        )
     ]
 
 
 def main() -> None:
     args = parse_args()
-    if min(args.samples, args.batch_size) < 1:
+    if min(args.samples, args.batch_size) < 1 or args.skip_samples < 0:
         raise ValueError("Teacher sample counts must be positive")
     device = torch.device(args.device)
     pipeline = ChemSceneHybridPipeline(
@@ -188,8 +194,8 @@ def main() -> None:
                 target = expected.get(point_index)
                 if target is None:
                     continue
-                old_text, old_score = old_value
-                new_text, new_score = new_value
+                old_text, old_score, old_visual = old_value
+                new_text, new_score, new_visual = new_value
                 old_exact = old_text == target
                 new_exact = new_text == target
                 label = (
@@ -215,8 +221,12 @@ def main() -> None:
                         "old_score": old_score,
                         "new_score": new_score,
                         "label": label,
-                        "features": ocr_utility_features(
-                            old_text, old_score, new_text, new_score
+                        "features": add_ocr_visual_features(
+                            ocr_utility_features(
+                                old_text, old_score, new_text, new_score
+                            ),
+                            old_visual,
+                            new_visual,
                         ),
                     }
                 )
@@ -225,7 +235,11 @@ def main() -> None:
             print(json.dumps(totals), flush=True)
 
     batch = []
+    skipped = 0
     for sample in dataset:
+        if skipped < args.skip_samples:
+            skipped += 1
+            continue
         if totals["images"] + len(batch) >= args.samples:
             consume(batch)
             batch = []
@@ -243,7 +257,12 @@ def main() -> None:
         "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in rows),
         encoding="utf-8",
     )
-    summary = {**totals, "rows": len(rows), "domain": args.domain}
+    summary = {
+        **totals,
+        "rows": len(rows),
+        "domain": args.domain,
+        "skip_samples": args.skip_samples,
+    }
     output.with_suffix(".summary.json").write_text(
         json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )

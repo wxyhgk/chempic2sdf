@@ -26,8 +26,8 @@
 
 ## 训练时间线
 
-当前已完成：[v0.10.18 保守双 OCR 路由](20260731-v0.10.18-conservative-ocr-router.md)
-（USPTO 1k Atom-typed +8、chemical exact +2，所有 paired break 为 0；保守 shadow GO）。
+当前已完成：[v0.10.19 图像感知双 OCR 路由](20260731-v0.10.19-visual-ocr-utility-router.md)
+（内部 validation 零-break rescue 394，但 fresh 2k confirm 为 185 rescue/3 break；NO-GO）。
 
 最新表示消融：[v0.9.41 文字框内部 Bond Veto Pilot](20260731-v0.9.41-text-interior-bond-veto-pilot.md)
 （USPTO 前 100 只触发 1 张，全部指标 `0 rescue / 0 break`；NO-GO，不建立新版本）。
@@ -674,3 +674,9 @@ break-0 阈值在首次 internal test 出现 2 个 break，未接公开集；固
 fresh 2k confirm 为 10 rescue/0 break。USPTO clean 1k 只 route 12 次，Atom-typed
 `293→301`、labeled graph `237→244`、chemical exact `160→162`，所有 paired break 为 0。
 详见 `20260731-v0.10.18-conservative-ocr-router.md`。
+
+v0.10.19 在同一双 OCR router 中加入主/专家各 48 维视觉描述及其差值，输入从 50 维增至
+194 维。validation break-0 rescue 从 81 墫至 394；但固定 `0.95` 在未消费 fresh_dev
+下一段 2,000 张中 route 194 次，出现 185 rescue/3 break，均为 `O/OH` 显式氢混淆。
+正式 NO-GO，未运行 USPTO、未接前端。详见
+`20260731-v0.10.19-visual-ocr-utility-router.md`。
