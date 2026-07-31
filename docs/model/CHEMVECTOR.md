@@ -27,6 +27,9 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
   且最高错误概率 0.994。单对象概率门正式停止，转图级双候选反事实验证。
 - v0.10.21 invalid-only 双分支已接统一推理。USPTO 1k valid `704→802`、chemical exact
   `160→187`，全部 0 break；作为非推荐 shadow profile，默认模型不变。
+- 完整 MR-TADF v1 已改为主应用 benchmark。v0.10.21 的 valid 65.91%、Skeleton exact
+  48.09%、Chemical exact 24.00%；count-pair 正确条件下 Skeleton exact 97.96%，下一主线
+  是整图 AtomObject/BondObject 计数与去重。USPTO 只保留为公开 OOD 护栏。
 - 版本从 `v0.7` 开始，每次发布增加 `0.0.1`。
 - 根目录 `VERSION` 是开发版本的唯一来源。
 

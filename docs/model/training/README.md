@@ -29,6 +29,10 @@
 当前已完成：[v0.10.21 Invalid-only OCR Fallback](20260731-v0.10.21-invalid-only-ocr-fallback-audit.md)
 （真实 USPTO 1k：valid 704→802、chemical exact 160→187，全部 0 break；shadow GO）。
 
+当前主应用 benchmark：MR-TADF v1 完整 1,100 张。v0.10.21 的 SDF valid 65.91%、
+Skeleton exact 48.09%、Chemical exact 24.00%；count-pair 正确条件下 Skeleton exact
+97.96%，下一瓶颈为整图对象计数与去重。
+
 最新表示消融：[v0.9.41 文字框内部 Bond Veto Pilot](20260731-v0.9.41-text-interior-bond-veto-pilot.md)
 （USPTO 前 100 只触发 1 张，全部指标 `0 rescue / 0 break`；NO-GO，不建立新版本）。
 
@@ -689,3 +693,6 @@ v0.10.20 补齐两 OCR 对两候选的 `2x2` CTC 交叉打分，输入为 198 �
 v0.10.21 不训练 router，只在主分支 SDF 无效且专家分支有效时采用专家。统一推理重新运行
 USPTO clean 1k：触发 242 次、采用 98 次，SDF valid `704→802`、nonstereo exact
 `203→232`、chemical exact `160→187`，所有指标 0 break。作为非推荐 shadow 接入前端。
+随后完整运行 MR-TADF v1 1,100 张：valid 65.91%、Skeleton exact 48.09%、Chemical exact
+24.00%；fallback 只增加 48 个 valid，完整 exact 无增益。MR-TADF 改为主应用 benchmark，
+USPTO 降为公开 OOD 护栏。
