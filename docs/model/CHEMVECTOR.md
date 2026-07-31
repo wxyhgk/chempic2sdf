@@ -8,13 +8,16 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
 
 ## 当前版本
 
-- 当前完成的研究 tag：`v0.10.16`。
-- 当前稳定推理基线：`v0.10.10`。
-- 当前开发包版本：`v0.10.16`；当前研究实验编号：`v0.10.16`。
+- 当前完成的研究 tag：`v0.10.17`。
+- 当前部署默认：`v0.10.10`；当前公开能力基线：`v0.9.41`。
+- 当前开发包版本：`v0.10.17`；当前研究实验编号：`v0.10.17`。
 - v0.10.15 structural-twin 已通过结构门；完整 SDF 回归前默认仍为 `v0.10.10`。
 - v0.10.16 已将 structural-twin 接入 OCR/SDF 统一推理。固定 40 张开发集 A/B 的 SDF valid
   `18→24`、非立体 exact `9→12`、chemical exact `5→6`，零回退；工程 GO，仍为非推荐
   shadow profile。
+- v0.10.17 回到 v0.9.41 语义 BondObject 主干并接入 v0.10.9 开放 CTC。USPTO clean 1k
+  Skeleton 保持 72.7%，SDF valid `70.4%→78.5%`、chemical exact `16.0%→21.5%`；存在
+  17/20 个 valid/chemical paired break，因此只作为能力 shadow，不自动切换默认。
 - 版本从 `v0.7` 开始，每次发布增加 `0.0.1`。
 - 根目录 `VERSION` 是开发版本的唯一来源。
 
@@ -169,6 +172,9 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
 - v0.10.16 在 Direct AtomPair 后、OCR/SDF 前执行获证删除并同步过滤入射 pair。20 action 与
   20 control 的端到端 pilot 协议全部一致，SDF valid `18→24`、非立体 exact `9→12`、
   chemical exact `5→6`，0 break；工程 GO，shadow 可用。
+- v0.10.17 不训练新权重，将 v0.10.9 正确标签 CTC 接到 v0.9.41 语义 BondObject 主线。
+  两个内部 held-out 域 matched OCR 提高 `+9.51pp/+8.02pp`；USPTO 1k valid/chemical exact
+  净增 81/55，Skeleton 逐图不变。完整 1k 仍有 17/20 个 paired break，能力 GO、部署 shadow。
 - v0.9.28 冻结八组件完整对象链路。USPTO clean 100 的 SDF valid 为 77%、非立体 exact 21%、
   化学 exact 19%；GD906 无效预测也保留 diagnostic SDF 与渲染图。可试用，但不替换稳定默认。
 - v0.9.29 在 USPTO clean 1k 上将 SDF 图分解为四层：纯骨架 72.4%、原子类型+骨架 29.2%、

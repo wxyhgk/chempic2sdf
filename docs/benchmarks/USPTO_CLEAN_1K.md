@@ -358,3 +358,33 @@ outputs/evaluations/uspto-clean-1k-v01016-structural-twin-ab/
 
 配置 SHA256：
 `8a63051649f8e7c808f3ea0066af156957b008ade6d7a62d00054e5bafe5baf8`。
+
+## v0.10.17 语义 BondObject + v0.10.9 OCR
+
+v0.10.17 回到 v0.9.41 的双 BondObject 专家、utility router、semantic Junction relation 和
+全部冻结阈值，只把 v0.8.8 CTC 替换为协议兼容的 v0.10.9 正确标签开放 CTC。USPTO 不参与
+checkpoint、路由或阈值选择。
+
+| 指标 | v0.9.41 | v0.10.17 | rescue | break |
+|---|---:|---:|---:|---:|
+| SDF valid | 704 | 785 | 98 | 17 |
+| 非立体 SDF exact | 203 | 272 | 97 | 28 |
+| Chemical exact | 160 | 215 | 75 | 20 |
+| Skeleton exact | 727 | 727 | 0 | 0 |
+| Atom-typed skeleton | 293 | 320 | 64 | 37 |
+| Bond-typed skeleton | 591 | 632 | 53 | 12 |
+| Labeled graph exact | 237 | 294 | 84 | 27 |
+
+OCR 输出在 630 张变化，Atom/Bond 数量逐图不变。更正确的原子状态减少了错误价态和 aromatic
+fallback，因此 valid、Atom-typed 和 Bond-typed 同时净增；但完整 1k 仍存在 paired break，
+该组合只作为非推荐 shadow，不宣称逐图安全替换。
+
+输出：
+
+```text
+outputs/evaluations/uspto-clean-1k-v0941-v0109-ocr-swap/
+```
+
+- summary SHA256：`18fee99d680c791f9e792f7c28e257d494c6860c53f60648b70f36745025de82`
+- decomposition SHA256：`61339a4327f7f81b8a4ab1b67a3232f64a3e2e6dedbc4055fa24b65919be1db1`
+- config SHA256：`9b67995ecbc75ab89e810a9010eba84022801ee9b75475a9612adfdd13bdbd48`

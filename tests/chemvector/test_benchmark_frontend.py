@@ -141,6 +141,17 @@ class BenchmarkFrontendTests(unittest.TestCase):
         self.assertTrue(all("arguments" not in profile for profile in profiles))
         self.assertTrue(all("module" not in profile for profile in profiles))
 
+    def test_v01017_bondobject_ocr_profile_is_available_shadow(self) -> None:
+        profile = load_inference_profiles()["structure-v01017-bondobject-ocr"]
+        self.assertEqual(profile["version"], "v0.10.17")
+        self.assertTrue(profile["available"])
+        self.assertFalse(profile["recommended"])
+        self.assertEqual(profile["module"], "chemvector.infer_chemscene_hybrid")
+        self.assertIn(
+            "outputs/checkpoints/chemvector-v0109-correct-label-ocr-style10k/selected.pt",
+            profile["arguments"],
+        )
+
     def test_runtime_inference_profile_registry_is_reloaded(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             registry = Path(directory) / "profiles.json"

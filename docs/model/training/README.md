@@ -26,8 +26,8 @@
 
 ## 训练时间线
 
-当前已完成：[v0.10.16 Structural Twin 推理接入](20260730-v0.10.16-structural-twin-inference.md)
-（40 张端到端 pilot 工程 GO，shadow 可用，默认仍为 v0.10.10）。
+当前已完成：[v0.10.17 BondObject 主线 OCR 替换](20260731-v0.10.17-bondobject-ocr-swap.md)
+（USPTO 1k valid `70.4%→78.5%`、chemical exact `16.0%→21.5%`；能力 GO，保持 shadow）。
 
 最新表示消融：[v0.9.41 文字框内部 Bond Veto Pilot](20260731-v0.9.41-text-interior-bond-veto-pilot.md)
 （USPTO 前 100 只触发 1 张，全部指标 `0 rescue / 0 break`；NO-GO，不建立新版本）。
@@ -660,5 +660,11 @@ control OCR 与图零变化。工程 GO；该 pilot 来自开发集，前端 pro
 2026-07-31 回到 v0.9.41 语义 BondObject 主线验证文字笔画污染：只删除两个语义端点都位于
 同一 Text Object bbox 内部的 Bond 候选。固定 USPTO 前 100 仅 1 张触发、删除 2 个未进入
 最终图的低层候选，Skeleton/chemical exact 均 `0 rescue / 0 break`。说明通用无语义点线
-确有文字混淆问题，但它已不是 v0.9.41 的主要残差；不扩测、不建立 v0.10.17。详见
+确有文字混淆问题，但它已不是 v0.9.41 的主要残差；该消融不扩测、不占用新版本号。详见
 `20260731-v0.9.41-text-interior-bond-veto-pilot.md`。
+
+v0.10.17 回到 v0.9.41 语义 BondObject utility router，只将协议兼容的 v0.8.8 CTC 替换为
+v0.10.9 正确标签开放 CTC。两个内部 held-out 域 matched OCR 分别提高 `+9.51pp/+8.02pp`。
+USPTO clean 1k 的 Skeleton 保持 72.7%，SDF valid `70.4%→78.5%`、chemical exact
+`16.0%→21.5%`；但分别有 17/20 个 paired break，因此能力 GO、部署保持非推荐 shadow。
+详见 `20260731-v0.10.17-bondobject-ocr-swap.md`。
