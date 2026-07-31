@@ -8,11 +8,61 @@ from chemvector.infer_chemscene_hybrid import (
     attach_text_to_bond_junctions,
     compile_scene_with_aromatic_fallback,
     repair_impossible_explicit_h,
+    suppress_text_interior_bond_objects,
 )
 from chemvector.evaluate_detected_ctc_ocr import match_text_predictions
 
 
 class ChemSceneHybridAssemblerTest(unittest.TestCase):
+    def test_text_interior_veto_removes_only_fully_contained_bond(self) -> None:
+        interior = {
+            "score": 0.8,
+            "endpoints": torch.tensor(((0.46, 0.47), (0.54, 0.53))),
+        }
+        attached = {
+            "score": 0.9,
+            "endpoints": torch.tensor(((0.50, 0.50), (0.80, 0.50))),
+        }
+        kept, removed = suppress_text_interior_bond_objects(
+            [interior, attached],
+            [
+                {
+                    "x": 0.50,
+                    "y": 0.50,
+                    "bbox_x": 0.50,
+                    "bbox_y": 0.50,
+                    "half_width": 0.10,
+                    "half_height": 0.10,
+                }
+            ],
+            image_size=100,
+        )
+        self.assertEqual(kept, [attached])
+        self.assertEqual(len(removed), 1)
+        self.assertEqual(removed[0]["bond_index"], 0)
+
+    def test_text_interior_veto_uses_shifted_bbox_center(self) -> None:
+        bond = {
+            "score": 0.8,
+            "endpoints": torch.tensor(((0.66, 0.47), (0.74, 0.53))),
+        }
+        kept, removed = suppress_text_interior_bond_objects(
+            [bond],
+            [
+                {
+                    "x": 0.50,
+                    "y": 0.50,
+                    "bbox_x": 0.70,
+                    "bbox_y": 0.50,
+                    "half_width": 0.10,
+                    "half_height": 0.10,
+                }
+            ],
+            image_size=100,
+        )
+        self.assertEqual(kept, [])
+        self.assertEqual(len(removed), 1)
+
     def test_text_attachment_cannot_create_structural_junctions(self) -> None:
         roles, labels = attach_text_to_bond_junctions(
             torch.tensor(((0.1, 0.1), (0.5, 0.5), (0.9, 0.1))),

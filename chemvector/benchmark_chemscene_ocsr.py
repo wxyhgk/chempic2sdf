@@ -163,6 +163,7 @@ def main() -> None:
     parser.add_argument(
         "--bond-utility-break-budget", choices=("0", "1", "2", "5", "10"), default="0"
     )
+    parser.add_argument("--text-interior-bond-veto", action="store_true")
     parser.add_argument(
         "--graph-corrector-checkpoint",
         default="outputs/checkpoints/chemvector-v085-chemscene-graph-corrector-2k/best.pt",
@@ -288,6 +289,7 @@ def main() -> None:
         "style_gate_threshold": args.style_gate_threshold,
         "bond_utility_router_checkpoint": args.bond_utility_router_checkpoint,
         "bond_utility_break_budget": args.bond_utility_break_budget,
+        "text_interior_bond_veto": args.text_interior_bond_veto,
         "endpoint_grouper_checkpoint": args.endpoint_grouper_checkpoint,
         "line_band_checkpoint": args.line_band_checkpoint,
         "semantic_bond_relation_checkpoint": args.semantic_bond_relation_checkpoint,
@@ -384,6 +386,7 @@ def main() -> None:
             else None
         ),
         bond_utility_break_budget=args.bond_utility_break_budget,
+        text_interior_bond_veto=args.text_interior_bond_veto,
     )
 
     records_path = output_dir / "records.jsonl"

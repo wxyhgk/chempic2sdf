@@ -29,6 +29,9 @@
 当前已完成：[v0.10.16 Structural Twin 推理接入](20260730-v0.10.16-structural-twin-inference.md)
 （40 张端到端 pilot 工程 GO，shadow 可用，默认仍为 v0.10.10）。
 
+最新表示消融：[v0.9.41 文字框内部 Bond Veto Pilot](20260731-v0.9.41-text-interior-bond-veto-pilot.md)
+（USPTO 前 100 只触发 1 张，全部指标 `0 rescue / 0 break`；NO-GO，不建立新版本）。
+
 | 编号 | 阶段 | 主要结论 | 状态 |
 |---|---|---|---|
 | 001 | [100 样本视觉接地课程](001-grounding-100.md) | 证明图片到结构的训练和 SDF 往返链路成立 | 完成 |
@@ -653,3 +656,9 @@ v0.10.16 将完整候选接入 Direct AtomPair 输出之后、OCR/芳香环/SDF 
 removed query 的全部入射 pair。固定 20 action + 20 control 的端到端 A/B 中，执行协议 40/40
 正确，SDF valid `18→24`、非立体 exact `9→12`、chemical exact `5→6`，所有回退为 0，
 control OCR 与图零变化。工程 GO；该 pilot 来自开发集，前端 profile 暂保持非推荐。
+
+2026-07-31 回到 v0.9.41 语义 BondObject 主线验证文字笔画污染：只删除两个语义端点都位于
+同一 Text Object bbox 内部的 Bond 候选。固定 USPTO 前 100 仅 1 张触发、删除 2 个未进入
+最终图的低层候选，Skeleton/chemical exact 均 `0 rescue / 0 break`。说明通用无语义点线
+确有文字混淆问题，但它已不是 v0.9.41 的主要残差；不扩测、不建立 v0.10.17。详见
+`20260731-v0.9.41-text-interior-bond-veto-pilot.md`。

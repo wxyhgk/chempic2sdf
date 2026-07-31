@@ -455,6 +455,61 @@ def compile_scene_with_aromatic_fallback(scene: dict) -> tuple[str, dict, bool]:
     return sdf_from_chemscene_v0_1(fallback), fallback, True
 
 
+def suppress_text_interior_bond_objects(
+    bond_objects: list[dict],
+    text_objects: list[dict],
+    *,
+    image_size: int,
+    interior_margin_pixels: float = 2.0,
+) -> tuple[list[dict], list[dict]]:
+    """Remove BondObjects whose two semantic endpoints are inside one text box."""
+    if image_size < 1:
+        raise ValueError("Image size must be positive")
+    if interior_margin_pixels < 0:
+        raise ValueError("Text interior margin cannot be negative")
+    margin = interior_margin_pixels / image_size
+    kept = []
+    removed = []
+    for bond_index, bond in enumerate(bond_objects):
+        endpoints = bond["endpoints"].detach().float().cpu()
+        containing_text = None
+        for text_index, text in enumerate(text_objects):
+            half_width = float(text["half_width"]) - margin
+            half_height = float(text["half_height"]) - margin
+            if min(half_width, half_height) <= 0:
+                continue
+            center_x = float(text.get("bbox_x", text["x"]))
+            center_y = float(text.get("bbox_y", text["y"]))
+            inside = (
+                (endpoints[:, 0] > center_x - half_width)
+                & (endpoints[:, 0] < center_x + half_width)
+                & (endpoints[:, 1] > center_y - half_height)
+                & (endpoints[:, 1] < center_y + half_height)
+            )
+            if bool(inside.all()):
+                containing_text = text_index
+                break
+        if containing_text is None:
+            kept.append(bond)
+            continue
+        text = text_objects[containing_text]
+        removed.append(
+            {
+                "bond_index": bond_index,
+                "text_index": containing_text,
+                "score": float(bond["score"]),
+                "endpoints": endpoints.tolist(),
+                "text_bbox": {
+                    "x": float(text.get("bbox_x", text["x"])),
+                    "y": float(text.get("bbox_y", text["y"])),
+                    "half_width": float(text["half_width"]),
+                    "half_height": float(text["half_height"]),
+                },
+            }
+        )
+    return kept, removed
+
+
 class ChemSceneHybridPipeline:
     def __init__(
         self,
@@ -484,12 +539,14 @@ class ChemSceneHybridPipeline:
         style_gate_threshold: float = 0.90,
         bond_utility_router_checkpoint: Path | None = None,
         bond_utility_break_budget: str = "0",
+        text_interior_bond_veto: bool = False,
     ) -> None:
         if junction_projection_score_source not in {"detector", "selector"}:
             raise ValueError(
                 "Junction projection score source must be detector or selector"
             )
         self.device = device
+        self.text_interior_bond_veto = text_interior_bond_veto
         self.junction_projection_score_source = junction_projection_score_source
         if junction_bond_type_source not in {"detector", "line_band"}:
             raise ValueError("Junction Bond type source must be detector or line_band")
@@ -1418,6 +1475,36 @@ class ChemSceneHybridPipeline:
                 )
             )
         bond_objects = bond_batches[0]
+        if self.text_interior_bond_veto and bond_objects:
+            with torch.autocast(device_type=self.device.type, dtype=torch.bfloat16):
+                text_output = self.text_head(features)
+            text_objects = decode_text_objects(
+                text_output,
+                threshold=float(self.protocol["text_threshold"]),
+                maximum_objects=self.selector_config.maximum_candidates,
+            )[0]
+            bond_objects, removed = suppress_text_interior_bond_objects(
+                bond_objects,
+                text_objects,
+                image_size=pixels.size(-1),
+            )
+            self.component_diagnostics.update(
+                {
+                    "text_interior_bond_veto_enabled": True,
+                    "text_interior_bond_veto_text_objects": len(text_objects),
+                    "text_interior_bond_veto_removed": len(removed),
+                    "text_interior_bond_veto_details": removed,
+                }
+            )
+        else:
+            self.component_diagnostics.update(
+                {
+                    "text_interior_bond_veto_enabled": self.text_interior_bond_veto,
+                    "text_interior_bond_veto_text_objects": 0,
+                    "text_interior_bond_veto_removed": 0,
+                    "text_interior_bond_veto_details": [],
+                }
+            )
         if junction_source in {
             "bond_endpoints",
             "junction_aware_bonds",
@@ -1757,6 +1844,7 @@ def main() -> None:
     parser.add_argument(
         "--bond-utility-break-budget", choices=("0", "1", "2", "5", "10"), default="0"
     )
+    parser.add_argument("--text-interior-bond-veto", action="store_true")
     parser.add_argument("--assembler-checkpoint")
     parser.add_argument("--graph-corrector-checkpoint")
     parser.add_argument("--ocr-checkpoint")
@@ -1878,6 +1966,7 @@ def main() -> None:
             else None
         ),
         bond_utility_break_budget=args.bond_utility_break_budget,
+        text_interior_bond_veto=args.text_interior_bond_veto,
     )
     load_seconds = time.perf_counter() - started
     source = Image.open(args.image)
