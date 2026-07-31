@@ -25,6 +25,8 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
   但独立 fresh 2k confirm 为 185 rescue/3 break，三次均是 `O/OH`；NO-GO，不接前端。
 - v0.10.20 再加入两模型对两候选的 CTC 交叉分数；独立 fresh 2k 为 348 rescue/5 break，
   且最高错误概率 0.994。单对象概率门正式停止，转图级双候选反事实验证。
+- v0.10.21 候选的 invalid-only 双分支离线审计将 USPTO 1k valid `704→802`、chemical exact
+  `160→187`，全部 0 break；尚未接统一推理，因此不占用正式 tag。
 - 版本从 `v0.7` 开始，每次发布增加 `0.0.1`。
 - 根目录 `VERSION` 是开发版本的唯一来源。
 

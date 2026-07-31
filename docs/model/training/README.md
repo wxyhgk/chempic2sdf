@@ -29,6 +29,9 @@
 当前已完成：[v0.10.20 交叉打分双 OCR 路由](20260731-v0.10.20-cross-score-ocr-utility-router.md)
 （fresh 2k confirm 为 348 rescue/5 break；证明单对象概率 router 不能作为安全证书，NO-GO）。
 
+当前下一步：[v0.10.21 Invalid-only OCR Fallback 审计](20260731-v0.10.21-invalid-only-ocr-fallback-audit.md)
+（离线 USPTO 1k：valid 704→802、chemical exact 160→187，全部 0 break；待接统一推理）。
+
 最新表示消融：[v0.9.41 文字框内部 Bond Veto Pilot](20260731-v0.9.41-text-interior-bond-veto-pilot.md)
 （USPTO 前 100 只触发 1 张，全部指标 `0 rescue / 0 break`；NO-GO，不建立新版本）。
 
@@ -685,3 +688,7 @@ v0.10.20 补齐两 OCR 对两候选的 `2x2` CTC 交叉打分，输入为 198 �
 2k 在固定 `0.95` 下 route 364 次、348 rescue、5 break；最高错误概率 `0.994`，错误包含
 `O/Cl`、`O/OH`、`N/NH`。因此停止堆局部 router 特征，下一步改为图级双候选反事实。
 详见 `20260731-v0.10.20-cross-score-ocr-utility-router.md`。
+
+v0.10.21 候选协议不训练 router，只在主分支 SDF 无效且专家分支有效时采用专家。已有 USPTO
+clean 1k 成对输出中 route 98 次，SDF valid `704→802`、nonstereo exact `203→232`、
+chemical exact `160→187`，所有指标 0 break。离线协议 GO；统一推理尚未接入，不创建 tag。
