@@ -26,6 +26,152 @@
 
 ## 训练时间线
 
+当前已完成审计：[G3 P1-M 一跳替换边界可达性](20260803-g3-p1m-one-move-boundary-reachability-audit.md)：
+top-8 swap覆盖train一跳图95.27%，但route仅77.27%未过80%门；top-16覆盖train
+775/783=98.98%、route 20/22=90.91%，正式选择`top16x16_action_candidates`。下一步最多
+生成256个swap/图，以执行后整图exact为标签，并要求当前exact图零有害替换。
+
+当前已完成审计：[G3 P1-L 最小Component替换审计](20260803-g3-p1l-minimum-component-replacement-audit.md)：
+P1-K train的1,081张oracle可达失败图中，783张只需替换一个component，占72.43%；route为
+22/32=68.75%，单/双替换累计90.63%。16张train图因representative覆盖不可达。按预注册选择
+`one_move_action_verifier`；下一步先审计正swap在top-K分数边界的覆盖，再决定动作枚举范围。
+
+当前已完成实验：[G3 P1-K Component Set Ranker Train5k](20260803-g3-p1k-component-set-ranker-train5k.md)：
+60,609参数masked component ranker完成25,000 exposures并通过独立全量重放。train known
+exact `64.22%→78.06%`、recall `98.176%→98.945%`；route exact `53→68/100`、recall
+`97.461%→98.405%`。因果门全过，但train recall距99%能力门差0.055pp，正式
+`protocol passed / causal GO / capability NO-GO`。不追加同一epoch，下一步审计失败图的最小
+component替换数。
+
+当前已完成审计：[G3 P1-J Component Representative审计](20260803-g3-p1j-component-representative-audit.md)：
+四种3px component单坐标方案全部过门，按train reachability选择base-softmax，train
+recall/exact 99.990%/99.68%，route 100%/100%。零训练component base top-M已将train几何
+exact `24.18%→64.22%`、route `22%→53%`，Atom recall升至98.18%/97.46%。这直接定位
+重复candidate竞争为主要瓶颈；下一步训练component-level presence ranker。
+
+当前已完成审计：[G3 P1-I Target-free候选聚合可达性](20260803-g3-p1i-target-free-candidate-clustering-audit.md)：
+3px预测anchor连通分量将每图候选`128→67.20`，多component GT `89.13%→20.01%`，同时
+train一一覆盖recall 99.992%、exact 99.74%，route为100%/100%；3px与4px过门，按协议选择
+更保守的3px，正式`target_free_radius_clustering_go`。下一步先审计component representative
+坐标，再训练component-level ranker。
+
+当前已完成审计：[G3 P1-H 动态指派稳定性审计](20260803-g3-p1h-dynamic-assignment-stability-audit.md)：
+零训练同时重放P1-G五个epoch checkpoint；最后两轮仅666/154,911个Atom更换candidate代表，
+turnover 0.43%，五轮始终稳定Atom达98.29%。冻结几何exact从20.68%单调升至24.18%，正式
+`late_assignment_instability_not_primary`。否定后期硬匹配振荡主因，下一步审计target-free
+几何候选聚合能否减少重复身份且不合并真实Atom。
+
+当前已完成实验：[G3 P1-G 等价集合动态匹配 Train5k](20260803-g3-p1g-equivalent-set-matching-train5k.md)：
+保持P1-D的60,545参数ranker与25,000 exposures，只将固定candidate身份监督改为6px组内最大
+基数动态一一匹配。独立重放通过；train几何exact `18.68%→24.18%`、Atom recall
+`94.26%→95.35%`，route exact `17→22/100`、known F1 `93.31%→94.22%`。跨域收益真实但
+低于预注册+10pp因果门，正式`protocol passed / causal NO-GO / capability NO-GO`；停止追加
+相同loss/epoch，下一步零训练区分动态assignment稳定性与target-free候选去重可达性。
+
+当前已完成审计：[G3 P1-F 等价候选监督审计](20260803-g3-p1f-equivalent-candidate-supervision-audit.md)：
+零训练重放四个final checkpoint后确认固定身份是主要瓶颈。train5k中89.13%的representable
+GT在6px内有多个top-128候选，平均3.19个；允许几何等价候选置换后，四臂whole-set exact
+相对固定candidate identity提高12.54..13.96pp，route100也提高11..13pp。正式判定
+`fixed_identity_major_bottleneck`；下一步改为组内动态一一匹配监督，禁止把同组全部标正。
+
+当前已完成实验：[G3 P1-E Aligned Stroke Feature Sufficiency Train5k](20260803-g3-p1e-aligned-stroke-feature-sufficiency-train5k.md)：
+同参数CAP/SHAM/ALIGN三臂各完成6,250步，24项协议检查及独立全量重放通过，但Train-Fit和
+route Gate全部失败。train boundary为5.16%/5.58%/5.88%，ALIGN只比SHAM高0.30pp；同权重
+patch打乱只降0.38pp。CAP将ranker扩至243万参数反而降低recall，route F1仍仅92.01%..93.28%。
+正式`protocol passed / capability failed / NO-GO / no_go_indeterminate`；停止加ranker容量和
+stride-4 patch，下一步审计固定hybrid身份是否错误惩罚了同一GT附近的等价候选。
+
+当前已完成实验：[G3 P1-D Boundary-Band Set Ranker Train5k](20260803-g3-p1d-boundary-band-set-ranker-train5k.md)：
+唯一正式训练完成5 epochs/6,250步；独立审计重算route100与完整train5k后确认
+`protocol passed / capability failed / NO-GO`。route known F1仅93.31%、matched 2874/3080、
+whole 17/100，低于P1-C；train5k的hybrid top-M recall为88.68%、whole-set 5.22%、strict
+boundary exact仅5.20%。因此easy-negative loss稀释假设被否定，停止换ranking loss或追加
+epoch；下一步先做同冻结token上的ranker容量A/B，再决定是否增加视觉特征。confirm400与
+外部数据继续封存。
+
+当前已完成实验：[G3 P1-C Top128 Global Set Ranker Train5k](20260802-g3-p1c-top128-global-set-ranker-train5k.md)：
+固定top-128上的60,545参数单层attention完成5 epochs/6,250步；五轮candidate/positive SHA
+完全一致，train标签覆盖99.80%。known F1 93.18%→93.77%、whole 14→17、canonical identity
+83.80%→85.13%，独立审计纠正一次autocast bitwise误报后结论为
+`protocol passed / capability failed / NO-GO`。attention有信号但当前全pair平均loss被easy pair
+稀释；下一步做固定8×8 boundary-band loss-only实验，不加层或epoch。
+
+当前已完成实验：[G3 P1-B Frozen Presence Ranker Train5k](20260802-g3-p1b-frozen-presence-ranker-train5k.md)：
+冻结P1-A整个Atom head和vision，仅训练16,643参数的pointwise presence residual。唯一正式训练
+完成5 epochs/6,250步，17项协议检查全部通过，但known-count F1仅93.18%→93.60%、whole-set
+14→16/100、canonical identity只增加13/3080，能力正式`NO-GO`。top-128 geometry coverage
+仍为3072/3080、fixed-positive localization仍为3080/3080；residual绝对值已达18.25仍无显著
+迁移，停止追加局部MLP或epoch。下一步另立top-128全局set ranker协议，confirm400继续封存。
+
+当前已完成实验：[G3 P1-A Canonical Atom Selector Train5k](20260802-g3-p1a-canonical-atom-selector-train5k.md)：
+固定train5k训练5 epochs/6,250 updates后，route-select100的Atom F1从76.65%升至90.39%，
+count MAE从12.36降至3.83，但count exact仅13/100、whole-set仅2/100，协议通过、能力正式
+`NO-GO`。只读GT-count top-K为93.18% F1和14/100 whole-set；all-dense top-128 coverage
+99.74%，canonical fixed-positive定位100%。结论是候选容量与定位基本解决，presence/ranking
+是第一瓶颈，count是第二瓶颈。下一步冻结P1-A整个Atom head做P1-B selector-only；禁止追加
+P1-A epoch，confirm400继续封存。
+
+当前已完成审计：[G3 P0-M Frozen Route Select 100](20260802-g3-p0m-frozen-route-select-100.md)：
+固定route-select100上0 step、0参数运行，协议全部通过，但能力正式 `NO-GO`，confirm400继续
+封存。GT Atom oracle presence F1为98.42%，而positive type仅81.51%；same-slot主路Atom
+count exact仅 `5/100`、recall 87.92%、Bond representable 79.18%、GT-count presence F1
+59.77%、representable type 80.65%。这证明presence已有迁移信号，首要扩量对象是canonical
+Atom selector，其次是semantic type；下一阶段按顺序在train_5k分开训练，不做joint。
+
+当前已完成实验：[G3 P0-L Native Atom Feature Adapter overfit32](20260802-g3-p0l-native-feature-adapter-overfit32.md)：
+P0-L 冻结 P0-I/P0-G/P0-K，只训练147,840参数的共享线性 residual adapter，以 detached
+same-slot P0-G feature做SmoothL1-only蒸馏。final count/skeleton恢复 `32/32`，但feature
+error只下降70.37%，未达到90% Gate；GT/deploy typed graph均仅 `7/32`。same-slot与oracle
+controls全程严格 `32/32`，独立审计确认协议有效，能力正式 `NO-GO`。停止在同一32图上扩大
+adapter；当前结构保留 image-derived P0-G same-slot semantic feature，下一步做未见train-split
+的零训练冻结 route audit。
+
+当前已完成实验：[G3 P0-K Predicted-Anchor Relation Alignment](20260802-g3-p0k-predicted-anchor-relation-alignment.md)：
+P0-J 的 same-slot feature replay只有 `26/32`，只换 GT anchor立即恢复 `32/32`。P0-K
+冻结 vision、P0-I Atom、P0-G Atom feature与count，只训练236万参数 pair head，以真实
+P0-I predicted anchor/ribbon固定训练400 steps。step100达到 `31/32`，fixed-final step400
+的 predicted GT/deploy skeleton与typed graph、GT Atom oracle replay均为 `32/32`，独立
+checkpoint审计通过，正式 `GO`。这证明 predicted-anchor geometry shift是 P0-J presence
+错误的主因；结论仍限于 overfit32容量，下一步单独处理 P0-I native feature接口。
+
+当前已完成审计：[G3 P0-J Frozen Relation Composition](20260802-g3-p0j-frozen-relation-composition.md)：
+冻结 P0-I Atom 与 P0-G relation，比较 P0-I native feature 和在同一预测 slot 上重取的
+P0-G feature。GT 只在 forward 后做 6px 一对一评分映射，不进入 pair universe 或 top-K。
+P0-G oracle replay 仍为 `32/32`；native feature typed graph 仅 `4/32`，slot replay 修复
+type/count 后 typed graph 为 `26/32`，仍有 10 条 presence top-K 错误，正式 `NO-GO`。
+冻结 2x2 残差消融显示：替换 score仍为 `26/32`，只替换 GT anchor 即恢复 `32/32`，
+主因确定为 predicted-anchor geometry shift。下一步 P0-K 只对齐 P0-G pair head。
+
+当前已完成实验：[G3 P0-I Canonical Cell Slot overfit32](20260802-g3-p0i-canonical-cell-slot-overfit32.md)：
+P0-H 的 all-dense/top-128 与 positive localization 均为 `32/32`，但 GT-count top-K 只有
+`1369/1424`、whole-set `5/32`，supervision identity first-to-final churn 为 `70.22%`。
+P0-I 唯一改动是将同一 cell 内 GT 按 normalized `(x,y)` 升序固定映射到 slot
+`0..n-1`，完全相同坐标直接拒绝；当前 `occupancy=1` 为 `1424`、collision 为 `0`。
+其余严格复用 P0-H 的同初始化、Atom-only、from-scratch、2,400-step final-only 协议。
+fixed-final deploy count、top-K identity、GT-count Atom set 全部达到 `32/32`，canonical
+identity churn=`0%`，机器 Gate 全部通过，正式 `GO`。这证明动态 cell-slot 监督身份是
+P0-H 的主要断点；但 occupancy=2/3、泛化和 P0-G feature interface 仍未验证。
+
+当前已完成实验：[G3 P0-H Atom-only overfit32](20260802-g3-p0h-atom-only-overfit32.md)：
+从与原 P0 完全相同的 Atom 初始化、seed、vision、32 图和 2,400-step 预算出发，只训练
+`SpatialAtomSlotHead` 的 heatmap、anchor 与 count objective，禁止 Bond/AtomPair 梯度。
+fixed-final deploy count 达到 `31/32`，但 GT-count Atom whole-set 只有 `5/32`，正式
+`NO-GO`。all-dense、top-128 和 positive localization 均为 `1424/1424`，而 GT-count
+top-K 只有 `1369/1424`，supervision identity churn 为 `70.22%`。这排除了候选池容量与
+定位是首要瓶颈，下一轮只处理动态 slot identity 和整组 presence 选择。
+
+当前结构实验：[G3 层级 Atom→Bond 集合图 P0 overfit32](20260801-g3-p0-overfit32.md)：
+P0-B..P0-F 均为 `NO-GO`；其中 P0-F learned query 的 first-to-final identity churn 为
+`99.14%`。P0-G 改用全部无序 GT AtomPair 作为稳定 Bond identity 后，fixed-final 的
+GT/deploy skeleton 与 typed graph 均达到 `32/32`，pair identity churn=`0%`，正式通过
+容量 Gate。这只证明给定完美 Atom set 时 Bond relation 可学；预测 Atom set 与全 pair
+`O(V²)` 部署成本仍未解决。
+
+最新因果诊断：[ChemTraverse GT Count Oracle](20260801-chemtraverse-gt-count-oracle.md)：
+给定真实原子/键数量后，route100 的 count-pair 为 `68/100`，但 completion 仍为 `68/100`、
+Skeleton 仍为 `0/100`。CountHead-conditioned AR 三项门槛全部失败；下一步转 decision-only
+grammar loss 与 G3 Atom→Bond 集合解码。
+
 当前已完成：[v0.10.21 Invalid-only OCR Fallback](20260731-v0.10.21-invalid-only-ocr-fallback-audit.md)
 （真实 USPTO 1k：valid 704→802、chemical exact 160→187，全部 0 break；shadow GO）。
 
@@ -696,3 +842,32 @@ USPTO clean 1k：触发 242 次、采用 98 次，SDF valid `704→802`、nonste
 随后完整运行 MR-TADF v1 1,100 张：valid 65.91%、Skeleton exact 48.09%、Chemical exact
 24.00%；fallback 只增加 48 个 valid，完整 exact 无增益。MR-TADF 改为主应用 benchmark，
 USPTO 降为公开 OOD 护栏。
+
+2026-08-02 G3 P0-C 在 GT Atom-slot oracle 下统一 Bond group loss 与 pointer loss 的
+confidence-aware Hungarian identity。固定 overfit32 训练 2,400 steps 后，count 与 Atom
+set 均为 32/32，top-K/matched overlap 从 P0-B 的 54.77% 提高到 85.15%；但 query-set、
+topology、type、structural graph exact 全部仍为 0/32，正式 NO-GO。说明 confidence 标量
+能缓解但不能定义稳定 Bond 对象身份；下一步先做 GT Bond-slot identity 因果隔离。详见
+`20260801-g3-p0-overfit32.md`。
+
+同日 G3 P0-D 用 GT endpoint 只做 no-grad permutation，将 predicted visual proposals
+重排到 canonical Bond prefix，未向 decoder 写入 GT 坐标或化学属性。router 始终覆盖
+32/32 图、1508/1508 条 Bond，最终 count 和 Atom set 均为 32/32，但 topology/type/graph
+只有 2/32，正式 NO-GO。final pointer 双端点同时正确仅 58.75%；1508/1508 只是无阈值
+Hungarian 的协议覆盖，不代表 proposal 质量。现有 artifact 尚不能区分 route churn、几何
+误差和 incidence/loss 冲突，下一步先重放六个 checkpoint 做 identity/geometry/micro 审计，
+再决定是否切到参数中固定的 learned Bond slots。详见 `20260801-g3-p0-overfit32.md`。
+
+P0-D 六 checkpoint 只读重放随后确认 step 400→2400 candidate churn 为 91.05%，final
+router endpoint median/p90 为 12.81px/79.01px，4/8/16px 覆盖仅
+14.66%/38.26%/55.17%；pointer 双端 56.96%，独立 type 85.68%，pointer 正确条件 type
+94.30%。直接证据支持动态 proposal identity 与几何是主断点，键型不是首要瓶颈；下一轮
+进入固定 learned Bond slots。详见 `20260801-g3-p0-overfit32.md`。
+
+P0-E/P0-F 随后证明固定 learned Bond slot 的 canonical prefix 没有跨图视觉含义，而逐 step
+Hungarian set matching 的 first-to-final query identity churn 达到 99.14%。P0-G 改用全部
+无序 GT AtomPair 作为 Bond identity，不做距离或近邻裁剪，fixed-final 的 GT/deploy
+skeleton 与 typed graph 均达到 32/32，pair identity churn 为 0%，正式通过容量 Gate。
+这只证明完美 Atom set 条件下 relation 可学；下一轮 P0-H 从同初始化、同预算做 Atom-only
+overfit，先把 count、candidate recall、selector identity 和 localization 四层拆开。详见
+`20260801-g3-p0-overfit32.md` 与 `20260802-g3-p0h-atom-only-overfit32.md`。

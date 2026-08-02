@@ -526,6 +526,41 @@ class BondGroupQueryTests(unittest.TestCase):
         self.assertTrue(torch.equal(first[0][1], second[0][1]))
         self.assertEqual(first[0][0].tolist(), [0, 1])
 
+    def test_confidence_aware_assignment_adds_positive_presence_cost(self) -> None:
+        target_endpoints = torch.tensor([[[[0.20, 0.20], [0.80, 0.20]]]])
+        output = {
+            "presence_logits": torch.tensor([[-100.0, 100.0]]),
+            "endpoints": torch.tensor(
+                [
+                    [
+                        [[0.20, 0.20], [0.80, 0.20]],
+                        [[0.21, 0.20], [0.81, 0.20]],
+                    ]
+                ]
+            ),
+            "proposal_mask": torch.ones(1, 2, dtype=torch.bool),
+        }
+        targets = {
+            "endpoints": target_endpoints,
+            "mask": torch.ones(1, 1, dtype=torch.bool),
+        }
+
+        geometry = bond_group_query_assignments(output, targets)
+        confidence = bond_group_query_assignments(
+            output,
+            targets,
+            presence_cost_weight=2.0,
+        )
+
+        self.assertEqual(geometry[0][0].tolist(), [0])
+        self.assertEqual(confidence[0][0].tolist(), [1])
+        with self.assertRaisesRegex(ValueError, "nonnegative"):
+            bond_group_query_assignments(
+                output,
+                targets,
+                presence_cost_weight=-1.0,
+            )
+
     def test_loss_is_invariant_to_gt_order_and_endpoint_flip(self) -> None:
         torch.manual_seed(17)
         proposals = self._proposals()

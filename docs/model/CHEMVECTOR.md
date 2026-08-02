@@ -30,6 +30,15 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
 - 完整 MR-TADF v1 已改为主应用 benchmark。v0.10.21 的 valid 65.91%、Skeleton exact
   48.09%、Chemical exact 24.00%；count-pair 正确条件下 Skeleton exact 97.96%，下一主线
   是整图 AtomObject/BondObject 计数与去重。USPTO 只保留为公开 OOD 护栏。
+- G3 P1-F确认top-128固定candidate身份是系统性错误监督：train5k中89.13%的representable
+  Atom有多个6px等价候选。P1-G改为组内动态一一匹配后，train几何exact
+  `18.68%→24.18%`、route `17→22/100`，但未过预注册+10pp因果门；当前不追加相同loss或
+  epoch。P1-H否定后期assignment振荡；P1-I的3px target-free聚合将候选`128→67.20`、
+  多component GT `89.13%→20.01%`，train覆盖exact 99.74%、route 100%。P1-J选择
+  base-softmax单坐标，零训练component base top-M已将train exact `24.18%→64.22%`、route
+  `22%→53%`，直接确认重复candidate竞争是当前Atom集合主瓶颈。P1-K再训练60,609参数
+  component ranker后，train exact 78.06%、route 68%，因果GO；train recall 98.945%距99%
+  能力门差0.055pp，暂不接推理，先审计失败图的最小component替换数。
 - 版本从 `v0.7` 开始，每次发布增加 `0.0.1`。
 - 根目录 `VERSION` 是开发版本的唯一来源。
 

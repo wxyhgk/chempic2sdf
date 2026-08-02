@@ -2,6 +2,7 @@
 
 ## 模型
 
+- [ChemVector 源码目录与文件放置规则](../chemvector/README.md)
 - [ChemVector 当前架构、结果与训练索引](model/CHEMVECTOR.md)
 - [ChemVector 独立训练档案](model/training/README.md)
 - [v0.9.13 Fresh Dev preflight 与 formal loader 门禁](model/training/20260722-v0.9.13-fresh-dev-preflight.md)
@@ -15,6 +16,7 @@
 - [ChemMolSeq v0.2](../Data/sdf/CHEMMOLSEQ_V0_2.md)
 - [ChemMolSeq v0.3](../Data/sdf/CHEMMOLSEQ_V0_3.md)
 - [ChemSVG v0.4](../Data/sdf/CHEMSVG_V0_4.md)
+- [ChemTraverse v0.1 原子/键交替遍历协议](../Data/sdf/CHEMTRAVERSE_V0_1.md)
 - [MR-TADF 外部测试集](../Data/MR-TADF_SDF/README.md)
 
 ## Benchmark
@@ -27,6 +29,14 @@
 ## AI 技术咨询
 
 - [外部 AI 评审、项目决策与实验回填](ai_consultations/README.md)
+
+## 文献调研
+
+- [文献调研索引](research/README.md)
+- [2026-07-31 OCSR 路线审计：文字、键、风格与结构表示](research/20260731-ocsr-route-literature-review.md)
+- [2026-07-31 MR-TADF v0.10.21 因果错误审计协议](research/20260731-mr-tadf-v01021-causal-audit.md)
+- [2026-08-01 ChemTraverse v0.1 50K 等预算 A/B 协议](model/training/20260801-chemtraverse-v0.1-50k-ab-protocol.md)
+- [2026-08-01 ChemTraverse GT Count Oracle](model/training/20260801-chemtraverse-gt-count-oracle.md)
 
 ## 参考代码
 

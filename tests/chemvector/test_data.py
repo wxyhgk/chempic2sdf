@@ -172,6 +172,18 @@ class DataHelperTests(unittest.TestCase):
         self.assertEqual(loader.call_args.kwargs["sample_shuffle_buffer"], 32)
         self.assertEqual(loader.call_args.kwargs["sample_shuffle_seed"], 17)
 
+    def test_iterable_dataset_forwards_fixed_target_molecule_id(self) -> None:
+        dataset = ChemVectorIterableDataset(
+            "unused.tar",
+            sequence_version="traverse-0.1",
+            target_molecule_id="sdf",
+        )
+
+        with patch("chemvector.data.ChemMolWebDataset", return_value=iter(())) as loader:
+            list(dataset)
+
+        self.assertEqual(loader.call_args.kwargs["target_molecule_id"], "sdf")
+
     def test_iterable_dataset_can_disable_unused_target_serialization(self) -> None:
         dataset = ChemVectorIterableDataset(
             "unused.tar", serialize_target=False, load_raster_layers=False
