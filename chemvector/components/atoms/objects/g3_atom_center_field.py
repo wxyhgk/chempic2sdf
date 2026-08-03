@@ -12,6 +12,7 @@ from chemvector.components.vision.vertex import focal_heatmap_loss
 
 
 G3_ATOM_CENTER_FIELD_CHANNELS = 256
+G3_STROKE_FEATURE_CHANNELS = 96
 
 
 class G3AtomCenterField(nn.Module):
@@ -185,6 +186,58 @@ class G3AtomCenterFieldHighResolutionResidual(nn.Module):
             "base_center_low_resolution": base_center_low_resolution,
             "center_residual": center_residual,
             "offset_residual": offset_logits,
+        }
+
+    def trainable_parameter_count(self) -> int:
+        return sum(
+            parameter.numel()
+            for parameter in self.parameters()
+            if parameter.requires_grad
+        )
+
+
+class VirtualStride2AtomCenterField(nn.Module):
+    """Predict a virtual stride-2 center field from frozen stride-4 features."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.input_projection = nn.Conv2d(
+            G3_STROKE_FEATURE_CHANNELS, 64, kernel_size=1
+        )
+        self.activation = nn.GELU()
+        self.local = nn.Conv2d(64, 64, kernel_size=3, padding=1, groups=64)
+        self.subpixel_projection = nn.Conv2d(64, 12, kernel_size=1)
+        self.pixel_shuffle = nn.PixelShuffle(2)
+        with torch.no_grad():
+            self.subpixel_projection.bias[:4].fill_(-4.6)
+            self.subpixel_projection.bias[4:].zero_()
+
+    def forward(self, stroke_features: torch.Tensor) -> dict[str, torch.Tensor]:
+        if stroke_features.ndim != 4 or stroke_features.shape[1:] != (
+            G3_STROKE_FEATURE_CHANNELS,
+            192,
+            192,
+        ):
+            raise ValueError(
+                "Virtual stride-2 AtomCenterField features must have shape "
+                "[batch,96,192,192]"
+            )
+        if not stroke_features.is_floating_point() or not bool(
+            torch.isfinite(stroke_features).all()
+        ):
+            raise ValueError(
+                "Virtual stride-2 AtomCenterField features must be finite floating point"
+            )
+        frozen = stroke_features.detach()
+        hidden = self.activation(self.input_projection(frozen))
+        hidden = self.activation(self.local(hidden))
+        logits = self.pixel_shuffle(self.subpixel_projection(hidden))
+        center_logits = logits[:, 0:1]
+        offset_logits = logits[:, 1:3]
+        return {
+            "center_logits": center_logits,
+            "offset_logits": offset_logits,
+            "offsets": offset_logits.sigmoid(),
         }
 
     def trainable_parameter_count(self) -> int:
@@ -526,9 +579,11 @@ def atom_center_peak_margin_loss(
 
 __all__ = [
     "G3_ATOM_CENTER_FIELD_CHANNELS",
+    "G3_STROKE_FEATURE_CHANNELS",
     "G3AtomCenterField",
     "G3AtomCenterFieldHighResolutionResidual",
     "G3AtomCenterFieldLocalResidual",
+    "VirtualStride2AtomCenterField",
     "atom_center_field_loss",
     "atom_center_peak_margin_loss",
     "build_atom_center_field_targets",

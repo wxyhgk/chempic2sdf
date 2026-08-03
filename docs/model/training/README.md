@@ -26,6 +26,11 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P1-R Virtual Stride-2 Center Field Overfit32](20260803-g3-p1r-virtual-stride2-center-field-overfit32.md)：
+7,628参数PixelShuffle头从冻结stroke feature直接预测四个固定phase的384²中心场。top128仅
+1394/1424、21/32，known为1222/1424、3/32，并产生约3.2万峰/图；容量`NO-GO`，不进入5k。
+该结果定位到随机新头丢失P1-A强排序基线，下一步只测试P1-A base加零初始化四相位残差。
+
 当前已完成实验：[G3 P1-Q High Resolution Center Field Overfit32](20260803-g3-p1q-high-resolution-center-field-overfit32.md)：
 将中心场升到384²后top128为1422/1424、30/32，但known exact回退到19/32；双线性放大冻结
 192特征没有创造高分辨率信息，容量`NO-GO`。下一步必须读取stride-2视觉特征或解冻最后一个

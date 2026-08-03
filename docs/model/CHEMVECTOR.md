@@ -44,7 +44,10 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
   新fresh确认。P1-O的771参数线性头和P1-P的8,643参数局部残差均未通过overfit32严格门；
   P1-P已将top128提高到1421/1424、30/32，并定位剩余失败为192网格对角相邻Atom。P1-Q将
   场升到384²但双线性冻结特征仍为30/32且known回退，证明下一步必须直接使用高分辨率视觉
-  feature或解冻高分辨率block，不能继续扩大同一后处理adapter。
+  feature或解冻高分辨率block，不能继续扩大同一后处理adapter。P1-R用7,628参数
+  PixelShuffle直接从冻结stroke feature学习四个固定子格phase，但因丢失P1-A强base，top128
+  回退到1394/1424、21/32且产生约3.2万峰/图；容量NO-GO。下一步只允许保留P1-A base并学习
+  零初始化四相位残差，以隔离验证子格相位价值。
 - 版本从 `v0.7` 开始，每次发布增加 `0.0.1`。
 - 根目录 `VERSION` 是开发版本的唯一来源。
 

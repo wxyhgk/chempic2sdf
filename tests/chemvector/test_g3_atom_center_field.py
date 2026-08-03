@@ -13,6 +13,7 @@ from chemvector.components.atoms.objects.g3_atom_center_field import (
     G3AtomCenterField,
     G3AtomCenterFieldHighResolutionResidual,
     G3AtomCenterFieldLocalResidual,
+    VirtualStride2AtomCenterField,
     atom_center_field_loss,
     atom_center_peak_margin_loss,
     build_atom_center_field_targets,
@@ -335,6 +336,59 @@ class G3AtomCenterFieldTests(unittest.TestCase):
         field = G3AtomCenterFieldHighResolutionResidual(self._p1a_head())
         with self.assertRaisesRegex(ValueError, r"\[batch,256,192,192\]"):
             field(torch.zeros(1, 256, 191, 192))
+
+    def test_virtual_stride2_field_has_exact_protocol_and_decode_shape(self) -> None:
+        field = VirtualStride2AtomCenterField()
+        features = torch.randn(1, 96, 192, 192, requires_grad=True)
+
+        output = field(features)
+        decoded = decode_atom_center_field(output)
+
+        self.assertEqual(field.trainable_parameter_count(), 7_628)
+        self.assertEqual(output["center_logits"].shape, (1, 1, 384, 384))
+        self.assertEqual(output["offset_logits"].shape, (1, 2, 384, 384))
+        self.assertEqual(output["offsets"].shape, (1, 2, 384, 384))
+        self.assertEqual(decoded["scores"].shape, (1, 384, 384))
+        self.assertEqual(decoded["anchors"].shape, (1, 2, 384, 384))
+        self.assertEqual(decoded["source_ids"].shape, (1, 384, 384))
+        self.assertFalse(hasattr(field, "count"))
+        self.assertFalse(hasattr(field, "slots"))
+
+    def test_virtual_stride2_field_initializes_subpixel_channel_biases(self) -> None:
+        field = VirtualStride2AtomCenterField()
+
+        torch.testing.assert_close(
+            field.subpixel_projection.bias[:4],
+            torch.full((4,), -4.6),
+        )
+        torch.testing.assert_close(
+            field.subpixel_projection.bias[4:],
+            torch.zeros(8),
+        )
+        with torch.no_grad():
+            for module in (field.input_projection, field.local, field.subpixel_projection):
+                module.weight.zero_()
+            field.input_projection.bias.zero_()
+            field.local.bias.zero_()
+        output = field(torch.zeros(1, 96, 192, 192))
+        torch.testing.assert_close(
+            output["center_logits"],
+            torch.full_like(output["center_logits"], -4.6),
+        )
+        torch.testing.assert_close(
+            output["offsets"], torch.full_like(output["offsets"], 0.5)
+        )
+
+    def test_virtual_stride2_field_detaches_and_validates_stroke_features(self) -> None:
+        field = VirtualStride2AtomCenterField()
+        features = torch.randn(1, 96, 192, 192, requires_grad=True)
+
+        (field(features)["center_logits"].mean()).backward()
+
+        self.assertIsNone(features.grad)
+        self.assertIsNotNone(field.subpixel_projection.weight.grad)
+        with self.assertRaisesRegex(ValueError, r"\[batch,96,192,192\]"):
+            field(torch.zeros(1, 96, 192, 191))
 
     def test_peak_margin_excludes_adjacent_gt_centers(self) -> None:
         logits = torch.full((1, 1, 3, 4), -4.0)
