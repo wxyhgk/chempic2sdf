@@ -338,6 +338,96 @@ class VirtualStride2AtomCenterResidual(nn.Module):
         )
 
 
+class ContinuousStride2AtomCenterField(nn.Module):
+    """Decode a continuous stride-2 feature map before predicting one center field."""
+
+    def __init__(self, atom_head: nn.Module) -> None:
+        super().__init__()
+        presence, _ = _validate_p1a_atom_head(atom_head)
+        self.register_buffer(
+            "base_center_weight", presence.weight[0:1].detach().clone()
+        )
+        self.register_buffer(
+            "base_center_bias", presence.bias[0:1].detach().clone()
+        )
+        self.subpixel_features = nn.Conv2d(
+            G3_STROKE_FEATURE_CHANNELS, 128, kernel_size=1
+        )
+        self.pixel_shuffle = nn.PixelShuffle(2)
+        self.activation = nn.GELU()
+        self.local = nn.Conv2d(32, 32, kernel_size=3, padding=1, groups=32)
+        self.output_projection = nn.Conv2d(32, 3, kernel_size=1)
+        nn.init.zeros_(self.output_projection.weight)
+        nn.init.zeros_(self.output_projection.bias)
+
+    def forward(
+        self,
+        object_features: torch.Tensor,
+        stroke_features: torch.Tensor,
+    ) -> dict[str, torch.Tensor]:
+        if object_features.ndim != 4 or object_features.shape[1:] != (
+            G3_ATOM_CENTER_FIELD_CHANNELS,
+            192,
+            192,
+        ):
+            raise ValueError(
+                "Continuous stride-2 object features must have shape "
+                "[batch,256,192,192]"
+            )
+        if stroke_features.ndim != 4 or stroke_features.shape != (
+            object_features.size(0),
+            G3_STROKE_FEATURE_CHANNELS,
+            192,
+            192,
+        ):
+            raise ValueError(
+                "Continuous stride-2 stroke features must have shape "
+                "[batch,96,192,192]"
+            )
+        if (
+            not object_features.is_floating_point()
+            or not stroke_features.is_floating_point()
+            or not bool(torch.isfinite(object_features).all())
+            or not bool(torch.isfinite(stroke_features).all())
+        ):
+            raise ValueError(
+                "Continuous stride-2 features must be finite floating point"
+            )
+        base_center_low_resolution = F.conv2d(
+            object_features.detach(), self.base_center_weight, self.base_center_bias
+        )
+        base_center_logits = F.interpolate(
+            base_center_low_resolution,
+            scale_factor=2.0,
+            mode="bilinear",
+            align_corners=False,
+        )
+        high_resolution = self.pixel_shuffle(self.subpixel_features(stroke_features))
+        high_resolution = self.activation(high_resolution)
+        high_resolution = self.activation(self.local(high_resolution))
+        residual = self.output_projection(high_resolution)
+        center_residual = residual[:, 0:1]
+        offset_logits = residual[:, 1:3]
+        center_logits = base_center_logits + center_residual
+        return {
+            "center_logits": center_logits,
+            "offset_logits": offset_logits,
+            "offsets": offset_logits.sigmoid(),
+            "base_center_logits": base_center_logits,
+            "base_center_low_resolution": base_center_low_resolution,
+            "high_resolution_features": high_resolution,
+            "center_residual": center_residual,
+            "offset_residual": offset_logits,
+        }
+
+    def trainable_parameter_count(self) -> int:
+        return sum(
+            parameter.numel()
+            for parameter in self.parameters()
+            if parameter.requires_grad
+        )
+
+
 def _validate_p1a_atom_head(atom_head: nn.Module) -> tuple[nn.Conv2d, nn.Conv2d]:
     presence = getattr(atom_head, "presence", None)
     anchor_offset = getattr(atom_head, "anchor_offset", None)
@@ -670,6 +760,7 @@ def atom_center_peak_margin_loss(
 __all__ = [
     "G3_ATOM_CENTER_FIELD_CHANNELS",
     "G3_STROKE_FEATURE_CHANNELS",
+    "ContinuousStride2AtomCenterField",
     "G3AtomCenterField",
     "G3AtomCenterFieldHighResolutionResidual",
     "G3AtomCenterFieldLocalResidual",

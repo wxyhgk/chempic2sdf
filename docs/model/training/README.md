@@ -26,6 +26,11 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P1-T Continuous Stride-2 Center Field Overfit32](20260803-g3-p1t-continuous-stride2-center-field-overfit32.md)：
+PixelShuffle先生成连续32通道384² feature，再统一卷积出center/offset；仅联合解冻最后一个
+stride-4视觉block，共92,035参数。严格容量达到known与top128均`1424/1424、32/32`，四种布局
+全部100%，第一阶段`容量GO`。尚不能进5k；下一关是原32图加相邻Atom专项32图的双域100%门。
+
 当前已完成实验：[G3 P1-S Phase Residual Center Field Overfit32](20260803-g3-p1s-phase-residual-center-field-overfit32.md)：
 保留P1-A双线性384强base，只学习零初始化四相位残差；top128为1420/1424、29/32，known
 1369/1424、15/32，仍产生约3.18万峰/图。容量`NO-GO`，确认phase不能直接作为最终logit；

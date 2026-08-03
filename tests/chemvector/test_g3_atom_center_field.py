@@ -10,6 +10,7 @@ import torch
 from torch import nn
 
 from chemvector.components.atoms.objects.g3_atom_center_field import (
+    ContinuousStride2AtomCenterField,
     G3AtomCenterField,
     G3AtomCenterFieldHighResolutionResidual,
     G3AtomCenterFieldLocalResidual,
@@ -425,6 +426,38 @@ class G3AtomCenterFieldTests(unittest.TestCase):
         self.assertIsNotNone(field.subpixel_projection.weight.grad)
         with self.assertRaisesRegex(ValueError, r"\[batch,256,192,192\]"):
             field(torch.zeros(1, 256, 191, 192), torch.zeros(1, 96, 192, 192))
+
+    def test_continuous_stride2_field_has_step_zero_base_and_shared_feature_map(self) -> None:
+        atom_head = self._p1a_head()
+        field = ContinuousStride2AtomCenterField(atom_head)
+        objects = torch.randn(1, 256, 192, 192, requires_grad=True)
+        stroke = torch.randn(1, 96, 192, 192, requires_grad=True)
+
+        output = field(objects, stroke)
+        expected = torch.nn.functional.interpolate(
+            atom_head.presence(objects)[:, 0:1],
+            scale_factor=2.0,
+            mode="bilinear",
+            align_corners=False,
+        )
+
+        self.assertEqual(field.trainable_parameter_count(), 12_835)
+        self.assertEqual(output["high_resolution_features"].shape, (1, 32, 384, 384))
+        self.assertTrue(torch.equal(output["center_logits"], expected))
+        self.assertEqual(int(torch.count_nonzero(output["center_residual"])), 0)
+        self.assertEqual(int(torch.count_nonzero(output["offset_logits"])), 0)
+
+    def test_continuous_stride2_field_allows_stroke_but_not_base_gradient(self) -> None:
+        field = ContinuousStride2AtomCenterField(self._p1a_head())
+        objects = torch.randn(1, 256, 192, 192, requires_grad=True)
+        stroke = torch.randn(1, 96, 192, 192, requires_grad=True)
+
+        output = field(objects, stroke)
+        (output["center_logits"].mean() + output["offset_logits"].mean()).backward()
+
+        self.assertIsNone(objects.grad)
+        self.assertIsNotNone(stroke.grad)
+        self.assertIsNotNone(field.output_projection.weight.grad)
 
     def test_peak_margin_excludes_adjacent_gt_centers(self) -> None:
         logits = torch.full((1, 1, 3, 4), -4.0)
