@@ -26,6 +26,11 @@
 
 ## 训练时间线
 
+当前已完成数据审计：[G3 Adjacent Atom Capacity32 Manifest](20260803-g3-adjacent-atom-capacity32-manifest.md)：
+从固定train5k选出32张近邻Atom困难图，包含全部7张same-stride4-cell碰撞图；距离范围
+`0.75px..6.713px`，manifest SHA为`aa2ca0...f8ef6`。P1-T第二阶段将从相同初始化重开4,800步，
+要求原32图与专项32图同时100%，未过不进入5k。
+
 当前已完成实验：[G3 P1-T Continuous Stride-2 Center Field Overfit32](20260803-g3-p1t-continuous-stride2-center-field-overfit32.md)：
 PixelShuffle先生成连续32通道384² feature，再统一卷积出center/offset；仅联合解冻最后一个
 stride-4视觉block，共92,035参数。严格容量达到known与top128均`1424/1424、32/32`，四种布局
