@@ -38,7 +38,13 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
   base-softmax单坐标，零训练component base top-M已将train exact `24.18%→64.22%`、route
   `22%→53%`，直接确认重复candidate竞争是当前Atom集合主瓶颈。P1-K再训练60,609参数
   component ranker后，train exact 78.06%、route 68%，因果GO；train recall 98.945%距99%
-  能力门差0.055pp，暂不接推理，先审计失败图的最小component替换数。
+  能力门差0.055pp。P1-N随后抛弃固定像素聚类，将三槽压成连续cell field并以完整plateau
+  regional maxima生成对象；零训练train known exact达到87.94%、route历史诊断79%，相对
+  3px基线分别只break 5/0张。机制GO，下一步训练轻量单通道Atom center field，正式替换仍需
+  新fresh确认。P1-O的771参数线性头和P1-P的8,643参数局部残差均未通过overfit32严格门；
+  P1-P已将top128提高到1421/1424、30/32，并定位剩余失败为192网格对角相邻Atom。P1-Q将
+  场升到384²但双线性冻结特征仍为30/32且known回退，证明下一步必须直接使用高分辨率视觉
+  feature或解冻高分辨率block，不能继续扩大同一后处理adapter。
 - 版本从 `v0.7` 开始，每次发布增加 `0.0.1`。
 - 根目录 `VERSION` 是开发版本的唯一来源。
 

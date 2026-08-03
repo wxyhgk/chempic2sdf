@@ -26,6 +26,27 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P1-Q High Resolution Center Field Overfit32](20260803-g3-p1q-high-resolution-center-field-overfit32.md)：
+将中心场升到384²后top128为1422/1424、30/32，但known exact回退到19/32；双线性放大冻结
+192特征没有创造高分辨率信息，容量`NO-GO`。下一步必须读取stride-2视觉特征或解冻最后一个
+高分辨率block做可学习上采样，不再扩大同一adapter。
+
+当前已完成实验：[G3 P1-P Local Residual Center Field Overfit32](20260803-g3-p1p-local-residual-center-field-overfit32.md)：
+8,643参数零初始化局部残差加peak margin，将top128从1415/1424、28/32提高到
+1421/1424、30/32，但known exact为25/32，严格容量`NO-GO`。剩余失败来自192网格对角相邻
+真实Atom，regional maxima表示本身无法同时输出两个峰，因此停止加宽/加epoch。
+
+当前已完成实验：[G3 P1-O Atom Center Field Overfit32](20260803-g3-p1o-atom-center-field-overfit32.md)：
+冻结P1-A hidden只训练771参数线性center/offset，fixed-final known为1409/1424、26/32，
+top128为1415/1424、28/32；exact相对step0不变且峰数增加，容量`NO-GO`，未进入train5k。
+
+当前已完成审计：[G3 P1-N Regional Maxima零训练审计](20260803-g3-p1n-regional-maxima-zero-train-audit.md)：
+不再使用`3px/3.5px/4px`候选聚类，将P1-A三槽压成连续cell score后用完整plateau regional
+maxima直接生成唯一对象。train5k known exact `64.22%→87.94%`、recall
+`98.176%→99.490%`，top-128可达exact 97.48%；route100历史诊断`53%→79%`且0 break。
+正式`mechanism_go_requires_fresh_confirmation`，停止swap verifier，下一步训练轻量单通道
+Atom center field；route100已消费，真正替换仍需全新fresh确认。
+
 当前已完成审计：[G3 P1-M 一跳替换边界可达性](20260803-g3-p1m-one-move-boundary-reachability-audit.md)：
 top-8 swap覆盖train一跳图95.27%，但route仅77.27%未过80%门；top-16覆盖train
 775/783=98.98%、route 20/22=90.91%，正式选择`top16x16_action_candidates`。下一步最多
