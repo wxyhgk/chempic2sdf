@@ -47,7 +47,10 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
   feature或解冻高分辨率block，不能继续扩大同一后处理adapter。P1-R用7,628参数
   PixelShuffle直接从冻结stroke feature学习四个固定子格phase，但因丢失P1-A强base，top128
   回退到1394/1424、21/32且产生约3.2万峰/图；容量NO-GO。下一步只允许保留P1-A base并学习
-  零初始化四相位残差，以隔离验证子格相位价值。
+  零初始化四相位残差，以隔离验证子格相位价值。P1-S完成该隔离后top128仍只有
+  1420/1424、29/32，且约3.18万峰/图；确认phase直接作为logit会破坏连续场局部拓扑。冻结
+  小头路线停止，下一步必须生成连续384 feature再统一卷积出center，并联合解冻最后一个
+  stride-4视觉block。
 - 版本从 `v0.7` 开始，每次发布增加 `0.0.1`。
 - 根目录 `VERSION` 是开发版本的唯一来源。
 

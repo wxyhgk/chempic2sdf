@@ -14,6 +14,7 @@ from chemvector.components.atoms.objects.g3_atom_center_field import (
     G3AtomCenterFieldHighResolutionResidual,
     G3AtomCenterFieldLocalResidual,
     VirtualStride2AtomCenterField,
+    VirtualStride2AtomCenterResidual,
     atom_center_field_loss,
     atom_center_peak_margin_loss,
     build_atom_center_field_targets,
@@ -389,6 +390,41 @@ class G3AtomCenterFieldTests(unittest.TestCase):
         self.assertIsNotNone(field.subpixel_projection.weight.grad)
         with self.assertRaisesRegex(ValueError, r"\[batch,96,192,192\]"):
             field(torch.zeros(1, 96, 192, 191))
+
+    def test_virtual_stride2_residual_is_exact_upsampled_base_at_step_zero(self) -> None:
+        atom_head = self._p1a_head()
+        field = VirtualStride2AtomCenterResidual(atom_head)
+        objects = torch.randn(1, 256, 192, 192, requires_grad=True)
+        stroke = torch.randn(1, 96, 192, 192, requires_grad=True)
+
+        output = field(objects, stroke)
+        expected = torch.nn.functional.interpolate(
+            atom_head.presence(objects)[:, 0:1],
+            scale_factor=2.0,
+            mode="bilinear",
+            align_corners=False,
+        )
+
+        self.assertEqual(field.trainable_parameter_count(), 7_628)
+        self.assertTrue(torch.equal(output["center_logits"], expected))
+        self.assertEqual(int(torch.count_nonzero(output["center_residual"])), 0)
+        self.assertEqual(int(torch.count_nonzero(output["offset_logits"])), 0)
+        self.assertEqual(int(torch.count_nonzero(field.subpixel_projection.weight)), 0)
+        self.assertEqual(int(torch.count_nonzero(field.subpixel_projection.bias)), 0)
+
+    def test_virtual_stride2_residual_detaches_both_feature_inputs(self) -> None:
+        field = VirtualStride2AtomCenterResidual(self._p1a_head())
+        objects = torch.randn(1, 256, 192, 192, requires_grad=True)
+        stroke = torch.randn(1, 96, 192, 192, requires_grad=True)
+
+        output = field(objects, stroke)
+        (output["center_logits"].mean() + output["offset_logits"].mean()).backward()
+
+        self.assertIsNone(objects.grad)
+        self.assertIsNone(stroke.grad)
+        self.assertIsNotNone(field.subpixel_projection.weight.grad)
+        with self.assertRaisesRegex(ValueError, r"\[batch,256,192,192\]"):
+            field(torch.zeros(1, 256, 191, 192), torch.zeros(1, 96, 192, 192))
 
     def test_peak_margin_excludes_adjacent_gt_centers(self) -> None:
         logits = torch.full((1, 1, 3, 4), -4.0)

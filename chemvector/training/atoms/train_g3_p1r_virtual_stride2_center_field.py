@@ -119,8 +119,9 @@ def training_step(field, atom_head, vision, optimizer, batch, *, device, max_gra
 
 
 @torch.no_grad()
-def evaluate(field, vision, manifest, collator, *, device) -> dict:
-    field.eval()
+def evaluate_inference(manifest, collator, infer_batch) -> dict:
+    """Evaluate an Atom center-field inference callback under the P1-R gate."""
+
     known = p1a._empty_atom_totals()
     reach_targets = reach_matched = reach_exact = 0
     maxima_counts: list[int] = []
@@ -131,9 +132,7 @@ def evaluate(field, vision, manifest, collator, *, device) -> dict:
     for batch in p1a.iter_manifest_batches(manifest, collator, batch_size=4):
         for key in batch["keys"]:
             sample_digest.update(f"{key}\n".encode())
-        stroke = frozen_stroke(vision, batch["pixel_values"], device=device)
-        with _autocast_context(device, "bf16"):
-            output = field(stroke)
+        output = infer_batch(batch)
         peaks = extract_regional_maximum_objects(decode_atom_center_field(output))
         for index, peak in enumerate(peaks):
             expected = batch["atom_anchors"][index, batch["atom_mask"][index]].float()
@@ -177,6 +176,18 @@ def evaluate(field, vision, manifest, collator, *, device) -> dict:
         "sample_keys_sha256": sample_digest.hexdigest(),
         "peak_source_ids_sha256": peak_digest.hexdigest(),
     }
+
+
+@torch.no_grad()
+def evaluate(field, vision, manifest, collator, *, device) -> dict:
+    field.eval()
+
+    def infer_batch(batch):
+        stroke = frozen_stroke(vision, batch["pixel_values"], device=device)
+        with _autocast_context(device, "bf16"):
+            return field(stroke)
+
+    return evaluate_inference(manifest, collator, infer_batch)
 
 
 def capacity_gate(metrics: dict) -> tuple[str, dict[str, bool]]:

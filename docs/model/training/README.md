@@ -26,6 +26,11 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P1-S Phase Residual Center Field Overfit32](20260803-g3-p1s-phase-residual-center-field-overfit32.md)：
+保留P1-A双线性384强base，只学习零初始化四相位残差；top128为1420/1424、29/32，known
+1369/1424、15/32，仍产生约3.18万峰/图。容量`NO-GO`，确认phase不能直接作为最终logit；
+下一步先生成连续384 feature并统一卷积输出中心场，同时解冻最后一个stride-4视觉block。
+
 当前已完成实验：[G3 P1-R Virtual Stride-2 Center Field Overfit32](20260803-g3-p1r-virtual-stride2-center-field-overfit32.md)：
 7,628参数PixelShuffle头从冻结stroke feature直接预测四个固定phase的384²中心场。top128仅
 1394/1424、21/32，known为1222/1424、3/32，并产生约3.2万峰/图；容量`NO-GO`，不进入5k。
