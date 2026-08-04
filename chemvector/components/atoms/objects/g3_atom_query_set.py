@@ -703,6 +703,73 @@ def decode_g3_atom_query_set(
     return decoded
 
 
+@torch.no_grad()
+def decode_g3_atom_query_set_joint(
+    output: dict[str, torch.Tensor],
+    candidate_anchors: torch.Tensor,
+    *,
+    counts: torch.Tensor | None = None,
+) -> list[dict[str, torch.Tensor]]:
+    """Jointly choose a fixed number of queries and distinct candidate pointers."""
+
+    existence = output["existence_logits"].float()
+    pointer = output["pointer_logits"].float()
+    if pointer.ndim != 3 or pointer.shape[:2] != existence.shape:
+        raise ValueError("G3 joint decode pointer logits have invalid shape")
+    if candidate_anchors.shape != (pointer.size(0), pointer.size(2), 2):
+        raise ValueError("G3 joint decode candidate anchors have invalid shape")
+    if counts is None:
+        counts = output["count_logits"].argmax(dim=-1)
+    if counts.shape != (len(existence),):
+        raise ValueError("G3 joint decode counts must have shape [batch]")
+
+    decoded = []
+    query_count, candidate_count = pointer.shape[1:]
+    edge_scores = (
+        F.logsigmoid(existence).unsqueeze(-1)
+        + pointer.log_softmax(dim=-1)
+    )
+    for batch_index in range(len(existence)):
+        count = int(counts[batch_index])
+        if not 0 <= count <= min(query_count, candidate_count):
+            raise ValueError("G3 joint decoded count is outside matching capacity")
+        if count == 0:
+            decoded.append({
+                "anchors": candidate_anchors.new_zeros((0, 2)),
+                "query_indices": torch.empty(
+                    0, dtype=torch.long, device=pointer.device
+                ),
+                "candidate_indices": torch.empty(
+                    0, dtype=torch.long, device=pointer.device
+                ),
+            })
+            continue
+
+        dummy_query_count = candidate_count - count
+        dummy_candidate_count = query_count - count
+        size = query_count + dummy_query_count
+        cost = torch.zeros((size, size), dtype=torch.float64)
+        cost[:query_count, :candidate_count] = -edge_scores[
+            batch_index
+        ].detach().double().cpu()
+        if dummy_query_count and dummy_candidate_count:
+            cost[query_count:, candidate_count:] = 1_000_000_000.0
+        rows, columns = linear_sum_assignment(cost.numpy())
+        rows = torch.as_tensor(rows, dtype=torch.long, device=pointer.device)
+        columns = torch.as_tensor(columns, dtype=torch.long, device=pointer.device)
+        real = (rows < query_count) & (columns < candidate_count)
+        query_indices = rows[real]
+        candidate_indices = columns[real]
+        if len(query_indices) != count:
+            raise RuntimeError("G3 joint decode fixed-cardinality matching is incomplete")
+        decoded.append({
+            "anchors": candidate_anchors[batch_index, candidate_indices],
+            "query_indices": query_indices,
+            "candidate_indices": candidate_indices,
+        })
+    return decoded
+
+
 __all__ = [
     "G3AtomQuerySet",
     "G3AtomQuerySetConfig",
@@ -711,6 +778,7 @@ __all__ = [
     "G3PointerUtilityExistenceHead",
     "G3PointerUtilityExistenceModel",
     "decode_g3_atom_query_set",
+    "decode_g3_atom_query_set_joint",
     "g3_atom_existence_calibration_loss",
     "g3_atom_query_set_loss",
     "g3_null_pointer_query_set_loss",

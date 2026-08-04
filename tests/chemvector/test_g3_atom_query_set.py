@@ -12,6 +12,7 @@ from chemvector.components.atoms.objects.g3_atom_query_set import (
     G3PointerUtilityExistenceHead,
     G3PointerUtilityExistenceModel,
     decode_g3_atom_query_set,
+    decode_g3_atom_query_set_joint,
     g3_atom_existence_calibration_loss,
     g3_atom_query_set_loss,
     g3_null_pointer_query_set_loss,
@@ -100,6 +101,33 @@ class G3AtomQuerySetTests(unittest.TestCase):
         decoded = decode_g3_atom_query_set(output, anchors)
         self.assertEqual(len(decoded[0]["candidate_indices"].unique()), 2)
         self.assertEqual(len(decoded[0]["anchors"]), 2)
+
+    def test_joint_decode_resolves_existence_pointer_competition(self) -> None:
+        output = {
+            "existence_logits": torch.tensor([[5.0, 4.0, 3.0]]),
+            "count_logits": torch.tensor([[0.0, 0.0, 5.0, 0.0]]),
+            "pointer_logits": torch.tensor([[
+                [10.0, 0.0, 0.0],
+                [9.0, 0.0, -10.0],
+                [0.0, 9.0, 0.0],
+            ]]),
+        }
+        anchors = torch.tensor([[[0.1, 0.1], [0.2, 0.2], [0.3, 0.3]]])
+        independent = decode_g3_atom_query_set(output, anchors)[0]
+        joint = decode_g3_atom_query_set_joint(output, anchors)[0]
+        self.assertEqual(set(independent["query_indices"].tolist()), {0, 1})
+        self.assertEqual(set(joint["query_indices"].tolist()), {0, 2})
+        self.assertEqual(set(joint["candidate_indices"].tolist()), {0, 1})
+
+    def test_joint_decode_supports_zero_count(self) -> None:
+        output = {
+            "existence_logits": torch.zeros(1, 3),
+            "count_logits": torch.tensor([[5.0, 0.0, 0.0, 0.0]]),
+            "pointer_logits": torch.zeros(1, 3, 3),
+        }
+        anchors = torch.rand(1, 3, 2)
+        decoded = decode_g3_atom_query_set_joint(output, anchors)
+        self.assertEqual(decoded[0]["anchors"].shape, (0, 2))
 
     def test_unique_pointer_targets_resolve_competing_queries(self) -> None:
         pointer_logits = torch.tensor([[

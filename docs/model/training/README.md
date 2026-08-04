@@ -26,6 +26,10 @@
 
 ## 训练时间线
 
+当前已完成审计：[G3 P2-X Joint Cardinality Decode Capacity64](20260804-g3-p2x-joint-cardinality-decode-capacity64.md)：
+不训练新模型，将query选择与唯一pointer分配合并为无超参固定基数MAP，P2-W easy/hard从
+31/32、32/32提高到双域32/32，容量Gate正式GO。下一步进入未见样本泛化审计。
+
 当前已完成实验：[G3 P2-W Fixed Identity Pointer Utility Step4800](20260804-g3-p2w-fixed-identity-pointer-utility-step4800.md)：
 完整恢复P2-V optimizer续到固定4,800步，hard达到32/32，easy仍31/32，独立top-N解码NO-GO。
 唯一残差来自先选query、后配pointer的决策割裂；无GT联合固定基数MAP解码预验证双域32/32。

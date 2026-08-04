@@ -90,7 +90,8 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
   30/32、28/32但未过门；P2-U组合MLP与listwise又回到28/32、26/32。下一步在正确identity
   上重做显式pointer utility。P2-V达到31/32、28/32，确认utility机制有效；只允许完整恢复
   optimizer续到固定4,800步。P2-W得到31/32、32/32并停止续训；将query选择与唯一pointer
-  分配合并为固定基数MAP后预验证双域32/32，下一步固化结构解码器。
+  分配合并为固定基数MAP后，P2-X正式重复审计双域32/32，Atom query容量Gate关闭，转入
+  未见样本泛化审计。
 - 版本从 `v0.7` 开始，每次发布增加 `0.0.1`。
 - 根目录 `VERSION` 是开发版本的唯一来源。
 
