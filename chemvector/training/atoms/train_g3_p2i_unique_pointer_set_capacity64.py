@@ -124,6 +124,9 @@ def checkpoint_payload(
         "trainable_parameter_count": model.parameter_count(),
         "matching": protocol["matching"],
         "pointer_target": protocol["pointer_target"],
+        "existence_objective": protocol.get(
+            "existence_objective", "weighted-object-bce"
+        ),
         "candidate_preclustering": False,
         "known_count_is_model_input": False,
         "lineage": lineage,

@@ -26,10 +26,15 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P2-L Existence Boundary Query Set Capacity64](20260804-g3-p2l-existence-boundary-query-set-capacity64.md)：
+在P2-J同初始化上加入最低正query对最高负query的极值margin，boundary全程0/4 batch exact，
+easy/hard崩到603/967、0/32和456/807、0/32。动态身份下极值边界明确NO-GO；下一步冻结
+pointer/query，只训练65参数existence head，并从Hungarian中删除existence cost。
+
 当前已完成实验：[G3 P2-K Pointer-Matched Query Set Step8000](20260804-g3-p2k-pointer-matched-query-set-step8000.md)：
 从P2-J完整恢复optimizer续训到8,000步，final easy/hard为965/967、30/32和801/807、27/32；
 中间最好观察也仅30/32、29/32且后程振荡。严格NO-GO并停止追加epoch，下一步从相同随机初始化
-重开，在object BCE外加入整图existence正负边界损失。
+重开，在object BCE外加入整图existence正负边界损失；P2-L随后证明该动态极值目标会塌缩。
 
 当前已完成实验：[G3 P2-J Pointer-Matched Query Set Capacity64](20260804-g3-p2j-pointer-matched-query-set-capacity64.md)：
 只把query-to-GT代价换成兼容候选pointer mass，easy/hard从P2-I的12/32、5/32大幅提高到

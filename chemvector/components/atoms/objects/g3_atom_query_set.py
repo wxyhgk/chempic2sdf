@@ -302,6 +302,8 @@ def g3_atom_query_set_loss(
     image_size: int = 768,
     unique_pointers: bool = False,
     query_matching: str = "coordinate",
+    existence_boundary_weight: float = 0.0,
+    existence_boundary_margin: float = 1.0,
 ) -> dict[str, torch.Tensor]:
     existence = output["existence_logits"]
     count_logits = output["count_logits"]
@@ -374,17 +376,41 @@ def g3_atom_query_set_loss(
     object_loss = F.binary_cross_entropy_with_logits(
         existence, object_targets, weight=object_weights, reduction="sum"
     ) / object_weights.sum().clamp_min(1.0)
+    if existence_boundary_weight < 0.0:
+        raise ValueError("G3 Atom existence boundary weight must be nonnegative")
+    boundary_losses = []
+    boundary_exact_images = 0
+    for batch_index in range(batch):
+        positive_scores = existence[batch_index, object_targets[batch_index].bool()]
+        negative_scores = existence[batch_index, ~object_targets[batch_index].bool()]
+        if not len(positive_scores) or not len(negative_scores):
+            raise ValueError("G3 Atom existence boundary requires positive and negative queries")
+        boundary_losses.append(F.softplus(
+            negative_scores.max() - positive_scores.min() + existence_boundary_margin
+        ))
+        boundary_exact_images += int(
+            bool((positive_scores.min() > negative_scores.max()).detach())
+        )
+    existence_boundary_loss = torch.stack(boundary_losses).mean()
     coordinate_loss = torch.stack(coordinate_losses).mean()
     pointer_loss = torch.stack(pointer_losses).mean()
     counts = target_mask.sum(dim=1).long()
     count_loss = F.cross_entropy(count_logits, counts)
-    loss = object_loss + 5.0 * coordinate_loss + pointer_loss + count_loss
+    loss = (
+        object_loss
+        + 5.0 * coordinate_loss
+        + pointer_loss
+        + count_loss
+        + existence_boundary_weight * existence_boundary_loss
+    )
     return {
         "loss": loss,
         "object_loss": object_loss,
         "coordinate_loss": coordinate_loss,
         "pointer_loss": pointer_loss,
         "count_loss": count_loss,
+        "existence_boundary_loss": existence_boundary_loss,
+        "boundary_exact_images": loss.new_tensor(float(boundary_exact_images)),
         "matched_queries": loss.new_tensor(float(sum(len(item[0]) for item in assignments))),
     }
 

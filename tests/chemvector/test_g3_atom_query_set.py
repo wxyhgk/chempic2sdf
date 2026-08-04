@@ -142,6 +142,24 @@ class G3AtomQuerySetTests(unittest.TestCase):
         self.assertTrue(torch.isfinite(losses["loss"]))
         losses["loss"].backward()
 
+    def test_existence_boundary_penalizes_misordered_queries(self) -> None:
+        candidates = self.candidates(batch=1)
+        target_anchors = torch.zeros(1, 4, 2)
+        target_anchors[0, :2] = candidates["candidate_anchors"][0, :2]
+        target_mask = torch.tensor([[True, True, False, False]])
+        output = G3AtomQuerySet()(candidates)
+        losses = g3_atom_query_set_loss(
+            output,
+            candidates["candidate_anchors"],
+            target_anchors,
+            target_mask,
+            unique_pointers=True,
+            query_matching="pointer",
+            existence_boundary_weight=1.0,
+        )
+        self.assertGreater(float(losses["existence_boundary_loss"].detach()), 0.0)
+        losses["loss"].backward()
+
 
 if __name__ == "__main__":
     unittest.main()
