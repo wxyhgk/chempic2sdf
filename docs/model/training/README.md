@@ -26,6 +26,10 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P2-U Fixed Identity Listwise MLP Capacity64](20260804-g3-p2u-fixed-identity-listwise-mlp-capacity64.md)：
+正确identity上组合8,577参数MLP与平滑listwise后仅28/32、26/32，NO-GO。停止调纯query-hidden
+head；下一步用正确identity重做P2-Q的10维pointer utility实验。
+
 当前已完成实验：[G3 P2-T Fixed Identity Existence MLP Capacity64](20260804-g3-p2t-fixed-identity-existence-mlp-capacity64.md)：
 正确identity下只把65参数线性head换成8,577参数MLP，easy/hard提高到30/32、28/32但仍NO-GO；
 固定identity exact从step800后基本平台。下一步组合MLP与平滑listwise排序，不追加相同BCE epoch。

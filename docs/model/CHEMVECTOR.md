@@ -87,7 +87,8 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
   只训练existence head完成正确M-step。P2-R固定原identity后提高到29/32、27/32；强制cache
   identity解码则双域32/32，剩余断点已收窄为existence整组排序，而不是pointer或候选点。
   P2-S增加平滑全正负对listwise目标仍只有28/32、26/32；P2-T换成8,577参数MLP提高到
-  30/32、28/32但未过门。下一步只验证MLP与平滑排序目标的组合。
+  30/32、28/32但未过门；P2-U组合MLP与listwise又回到28/32、26/32。下一步在正确identity
+  上重做显式pointer utility，停止调纯query-hidden head。
 - 版本从 `v0.7` 开始，每次发布增加 `0.0.1`。
 - 根目录 `VERSION` 是开发版本的唯一来源。
 
