@@ -162,11 +162,18 @@ def checkpoint_payload(
 
 def run_experiment(args, *, protocol) -> None:
     experiment = protocol["experiment"]
+    source_checkpoint = Path(protocol.get("source_checkpoint", P2J_CHECKPOINT))
+    source_checkpoint_sha256 = protocol.get(
+        "source_checkpoint_sha256", P2J_CHECKPOINT_SHA256
+    )
+    target_steps = int(protocol.get("target_steps", STEPS))
+    expected_exposure = int(protocol.get("expected_exposure", EXPECTED_EXPOSURE))
+    expected_epochs = int(protocol.get("expected_epochs", 100))
     validate_args(args, output=protocol["output"], experiment=experiment)
     if args.output_dir.exists() and any(args.output_dir.iterdir()):
         raise RuntimeError(f"{experiment} output is not empty: {args.output_dir}")
-    if file_sha256(P2J_CHECKPOINT) != P2J_CHECKPOINT_SHA256:
-        raise ValueError(f"{experiment} P2-J checkpoint SHA256 differs")
+    if file_sha256(source_checkpoint) != source_checkpoint_sha256:
+        raise ValueError(f"{experiment} source checkpoint SHA256 differs")
     os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
     random.seed(args.seed)
     np.random.seed(args.seed)
@@ -178,16 +185,23 @@ def run_experiment(args, *, protocol) -> None:
     torch.backends.cudnn.allow_tf32 = False
     device = torch.device("cuda")
 
-    source = torch.load(P2J_CHECKPOINT, map_location=device, weights_only=False)
+    source = torch.load(source_checkpoint, map_location=device, weights_only=False)
     model = G3AtomQuerySet(G3AtomQuerySetConfig(**source["model_config"])).to(device)
-    model.load_state_dict(source["atom_query_set"], strict=True)
-    source_state_sha = module_state_sha256(model)
     head_factory = protocol.get("existence_head_factory")
-    if head_factory is not None:
-        model.existence_head = head_factory().to(device)
     wrapper_factory = protocol.get("model_wrapper_factory")
-    if wrapper_factory is not None:
+    source_is_wrapped = bool(protocol.get("source_is_wrapped", False))
+    if source_is_wrapped:
+        if wrapper_factory is None or head_factory is not None:
+            raise ValueError(f"{experiment} wrapped source factory protocol differs")
         model = wrapper_factory(model).to(device)
+        model.load_state_dict(source["atom_query_set"], strict=True)
+    else:
+        model.load_state_dict(source["atom_query_set"], strict=True)
+        if head_factory is not None:
+            model.existence_head = head_factory().to(device)
+        if wrapper_factory is not None:
+            model = wrapper_factory(model).to(device)
+    source_state_sha = module_state_sha256(model)
     head_initial_sha = module_state_sha256(model.existence_head)
     trainable_parameters = int(protocol.get("trainable_parameters", TRAINABLE_PARAMETERS))
     model.requires_grad_(False)
@@ -197,6 +211,9 @@ def run_experiment(args, *, protocol) -> None:
         lr=args.learning_rate,
         weight_decay=args.weight_decay,
     )
+    resume_optimizer = bool(protocol.get("resume_optimizer", False))
+    if resume_optimizer:
+        optimizer.load_state_dict(source["optimizer"])
     validate_trainable_scope(
         model, optimizer, expected_parameters=trainable_parameters,
         experiment=experiment,
@@ -204,13 +221,17 @@ def run_experiment(args, *, protocol) -> None:
     cache, cache_audit = p2e.load_cache()
     domains, selection_audit = p2h.select_capacity_domains(cache["train5k"])
     lineage = {
-        "p2j_checkpoint": str(P2J_CHECKPOINT.resolve()),
-        "p2j_checkpoint_sha256": P2J_CHECKPOINT_SHA256,
-        "p2j_model_state_sha256": source_state_sha,
+        "source_checkpoint": str(source_checkpoint.resolve()),
+        "source_checkpoint_sha256": source_checkpoint_sha256,
+        "source_model_state_sha256": source_state_sha,
+        "source_model_type": source.get("model_type"),
+        "source_global_step": int(source.get("global_step", 0)),
+        "source_samples_seen": int(source.get("samples_seen", 0)),
+        "optimizer_resumed": resume_optimizer,
         "existence_head_initial_sha256": head_initial_sha,
         "existence_head_type": protocol.get("existence_head_type", "linear-64-to-1"),
         "model_wrapper_type": protocol.get("model_wrapper_type"),
-        "p2j_metrics": source["metrics"],
+        "source_metrics": source["metrics"],
         "candidate_cache_sha256": p2e.CACHE_SHA256,
         "candidate_cache_tensor_sha256": cache_audit["candidate_protocol"][
             "candidate_cache_sha256"
@@ -245,14 +266,18 @@ def run_experiment(args, *, protocol) -> None:
     }
     _atomic_json(args.output_dir / "step0_metrics.json", step0)
 
-    step = exposure = epoch = 0
+    step = int(source.get("global_step", 0)) if resume_optimizer else 0
+    exposure = int(source.get("samples_seen", 0)) if resume_optimizer else 0
+    if step >= target_steps:
+        raise ValueError(f"{experiment} target steps must exceed resume step")
+    epoch = 0
     losses = {}
     running = defaultdict(float)
     started = time.perf_counter()
     log_path = args.output_dir / "train.jsonl"
     collate_fn = protocol.get("collate_fn")
     training_step_fn = protocol.get("training_step_fn")
-    while step < STEPS:
+    while step < target_steps:
         epoch += 1
         for domain, records in p2h.epoch_batches(domains):
             model.eval()
@@ -293,7 +318,7 @@ def run_experiment(args, *, protocol) -> None:
                     handle.write(json.dumps(record, separators=(",", ":")) + "\n")
                 print(json.dumps(record, separators=(",", ":")), flush=True)
                 running.clear()
-            if step % SAVE_EVERY == 0 and step < STEPS:
+            if step % SAVE_EVERY == 0 and step < target_steps:
                 payload = checkpoint_payload(
                     model, optimizer, args, lineage,
                     step=step, exposure=exposure, losses=losses, metrics=None,
@@ -313,9 +338,9 @@ def run_experiment(args, *, protocol) -> None:
     decision, checks = p2h.gate(metrics)
     decision = decision.replace("atom_query_set", protocol["decision_prefix"])
     protocol_checks = {
-        "fixed_steps": step == STEPS,
-        "fixed_exposure": exposure == EXPECTED_EXPOSURE,
-        "fixed_epochs": epoch == 100,
+        "fixed_steps": step == target_steps,
+        "fixed_exposure": exposure == expected_exposure,
+        "fixed_epochs": epoch == expected_epochs,
         "optimizer_existence_only": validate_trainable_scope(
             model, optimizer, expected_parameters=trainable_parameters,
             experiment=experiment,
@@ -337,7 +362,7 @@ def run_experiment(args, *, protocol) -> None:
         step=step, exposure=exposure, losses=losses, metrics=final,
         protocol=protocol,
     )
-    checkpoint = args.output_dir / "step-001600.pt"
+    checkpoint = args.output_dir / f"step-{target_steps:06d}.pt"
     _atomic_torch_save(checkpoint, payload)
     _atomic_torch_save(args.output_dir / "last.pt", payload)
     final["checkpoint"] = str(checkpoint.resolve())

@@ -26,6 +26,10 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P2-W Fixed Identity Pointer Utility Step4800](20260804-g3-p2w-fixed-identity-pointer-utility-step4800.md)：
+完整恢复P2-V optimizer续到固定4,800步，hard达到32/32，easy仍31/32，独立top-N解码NO-GO。
+唯一残差来自先选query、后配pointer的决策割裂；无GT联合固定基数MAP解码预验证双域32/32。
+
 当前已完成实验：[G3 P2-V Fixed Identity Pointer Utility Capacity64](20260804-g3-p2v-fixed-identity-pointer-utility-capacity64.md)：
 P2-Q改用正确固定identity后，10维pointer utility将easy/hard提高到31/32、28/32，机制GO但
 严格容量NO-GO。曲线在1,600步仍改善；下一步完整恢复optimizer并预先固定4,800步终点。
