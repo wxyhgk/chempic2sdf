@@ -17,15 +17,16 @@ existence cost权重固定为0，因此query标签不再随head输出变化。�
 | easy32 | 963/967，28/32 | **803/967，0/32** | 32/32 |
 | hard32 | 798/807，26/32 | **637/807，0/32** | 32/32 |
 
-即使pointer与标签完全冻结，极值boundary仍约1.33，batch exact接近0。说明P2-J的64维query hidden
-对该固定对象标签不能由单个共享线性head严格分开；继续调head学习率、margin或epoch没有依据。
+即使pointer与标签完全冻结，极值boundary仍约1.33，batch exact接近0。
+
+复核：本实验同时使用了冻结线性head和极值boundary，不能单独证明线性head容量不足。P2-N之后
+必须补做同一冻结head的weighted-BCE-only隔离；这里只能判定极值目标失败。
 
 ## 决策
 
 - 正式结论：`frozen_pointer_existence_head_capacity_no_go`。
-- 独立existence head路线停止。
-- 下一模型把NULL作为pointer的第129类：匹配query监督到唯一候选，未匹配query监督到NULL；
-  existence直接等于“任意候选pointer相对NULL的优势”，从表示上消除object/pointer身份脱节。
+- 当前“冻结线性head + 极值boundary”停止。
+- P2-N先测试NULL pointer统一语言；无论其结果如何，仍需补做冻结线性head的BCE-only隔离。
 
 ```text
 model = chemvector-g3-p2m-frozen-pointer-existence-head-capacity64

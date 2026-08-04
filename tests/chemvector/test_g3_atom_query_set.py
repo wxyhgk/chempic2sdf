@@ -7,9 +7,11 @@ import torch
 from chemvector.components.atoms.objects.g3_atom_query_set import (
     G3AtomQuerySet,
     G3AtomQuerySetConfig,
+    G3NullPointerAtomQuerySet,
     decode_g3_atom_query_set,
     g3_atom_existence_calibration_loss,
     g3_atom_query_set_loss,
+    g3_null_pointer_query_set_loss,
     hungarian_pointer_query_targets,
     unique_pointer_targets,
 )
@@ -186,6 +188,28 @@ class G3AtomQuerySetTests(unittest.TestCase):
             for name, value in model.named_parameters()
             if not name.startswith("existence_head.")
         ))
+
+    def test_null_pointer_unifies_existence_and_pointer_classes(self) -> None:
+        candidates = self.candidates(batch=1)
+        target_anchors = torch.zeros(1, 4, 2)
+        target_anchors[0, :2] = candidates["candidate_anchors"][0, :2]
+        target_mask = torch.tensor([[True, True, False, False]])
+        model = G3NullPointerAtomQuerySet()
+        output = model(candidates)
+        self.assertEqual(output["null_pointer_logits"].shape, (1, 128))
+        expected_existence = (
+            torch.logsumexp(output["pointer_logits"], dim=-1)
+            - output["null_pointer_logits"]
+        )
+        self.assertTrue(torch.equal(output["existence_logits"], expected_existence))
+        losses = g3_null_pointer_query_set_loss(
+            output,
+            candidates["candidate_anchors"],
+            target_anchors,
+            target_mask,
+        )
+        self.assertTrue(torch.isfinite(losses["loss"]))
+        losses["loss"].backward()
 
 
 if __name__ == "__main__":

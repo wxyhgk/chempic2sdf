@@ -145,7 +145,9 @@ class G3AtomQuerySet(nn.Module):
     def parameter_count(self) -> int:
         return sum(value.numel() for value in self.parameters())
 
-    def forward(self, candidates: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
+    def _forward_queries(
+        self, candidates: dict[str, torch.Tensor]
+    ) -> dict[str, torch.Tensor]:
         batch = _validate_candidates(candidates, self.config)
         features = candidates["candidate_features"].detach().float()
         anchors = candidates["candidate_anchors"].detach().float()
@@ -173,11 +175,38 @@ class G3AtomQuerySet(nn.Module):
         pointer_probabilities = pointer_logits.float().softmax(dim=-1)
         coordinates = torch.matmul(pointer_probabilities, anchors)
         return {
-            "existence_logits": self.existence_head(hidden).squeeze(-1).float(),
             "count_logits": self.count_head(memory.mean(dim=1)).float(),
             "pointer_logits": pointer_logits.float(),
             "coordinates": coordinates.float(),
             "query_hidden": hidden.float(),
+        }
+
+    def forward(self, candidates: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
+        output = self._forward_queries(candidates)
+        return {
+            **output,
+            "existence_logits": self.existence_head(
+                output["query_hidden"]
+            ).squeeze(-1).float(),
+        }
+
+
+class G3NullPointerAtomQuerySet(G3AtomQuerySet):
+    """Use NULL versus candidate pointers as the sole Atom existence language."""
+
+    def __init__(self, config: G3AtomQuerySetConfig | None = None) -> None:
+        super().__init__(config)
+        del self.existence_head
+        self.null_pointer_head = nn.Linear(self.config.d_model, 1)
+
+    def forward(self, candidates: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
+        output = self._forward_queries(candidates)
+        null_logits = self.null_pointer_head(output["query_hidden"]).squeeze(-1).float()
+        pointer_existence = torch.logsumexp(output["pointer_logits"], dim=-1) - null_logits
+        return {
+            **output,
+            "existence_logits": pointer_existence,
+            "null_pointer_logits": null_logits,
         }
 
 
@@ -298,6 +327,69 @@ def g3_atom_existence_calibration_loss(
         "matched_queries": existence.new_tensor(
             float(sum(len(value[0]) for value in assignments))
         ),
+    }
+
+
+def g3_null_pointer_query_set_loss(
+    output: dict[str, torch.Tensor],
+    candidate_anchors: torch.Tensor,
+    target_anchors: torch.Tensor,
+    target_mask: torch.Tensor,
+) -> dict[str, torch.Tensor]:
+    """Train matched queries to unique peaks and every unmatched query to NULL."""
+
+    pointer_logits = output["pointer_logits"]
+    null_logits = output.get("null_pointer_logits")
+    if null_logits is None or null_logits.shape != pointer_logits.shape[:2]:
+        raise ValueError("G3 NULL pointer logits have invalid shape")
+    assignments = hungarian_pointer_query_targets(
+        output,
+        candidate_anchors,
+        target_anchors,
+        target_mask,
+        existence_cost_weight=0.0,
+    )
+    unique_targets = unique_pointer_targets(
+        pointer_logits,
+        candidate_anchors,
+        target_anchors,
+        assignments,
+    )
+    batch, queries, candidates = pointer_logits.shape
+    class_targets = torch.full(
+        (batch, queries), candidates, dtype=torch.long, device=pointer_logits.device
+    )
+    matched_mask = torch.zeros(
+        (batch, queries), dtype=torch.bool, device=pointer_logits.device
+    )
+    coordinate_losses = []
+    for batch_index, (query_indices, target_indices) in enumerate(assignments):
+        class_targets[batch_index, query_indices] = unique_targets[batch_index]
+        matched_mask[batch_index, query_indices] = True
+        coordinate_losses.append(F.l1_loss(
+            output["coordinates"][batch_index, query_indices],
+            target_anchors[batch_index, target_indices],
+        ))
+    class_logits = torch.cat((pointer_logits, null_logits.unsqueeze(-1)), dim=-1)
+    class_losses = F.cross_entropy(
+        class_logits.transpose(1, 2), class_targets, reduction="none"
+    )
+    class_weights = torch.where(
+        matched_mask,
+        torch.ones_like(class_losses),
+        torch.full_like(class_losses, 0.1),
+    )
+    pointer_null_loss = (class_losses * class_weights).sum() / class_weights.sum()
+    coordinate_loss = torch.stack(coordinate_losses).mean()
+    count_loss = F.cross_entropy(output["count_logits"], target_mask.sum(dim=1).long())
+    loss = pointer_null_loss + 5.0 * coordinate_loss + count_loss
+    return {
+        "loss": loss,
+        "pointer_null_loss": pointer_null_loss,
+        "coordinate_loss": coordinate_loss,
+        "count_loss": count_loss,
+        "matched_queries": loss.new_tensor(float(matched_mask.sum())),
+        "null_queries": loss.new_tensor(float((~matched_mask).sum())),
     }
 
 
@@ -511,9 +603,11 @@ def decode_g3_atom_query_set(
 __all__ = [
     "G3AtomQuerySet",
     "G3AtomQuerySetConfig",
+    "G3NullPointerAtomQuerySet",
     "decode_g3_atom_query_set",
     "g3_atom_existence_calibration_loss",
     "g3_atom_query_set_loss",
+    "g3_null_pointer_query_set_loss",
     "hungarian_pointer_query_targets",
     "hungarian_query_targets",
     "unique_pointer_targets",

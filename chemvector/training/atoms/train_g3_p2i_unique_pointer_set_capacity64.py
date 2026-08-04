@@ -156,9 +156,13 @@ def run_experiment(args, *, protocol, training_step_fn) -> None:
 
     cache, cache_audit = p2e.load_cache()
     domains, selection_audit = p2h.select_capacity_domains(cache["train5k"])
-    model = G3AtomQuerySet().to(device)
+    model_factory = protocol.get("model_factory", G3AtomQuerySet)
+    model = model_factory().to(device)
     initial_sha = module_state_sha256(model)
-    if initial_sha != EXPECTED_INITIAL_SHA256:
+    expected_initial_sha = protocol.get(
+        "expected_initial_sha256", EXPECTED_INITIAL_SHA256
+    )
+    if initial_sha != expected_initial_sha:
         raise RuntimeError(f"{experiment} no longer shares P2-H initialization")
     optimizer = torch.optim.AdamW(
         model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay
@@ -182,7 +186,7 @@ def run_experiment(args, *, protocol, training_step_fn) -> None:
     lineage = {
         "p2h_checkpoint": str(P2H_CHECKPOINT.resolve()),
         "p2h_checkpoint_sha256": P2H_CHECKPOINT_SHA256,
-        "same_initialization_as_p2h": True,
+        "same_initialization_as_p2h": initial_sha == EXPECTED_INITIAL_SHA256,
         "candidate_cache": str(p2e.CACHE.resolve()),
         "candidate_cache_sha256": p2e.CACHE_SHA256,
         "candidate_audit": str(p2e.AUDIT.resolve()),
@@ -288,7 +292,7 @@ def run_experiment(args, *, protocol, training_step_fn) -> None:
         "fixed_steps": step == target_steps,
         "fixed_exposure": exposure == expected_exposure,
         "fixed_epochs": epoch == target_steps // 16,
-        "same_initialization_as_p2h": initial_sha == EXPECTED_INITIAL_SHA256,
+        "expected_initialization": initial_sha == expected_initial_sha,
         "resume_optimizer_restored": resume_checkpoint is None or resume is not None,
         "model_changed": module_state_sha256(model) != initial_sha,
         "repeat_metrics": repeated == metrics,

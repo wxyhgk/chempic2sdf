@@ -26,10 +26,15 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P2-N Null Pointer Query Set Capacity64](20260804-g3-p2n-null-pointer-query-set-capacity64.md)：
+用candidate-or-NULL统一pointer与existence后，easy/hard仅894/967、0/32和756/807、6/32，NO-GO。
+同时复核发现P2-M把冻结head与极值boundary一起改变，不能归因线性容量；下一步补做P2-J冻结表示、
+65参数线性head、pointer固定标签、weighted-BCE-only的严格隔离。
+
 当前已完成实验：[G3 P2-M Frozen Pointer Existence Head Capacity64](20260804-g3-p2m-frozen-pointer-existence-head-capacity64.md)：
 加载P2-J并冻结291,329参数，仅训练65参数existence head；pointer-only固定标签下仍退到
-803/967、0/32和637/807、0/32。独立线性existence head容量NO-GO；下一版将NULL并入pointer
-第129类，让存在性与唯一候选身份使用同一输出语言。
+803/967、0/32和637/807、0/32；复核后只判“冻结head + 极值boundary”NO-GO，不能单独归因
+线性容量。P2-N测试NULL语言后，下一步补weighted-BCE-only隔离。
 
 当前已完成实验：[G3 P2-L Existence Boundary Query Set Capacity64](20260804-g3-p2l-existence-boundary-query-set-capacity64.md)：
 在P2-J同初始化上加入最低正query对最高负query的极值margin，boundary全程0/4 batch exact，
