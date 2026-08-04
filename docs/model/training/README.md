@@ -26,6 +26,11 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P2-R P2-J Identity Existence Capacity64](20260804-g3-p2r-p2j-identity-existence-capacity64.md)：
+固定P2-J原始existence-aware identity后，65参数head的weighted BCE得到easy/hard 29/32、27/32，
+仍为NO-GO；但强制cache identity解码两域均32/32，已把剩余断点严格定位为existence整组排序。
+下一步在同一缓存、同一初始化上测试平滑全正负对pairwise排序损失。
+
 当前已完成实验：[G3 P2-Q Pointer Utility Existence Capacity64](20260804-g3-p2q-pointer-utility-existence-capacity64.md)：
 显式加入10个pointer utility后仅22/32、23/32。复核确认P2-M至Q删除existence tie-break后，
 正query identity与P2-J原身份只重合90.49%/89.47%，导致校准head被迫学习另一套等价排列。

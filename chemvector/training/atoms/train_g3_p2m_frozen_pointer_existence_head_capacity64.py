@@ -150,7 +150,9 @@ def checkpoint_payload(
         "trainable_parameter_count": trainable_parameters,
         "frozen_parameter_count": model.parameter_count() - trainable_parameters,
         "existence_head_type": protocol.get("existence_head_type", "linear-64-to-1"),
-        "query_matching": "frozen-pointer-mass-with-zero-existence-cost",
+        "query_matching": protocol.get(
+            "query_matching", "frozen-pointer-mass-with-zero-existence-cost"
+        ),
         "existence_objective": protocol["existence_objective"],
         "lineage": lineage,
         "last_losses": losses,
@@ -216,12 +218,21 @@ def run_experiment(args, *, protocol) -> None:
         "selection_audit": selection_audit,
     }
     args.output_dir.mkdir(parents=True, exist_ok=False)
+    training_context = None
+    prepare_context = protocol.get("prepare_training_context")
+    if prepare_context is not None:
+        training_context, context_audit = prepare_context(
+            model, domains, device=device, output_dir=args.output_dir
+        )
+        lineage["training_context"] = context_audit
     _atomic_json(args.output_dir / "audit.json", {
         "schema_version": protocol["audit_schema_version"],
         "scope": protocol["scope"],
         "trainable_parameters": trainable_parameters,
         "pointer_query_count_chemistry_frozen": True,
-        "existence_removed_from_matching_cost": True,
+        "existence_removed_from_matching_cost": protocol.get(
+            "existence_removed_from_matching_cost", True
+        ),
         "lineage": lineage,
     })
     _atomic_json(
@@ -239,17 +250,32 @@ def run_experiment(args, *, protocol) -> None:
     running = defaultdict(float)
     started = time.perf_counter()
     log_path = args.output_dir / "train.jsonl"
+    collate_fn = protocol.get("collate_fn")
+    training_step_fn = protocol.get("training_step_fn")
     while step < STEPS:
         epoch += 1
         for domain, records in p2h.epoch_batches(domains):
             model.eval()
-            losses = training_step(
-                model,
-                optimizer,
-                p2h.collate(records, device),
-                max_grad_norm=args.max_grad_norm,
-                boundary_weight=protocol["boundary_weight"],
+            batch = (
+                collate_fn(records, device, training_context)
+                if collate_fn is not None else p2h.collate(records, device)
             )
+            if training_step_fn is None:
+                losses = training_step(
+                    model,
+                    optimizer,
+                    batch,
+                    max_grad_norm=args.max_grad_norm,
+                    boundary_weight=protocol["boundary_weight"],
+                )
+            else:
+                losses = training_step_fn(
+                    model,
+                    optimizer,
+                    batch,
+                    max_grad_norm=args.max_grad_norm,
+                    training_context=training_context,
+                )
             step += 1
             exposure += len(records)
             for name, value in losses.items():

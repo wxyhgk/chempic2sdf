@@ -84,7 +84,8 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
   26/32、24/32。P2-P增加到8,577参数MLP后反而只有20/32、22/32；
   P2-Q加入pointer utility也仅22/32、23/32。随后复核发现M至Q删除existence tie-break后，正query
   identity与P2-J只重合约90%，此前容量归因无效。下一步冻结P2-J原identity做Action Cache，再
-  只训练existence head完成正确M-step。
+  只训练existence head完成正确M-step。P2-R固定原identity后提高到29/32、27/32；强制cache
+  identity解码则双域32/32，剩余断点已收窄为existence整组排序，而不是pointer或候选点。
 - 版本从 `v0.7` 开始，每次发布增加 `0.0.1`。
 - 根目录 `VERSION` 是开发版本的唯一来源。
 
