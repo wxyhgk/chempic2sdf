@@ -7,6 +7,7 @@ import torch
 from chemvector.components.atoms.objects.g3_atom_query_set import (
     G3AtomQuerySet,
     G3AtomQuerySetConfig,
+    G3ExistenceMLP,
     G3NullPointerAtomQuerySet,
     decode_g3_atom_query_set,
     g3_atom_existence_calibration_loss,
@@ -42,6 +43,12 @@ class G3AtomQuerySetTests(unittest.TestCase):
     def test_heads_must_divide_model_dimension(self) -> None:
         with self.assertRaisesRegex(ValueError, "heads must divide"):
             G3AtomQuerySetConfig(d_model=63, heads=4)
+
+    def test_existence_mlp_maps_query_states_to_one_logit(self) -> None:
+        head = G3ExistenceMLP()
+        output = head(torch.randn(2, 128, 64))
+        self.assertEqual(output.shape, (2, 128, 1))
+        self.assertEqual(sum(value.numel() for value in head.parameters()), 8_577)
 
     def test_loss_accepts_equivalent_candidate_set(self) -> None:
         candidates = self.candidates(batch=1)

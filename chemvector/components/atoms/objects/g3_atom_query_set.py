@@ -210,6 +210,20 @@ class G3NullPointerAtomQuerySet(G3AtomQuerySet):
         }
 
 
+class G3ExistenceMLP(nn.Sequential):
+    """Nonlinear existence capacity over a frozen 64D Atom-query state."""
+
+    def __init__(self, d_model: int = 64, hidden_dim: int = 128) -> None:
+        if min(d_model, hidden_dim) < 1:
+            raise ValueError("G3 existence MLP dimensions must be positive")
+        super().__init__(
+            nn.LayerNorm(d_model),
+            nn.Linear(d_model, hidden_dim),
+            nn.GELU(),
+            nn.Linear(hidden_dim, 1),
+        )
+
+
 @torch.no_grad()
 def hungarian_query_targets(
     output: dict[str, torch.Tensor],
@@ -606,6 +620,7 @@ def decode_g3_atom_query_set(
 __all__ = [
     "G3AtomQuerySet",
     "G3AtomQuerySetConfig",
+    "G3ExistenceMLP",
     "G3NullPointerAtomQuerySet",
     "decode_g3_atom_query_set",
     "g3_atom_existence_calibration_loss",

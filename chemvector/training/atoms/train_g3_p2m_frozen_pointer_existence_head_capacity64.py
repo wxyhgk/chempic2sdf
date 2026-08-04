@@ -84,16 +84,19 @@ def validate_args(args, *, output: Path = OUTPUT, experiment: str = "P2-M") -> N
         raise RuntimeError(f"{experiment} requires positive logging interval and CUDA BF16")
 
 
-def validate_trainable_scope(model, optimizer) -> None:
+def validate_trainable_scope(
+    model, optimizer, *, expected_parameters: int = TRAINABLE_PARAMETERS,
+    experiment: str = "P2-M",
+) -> None:
     expected = {id(value) for value in model.existence_head.parameters()}
     actual = {id(value) for group in optimizer.param_groups for value in group["params"]}
     if expected != actual:
-        raise ValueError("P2-M optimizer must contain only the existence head")
-    if sum(value.numel() for value in model.existence_head.parameters()) != TRAINABLE_PARAMETERS:
-        raise ValueError("P2-M existence parameter count differs")
+        raise ValueError(f"{experiment} optimizer must contain only the existence head")
+    if sum(value.numel() for value in model.existence_head.parameters()) != expected_parameters:
+        raise ValueError(f"{experiment} existence parameter count differs")
     for name, value in model.named_parameters():
         if value.requires_grad != name.startswith("existence_head."):
-            raise ValueError(f"P2-M trainability differs: {name}")
+            raise ValueError(f"{experiment} trainability differs: {name}")
 
 
 def training_step(
@@ -132,6 +135,7 @@ def checkpoint_payload(
     model, optimizer, args, lineage, *, step, exposure, losses, metrics,
     protocol=P2M_PROTOCOL,
 ):
+    trainable_parameters = int(protocol.get("trainable_parameters", TRAINABLE_PARAMETERS))
     return {
         "checkpoint_schema_version": protocol["checkpoint_schema_version"],
         "model_type": protocol["model_type"],
@@ -143,8 +147,9 @@ def checkpoint_payload(
         "calibration_steps": step,
         "calibration_samples_seen": exposure,
         "training_args": {**vars(args), "output_dir": str(args.output_dir)},
-        "trainable_parameter_count": TRAINABLE_PARAMETERS,
-        "frozen_parameter_count": model.parameter_count() - TRAINABLE_PARAMETERS,
+        "trainable_parameter_count": trainable_parameters,
+        "frozen_parameter_count": model.parameter_count() - trainable_parameters,
+        "existence_head_type": protocol.get("existence_head_type", "linear-64-to-1"),
         "query_matching": "frozen-pointer-mass-with-zero-existence-cost",
         "existence_objective": protocol["existence_objective"],
         "lineage": lineage,
@@ -175,6 +180,11 @@ def run_experiment(args, *, protocol) -> None:
     model = G3AtomQuerySet(G3AtomQuerySetConfig(**source["model_config"])).to(device)
     model.load_state_dict(source["atom_query_set"], strict=True)
     source_state_sha = module_state_sha256(model)
+    head_factory = protocol.get("existence_head_factory")
+    if head_factory is not None:
+        model.existence_head = head_factory().to(device)
+    head_initial_sha = module_state_sha256(model.existence_head)
+    trainable_parameters = int(protocol.get("trainable_parameters", TRAINABLE_PARAMETERS))
     model.requires_grad_(False)
     model.existence_head.requires_grad_(True)
     optimizer = torch.optim.AdamW(
@@ -182,13 +192,18 @@ def run_experiment(args, *, protocol) -> None:
         lr=args.learning_rate,
         weight_decay=args.weight_decay,
     )
-    validate_trainable_scope(model, optimizer)
+    validate_trainable_scope(
+        model, optimizer, expected_parameters=trainable_parameters,
+        experiment=experiment,
+    )
     cache, cache_audit = p2e.load_cache()
     domains, selection_audit = p2h.select_capacity_domains(cache["train5k"])
     lineage = {
         "p2j_checkpoint": str(P2J_CHECKPOINT.resolve()),
         "p2j_checkpoint_sha256": P2J_CHECKPOINT_SHA256,
         "p2j_model_state_sha256": source_state_sha,
+        "existence_head_initial_sha256": head_initial_sha,
+        "existence_head_type": protocol.get("existence_head_type", "linear-64-to-1"),
         "p2j_metrics": source["metrics"],
         "candidate_cache_sha256": p2e.CACHE_SHA256,
         "candidate_cache_tensor_sha256": cache_audit["candidate_protocol"][
@@ -200,7 +215,7 @@ def run_experiment(args, *, protocol) -> None:
     _atomic_json(args.output_dir / "audit.json", {
         "schema_version": protocol["audit_schema_version"],
         "scope": protocol["scope"],
-        "trainable_parameters": TRAINABLE_PARAMETERS,
+        "trainable_parameters": trainable_parameters,
         "pointer_query_count_chemistry_frozen": True,
         "existence_removed_from_matching_cost": True,
         "lineage": lineage,
@@ -271,7 +286,10 @@ def run_experiment(args, *, protocol) -> None:
         "fixed_steps": step == STEPS,
         "fixed_exposure": exposure == EXPECTED_EXPOSURE,
         "fixed_epochs": epoch == 100,
-        "optimizer_existence_only": validate_trainable_scope(model, optimizer) is None,
+        "optimizer_existence_only": validate_trainable_scope(
+            model, optimizer, expected_parameters=trainable_parameters,
+            experiment=experiment,
+        ) is None,
         "repeat_metrics": repeated == metrics,
     }
     if not all(protocol_checks.values()):
@@ -303,7 +321,7 @@ def run_experiment(args, *, protocol) -> None:
     })
     print(json.dumps({
         "decision": decision,
-        "trainable_parameters": TRAINABLE_PARAMETERS,
+        "trainable_parameters": trainable_parameters,
         "metrics": metrics,
         "checkpoint": str(checkpoint),
         "checkpoint_sha256": final["checkpoint_sha256"],

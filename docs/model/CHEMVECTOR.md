@@ -81,7 +81,8 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
   冻结pointer mass独立定义query标签。P2-M只训65参数head仍为0/32、0/32，证明独立线性
   existence结果不足；P2-N把NULL并入pointer第129类后也只到0/32、6/32。复核发现P2-M同时
   改了冻结范围与极值loss，尚不能归因线性容量；P2-O补做冻结65参数head的BCE-only后为
-  26/32、24/32，严格确认线性容量NO-GO。下一步只增加existence MLP容量，不改pointer/Count/数据。
+  26/32、24/32，严格确认线性容量NO-GO。P2-P增加到8,577参数MLP后反而只有20/32、22/32；
+  停止扩大纯query-hidden head，下一步显式输入pointer熵、峰分数和rank等utility证据。
 - 版本从 `v0.7` 开始，每次发布增加 `0.0.1`。
 - 根目录 `VERSION` 是开发版本的唯一来源。
 

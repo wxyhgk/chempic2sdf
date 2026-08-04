@@ -26,10 +26,15 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P2-P Frozen Pointer Existence MLP Capacity64](20260804-g3-p2p-frozen-pointer-existence-mlp-capacity64.md)：
+冻结同一P2-J表示，将65参数线性head换成8,577参数MLP，BCE降到0.125但easy/hard仅
+952/967、20/32和795/807、22/32，非线性容量NO-GO。下一步不再扩大纯MLP，而是显式输入
+pointer熵、峰分数和rank等target-independent utility证据。
+
 当前已完成实验：[G3 P2-O Frozen Pointer Existence BCE Capacity64](20260804-g3-p2o-frozen-pointer-existence-bce-capacity64.md)：
 冻结P2-J全部表示、pointer-only固定标签，仅训练65参数线性head和weighted BCE，final为
 960/967、26/32与795/807、24/32，略低于step0。该严格隔离确认线性head容量NO-GO；下一步
-只增加existence MLP容量，不改pointer、Count或数据。
+只增加existence MLP容量；P2-P随后证明纯query-hidden非线性容量也未过门。
 
 当前已完成实验：[G3 P2-N Null Pointer Query Set Capacity64](20260804-g3-p2n-null-pointer-query-set-capacity64.md)：
 用candidate-or-NULL统一pointer与existence后，easy/hard仅894/967、0/32和756/807、6/32，NO-GO。
