@@ -39,11 +39,23 @@ P2H_CHECKPOINT_SHA256 = (
 EXPECTED_INITIAL_SHA256 = (
     "6566dd14c8d4054c1e919281955ab938c26c5e09ef96433da6a60946ffa85d79"
 )
+P2I_PROTOCOL = {
+    "experiment": "P2-I",
+    "model_type": MODEL_TYPE,
+    "output": OUTPUT,
+    "checkpoint_schema_version": "g3-p2i-unique-pointer-set-capacity64-0.1",
+    "audit_schema_version": "g3-p2i-capacity64-audit-0.1",
+    "scope": "same-image capacity, P2-H controlled pointer-target ablation",
+    "changed_variable": "global unique compatible pointer target",
+    "matching": "hungarian-query-to-gt-then-global-unique-compatible-pointer",
+    "pointer_target": "one-distinct-compatible-peak-per-matched-query",
+    "decision_prefix": "unique_pointer_set",
+}
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output-dir", type=Path, default=OUTPUT)
+def build_parser(*, output: Path = OUTPUT, description: str = __doc__) -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=description)
+    parser.add_argument("--output-dir", type=Path, default=output)
     parser.add_argument("--batch-size", type=int, default=4)
     parser.add_argument("--learning-rate", type=float, default=3e-4)
     parser.add_argument("--weight-decay", type=float, default=0.01)
@@ -53,7 +65,9 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def validate_args(args: argparse.Namespace) -> None:
+def validate_args(
+    args: argparse.Namespace, *, output: Path = OUTPUT, experiment: str = "P2-I"
+) -> None:
     fixed = {
         "batch_size": 4,
         "learning_rate": 3e-4,
@@ -63,13 +77,13 @@ def validate_args(args: argparse.Namespace) -> None:
     }
     for name, expected in fixed.items():
         if getattr(args, name) != expected:
-            raise ValueError(f"P2-I requires fixed {name}={expected}")
-    if args.output_dir.resolve() != OUTPUT.resolve():
-        raise ValueError(f"P2-I requires output directory {OUTPUT}")
+            raise ValueError(f"{experiment} requires fixed {name}={expected}")
+    if args.output_dir.resolve() != output.resolve():
+        raise ValueError(f"{experiment} requires output directory {output}")
     if args.log_every < 1:
-        raise ValueError("P2-I log interval must be positive")
+        raise ValueError(f"{experiment} log interval must be positive")
     if not torch.cuda.is_available():
-        raise RuntimeError("P2-I requires CUDA BF16")
+        raise RuntimeError(f"{experiment} requires CUDA BF16")
 
 
 def training_step(model, optimizer, batch, *, max_grad_norm: float) -> dict:
@@ -94,10 +108,13 @@ def training_step(model, optimizer, batch, *, max_grad_norm: float) -> dict:
     }
 
 
-def checkpoint_payload(model, optimizer, args, lineage, *, step, exposure, losses, metrics):
+def checkpoint_payload(
+    model, optimizer, args, lineage, *, step, exposure, losses, metrics,
+    protocol=P2I_PROTOCOL,
+):
     return {
-        "checkpoint_schema_version": "g3-p2i-unique-pointer-set-capacity64-0.1",
-        "model_type": MODEL_TYPE,
+        "checkpoint_schema_version": protocol["checkpoint_schema_version"],
+        "model_type": protocol["model_type"],
         "atom_query_set": model.state_dict(),
         "model_config": asdict(model.config),
         "optimizer": optimizer.state_dict(),
@@ -105,8 +122,8 @@ def checkpoint_payload(model, optimizer, args, lineage, *, step, exposure, losse
         "samples_seen": exposure,
         "training_args": {**vars(args), "output_dir": str(args.output_dir)},
         "trainable_parameter_count": model.parameter_count(),
-        "matching": "hungarian-query-to-gt-then-global-unique-compatible-pointer",
-        "pointer_target": "one-distinct-compatible-peak-per-matched-query",
+        "matching": protocol["matching"],
+        "pointer_target": protocol["pointer_target"],
         "candidate_preclustering": False,
         "known_count_is_model_input": False,
         "lineage": lineage,
@@ -115,13 +132,14 @@ def checkpoint_payload(model, optimizer, args, lineage, *, step, exposure, losse
     }
 
 
-def main() -> None:
-    args = build_parser().parse_args()
-    validate_args(args)
+def run_experiment(args, *, protocol, training_step_fn) -> None:
+    output = protocol["output"]
+    experiment = protocol["experiment"]
+    validate_args(args, output=output, experiment=experiment)
     if args.output_dir.exists() and any(args.output_dir.iterdir()):
-        raise RuntimeError(f"P2-I output is not empty: {args.output_dir}")
+        raise RuntimeError(f"{experiment} output is not empty: {args.output_dir}")
     if file_sha256(P2H_CHECKPOINT) != P2H_CHECKPOINT_SHA256:
-        raise ValueError("P2-I P2-H reference checkpoint SHA256 differs")
+        raise ValueError(f"{experiment} P2-H reference checkpoint SHA256 differs")
     os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
     random.seed(args.seed)
     np.random.seed(args.seed)
@@ -138,7 +156,7 @@ def main() -> None:
     model = G3AtomQuerySet().to(device)
     initial_sha = module_state_sha256(model)
     if initial_sha != EXPECTED_INITIAL_SHA256:
-        raise RuntimeError("P2-I no longer shares P2-H initialization")
+        raise RuntimeError(f"{experiment} no longer shares P2-H initialization")
     optimizer = torch.optim.AdamW(
         model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay
     )
@@ -160,9 +178,9 @@ def main() -> None:
     _atomic_json(
         args.output_dir / "audit.json",
         {
-            "schema_version": "g3-p2i-capacity64-audit-0.1",
-            "scope": "same-image capacity, P2-H controlled pointer-target ablation",
-            "changed_variable": "global unique compatible pointer target",
+            "schema_version": protocol["audit_schema_version"],
+            "scope": protocol["scope"],
+            "changed_variable": protocol["changed_variable"],
             "same_architecture_data_initialization_budget_as_p2h": True,
             "fixed_pixel_clustering": False,
             "selection": selection_audit,
@@ -188,7 +206,7 @@ def main() -> None:
         epoch += 1
         for domain, records in p2h.epoch_batches(domains):
             model.train()
-            losses = training_step(
+            losses = training_step_fn(
                 model,
                 optimizer,
                 p2h.collate(records, device),
@@ -215,6 +233,7 @@ def main() -> None:
                 payload = checkpoint_payload(
                     model, optimizer, args, lineage,
                     step=step, exposure=exposure, losses=losses, metrics=None,
+                    protocol=protocol,
                 )
                 _atomic_torch_save(args.output_dir / f"step-{step:06d}.pt", payload)
                 _atomic_torch_save(args.output_dir / "last.pt", payload)
@@ -228,7 +247,7 @@ def main() -> None:
         for domain, records in domains.items()
     }
     decision, checks = p2h.gate(metrics)
-    decision = decision.replace("atom_query_set", "unique_pointer_set")
+    decision = decision.replace("atom_query_set", protocol["decision_prefix"])
     protocol_checks = {
         "fixed_steps": step == p2h.STEPS,
         "fixed_exposure": exposure == p2h.EXPECTED_EXPOSURE,
@@ -250,6 +269,7 @@ def main() -> None:
     payload = checkpoint_payload(
         model, optimizer, args, lineage,
         step=step, exposure=exposure, losses=losses, metrics=final,
+        protocol=protocol,
     )
     checkpoint = args.output_dir / "step-004800.pt"
     _atomic_torch_save(checkpoint, payload)
@@ -273,6 +293,11 @@ def main() -> None:
         "checkpoint": str(checkpoint),
         "checkpoint_sha256": final["checkpoint_sha256"],
     }, indent=2))
+
+
+def main() -> None:
+    args = build_parser().parse_args()
+    run_experiment(args, protocol=P2I_PROTOCOL, training_step_fn=training_step)
 
 
 if __name__ == "__main__":

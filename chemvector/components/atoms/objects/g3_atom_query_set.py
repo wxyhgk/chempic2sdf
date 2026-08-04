@@ -208,6 +208,48 @@ def hungarian_query_targets(
 
 
 @torch.no_grad()
+def hungarian_pointer_query_targets(
+    output: dict[str, torch.Tensor],
+    candidate_anchors: torch.Tensor,
+    target_anchors: torch.Tensor,
+    target_mask: torch.Tensor,
+    *,
+    radius_pixels: float = 6.0,
+    image_size: int = 768,
+) -> list[tuple[torch.Tensor, torch.Tensor]]:
+    """Match queries to GT by probability mass on each compatible peak set."""
+
+    log_probabilities = output["pointer_logits"].detach().float().log_softmax(dim=-1)
+    existence = output["existence_logits"].detach().float().sigmoid()
+    radius = float(radius_pixels) / float(image_size)
+    assignments = []
+    for batch_index in range(len(log_probabilities)):
+        target_indices = torch.where(target_mask[batch_index])[0]
+        expected = target_anchors[batch_index, target_indices].detach().float()
+        compatible = torch.cdist(
+            expected, candidate_anchors[batch_index].detach().float()
+        ) <= radius
+        if bool((compatible.sum(dim=1) < 1).any()):
+            raise RuntimeError("G3 Atom pointer matching target has no compatible peak")
+        support = torch.stack([
+            torch.logsumexp(
+                log_probabilities[batch_index, :, mask], dim=-1
+            )
+            for mask in compatible
+        ], dim=1)
+        cost = -support - existence[batch_index, :, None]
+        queries, columns = linear_sum_assignment(cost.cpu().numpy())
+        matched_targets = target_indices[
+            torch.as_tensor(columns, dtype=torch.long, device=target_indices.device)
+        ]
+        assignments.append((
+            torch.as_tensor(queries, dtype=torch.long, device=target_anchors.device),
+            matched_targets.to(target_anchors.device),
+        ))
+    return assignments
+
+
+@torch.no_grad()
 def unique_pointer_targets(
     pointer_logits: torch.Tensor,
     candidate_anchors: torch.Tensor,
@@ -259,6 +301,7 @@ def g3_atom_query_set_loss(
     radius_pixels: float = 6.0,
     image_size: int = 768,
     unique_pointers: bool = False,
+    query_matching: str = "coordinate",
 ) -> dict[str, torch.Tensor]:
     existence = output["existence_logits"]
     count_logits = output["count_logits"]
@@ -271,7 +314,19 @@ def g3_atom_query_set_loss(
         raise ValueError("G3 Atom query pointer logits have invalid shape")
     if coordinates.shape != (batch, queries, 2):
         raise ValueError("G3 Atom query coordinates have invalid shape")
-    assignments = hungarian_query_targets(output, target_anchors, target_mask)
+    if query_matching == "coordinate":
+        assignments = hungarian_query_targets(output, target_anchors, target_mask)
+    elif query_matching == "pointer":
+        assignments = hungarian_pointer_query_targets(
+            output,
+            candidate_anchors,
+            target_anchors,
+            target_mask,
+            radius_pixels=radius_pixels,
+            image_size=image_size,
+        )
+    else:
+        raise ValueError(f"Unknown G3 Atom query matching mode: {query_matching}")
     object_targets = torch.zeros_like(existence)
     coordinate_losses = []
     pointer_losses = []
@@ -380,6 +435,7 @@ __all__ = [
     "G3AtomQuerySetConfig",
     "decode_g3_atom_query_set",
     "g3_atom_query_set_loss",
+    "hungarian_pointer_query_targets",
     "hungarian_query_targets",
     "unique_pointer_targets",
 ]

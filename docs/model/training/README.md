@@ -26,10 +26,15 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P2-J Pointer-Matched Query Set Capacity64](20260804-g3-p2j-pointer-matched-query-set-capacity64.md)：
+只把query-to-GT代价换成兼容候选pointer mass，easy/hard从P2-I的12/32、5/32大幅提高到
+28/32、26/32；pointer-linked query两域均已32/32。4,800步严格NO-GO，但step3200→4800
+持续单调提高，允许固定optimizer续训到8,000步，未过则转existence boundary目标。
+
 当前已完成实验：[G3 P2-I Unique Pointer Set Capacity64](20260804-g3-p2i-unique-pointer-set-capacity64.md)：
 相同初始化下将pointer监督改成训练期全局唯一匹配，easy/hard为943/967、12/32和768/807、5/32，
 仍NO-GO；但GT-linked query pointer达到967/967、32/32和802/807、28/32。existence top-N只与
-GT-linked query重合92.35%/93.31%，下一步改用pointer质量做query-to-GT matching。
+GT-linked query重合92.35%/93.31%；P2-J随后改用pointer质量做query-to-GT matching。
 
 当前已完成实验：[G3 P2-H Atom Query Set Capacity64](20260804-g3-p2h-atom-query-set-capacity64.md)：
 291,394参数query集合在easy/hard各32图上将Count做到64/64，但known-count整组仅9/32、8/32。
