@@ -26,6 +26,10 @@
 
 ## 训练时间线
 
+当前已完成审计：[G3 P3-E8 Predicted Count Router](20260804-g3-p3e8-predicted-count-router.md)：
+固定P3-E7路由从known Count切到P2-W Count后，confirm从111/256跌到4/256，route100从36/100
+跌到0/100；Count exact仅9/256、3/100。Count已成为明确首要瓶颈，下一步重做DeepSets统计Count。
+
 当前已完成审计：[G3 P3-E7 Base / Expert Router](20260804-g3-p3e7-base-expert-router-audit.md)：
 512个molecule-disjoint样本上，固定单阈值路由在confirm将known-count exact从base 13/256提高到
 111/256，98 rescue/0 break；冻结后在历史route100从4/100提高到36/100，32/0。路由方向GO，

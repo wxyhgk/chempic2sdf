@@ -138,8 +138,9 @@ def select_fresh_records(cache: dict) -> tuple[dict[str, list[dict]], dict]:
     }
 
 
-def model_prediction(output: dict, record: dict) -> dict:
-    count = int(record["full_atom_mask"].sum())
+def model_prediction(output: dict, record: dict, *, count: int | None = None) -> dict:
+    if count is None:
+        count = int(record["full_atom_mask"].sum())
     scores = p3e0.edge_scores(output, "legacy_logsigmoid")
     assignment = g3_unrestricted_fixed_cardinality_assignment(scores, count)
     queries = assignment["query_indices"]
@@ -152,18 +153,24 @@ def model_prediction(output: dict, record: dict) -> dict:
     perturbed = g3_unrestricted_fixed_cardinality_assignment(
         p3e0.perturb(scores), count
     )
+    empty = count == 0
     return {
         "correct": bool(stats["whole_set_exact_images"]),
         "matched_atoms": int(stats["matched_atoms"]),
         "target_atoms": int(stats["target_atoms"]),
+        "decoded_count": count,
         "candidate_indices": tuple(sorted(candidates.tolist())),
         "query_indices": tuple(sorted(queries.tolist())),
-        "joint_score_mean": float(selected_scores.mean()),
-        "joint_score_min": float(selected_scores.min()),
-        "existence_mean": float(output["existence_logits"][queries].mean()),
-        "existence_min": float(output["existence_logits"][queries].min()),
-        "pointer_logprob_mean": float(pointer_logprob[queries, candidates].mean()),
-        "pointer_logprob_min": float(pointer_logprob[queries, candidates].min()),
+        "joint_score_mean": 0.0 if empty else float(selected_scores.mean()),
+        "joint_score_min": 0.0 if empty else float(selected_scores.min()),
+        "existence_mean": 0.0 if empty else float(output["existence_logits"][queries].mean()),
+        "existence_min": 0.0 if empty else float(output["existence_logits"][queries].min()),
+        "pointer_logprob_mean": (
+            0.0 if empty else float(pointer_logprob[queries, candidates].mean())
+        ),
+        "pointer_logprob_min": (
+            0.0 if empty else float(pointer_logprob[queries, candidates].min())
+        ),
         "assignment_stable": float(
             tuple(sorted(perturbed["candidate_indices"].tolist()))
             == tuple(sorted(candidates.tolist()))
@@ -194,16 +201,25 @@ def pair_features(base: dict, expert: dict) -> dict[str, float]:
     }
 
 
-def collect_rows(records, base_outputs, expert_outputs) -> list[dict]:
+def collect_rows(
+    records, base_outputs, expert_outputs, *, count_mode: str = "known"
+) -> list[dict]:
     rows = []
     for record in records:
         key = str(record["sample_key"])
-        base = model_prediction(base_outputs[key], record)
-        expert = model_prediction(expert_outputs[key], record)
+        if count_mode == "known":
+            count = int(record["full_atom_mask"].sum())
+        elif count_mode == "base_predicted":
+            count = int(base_outputs[key]["count"])
+        else:
+            raise ValueError(f"Unknown P3-E7 Count mode: {count_mode}")
+        base = model_prediction(base_outputs[key], record, count=count)
+        expert = model_prediction(expert_outputs[key], record, count=count)
         rows.append({
             "sample_key": key,
             "variant": p2h._variant(key),
             "atom_count": int(record["full_atom_mask"].sum()),
+            "count_mode": count_mode,
             "base": base,
             "expert": expert,
             "features": pair_features(base, expert),

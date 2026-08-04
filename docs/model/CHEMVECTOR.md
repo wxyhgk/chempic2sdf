@@ -116,6 +116,9 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
   P3-E7随后在512个molecule-disjoint selector样本上固定单阈值路由，confirm从base 13/256提高到
   111/256，98 rescue/0 break；冻结策略在历史route100也从4/100提高到36/100，32/0。
   base+expert方向正式GO，但当前仍是known-count Atom selector口径，必须补predicted Count与完整流水线。
+  P3-E8固定阈值切到P2-W predicted Count后，confirm从111/256跌到4/256、route100从36/100跌到
+  0/100；Count exact仅9/256与3/100。当前首要瓶颈已从selector切换为Count，下一步单独训练读取
+  candidate/query分布统计的DeepSets Count，不再使用`memory.mean -> linear`。
 - 版本从 `v0.7` 开始，每次发布增加 `0.0.1`。
 - 根目录 `VERSION` 是开发版本的唯一来源。
 
