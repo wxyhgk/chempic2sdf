@@ -26,6 +26,11 @@
 
 ## 训练时间线
 
+当前已完成审计：[G3 P2-Y Joint Cardinality Decode Route100](20260804-g3-p2y-joint-cardinality-decode-route100.md)：
+route100与train5k分子重叠0；候选oracle 3073/3080、98/100。P2-W joint在预测Count下
+2399/3080、0/100，Count仅3/100；真实Count下也只有2827/3080、4/100。下一步先Count-only
+因果隔离，再扩训query/pointer，禁止把两类断点混在一起解释。
+
 当前已完成审计：[G3 P2-X Joint Cardinality Decode Capacity64](20260804-g3-p2x-joint-cardinality-decode-capacity64.md)：
 不训练新模型，将query选择与唯一pointer分配合并为无超参固定基数MAP，P2-W easy/hard从
 31/32、32/32提高到双域32/32，容量Gate正式GO。下一步进入未见样本泛化审计。
