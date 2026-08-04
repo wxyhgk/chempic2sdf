@@ -26,6 +26,10 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P2-T Fixed Identity Existence MLP Capacity64](20260804-g3-p2t-fixed-identity-existence-mlp-capacity64.md)：
+正确identity下只把65参数线性head换成8,577参数MLP，easy/hard提高到30/32、28/32但仍NO-GO；
+固定identity exact从step800后基本平台。下一步组合MLP与平滑listwise排序，不追加相同BCE epoch。
+
 当前已完成实验：[G3 P2-S Fixed Identity Listwise Existence Capacity64](20260804-g3-p2s-fixed-identity-listwise-existence-capacity64.md)：
 相同固定identity与P2-J初始化下加入平滑全正负对listwise排序，结果仍为28/32、26/32，NO-GO。
 线性head的两类目标均未过容量门；下一步只替换为8,577参数MLP，正确隔离非线性容量。
