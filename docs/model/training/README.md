@@ -26,6 +26,23 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P2-E Stride-1 Top128 Selector Train5k](20260804-g3-p2e-stride1-top128-selector-train5k.md)：
+冻结P2-A候选后，selector在train5k从152423/155216、3344/5000提高到152789/155216、
+3492/5000，但route从3022/3080、63/100退化到3018/3080、61/100；全部中间checkpoint
+均未同时改善matched与exact，route因果NO-GO，停止该动态硬匹配boundary loss。
+
+当前已完成实验：[G3 P2-A Stride-1 Center Field Train5k](20260804-g3-p2a-stride1-center-field-train5k.md)：
+route top128从2912/3080、26/100提高到3073/3080、98/100，因果GO。总预算128重新审计后，
+纯stride-1 top128上限最高；唯一剩余route失败是`crossed_bonds` stress样本的5个不可达密集点。
+
+当前已完成实验：[G3 P1-Z Stride-2 Center Field Train5k](20260804-g3-p1z-stride2-center-field-train5k.md)：
+route top128从2989/3080、49/100提高到3071/3080、96/100，因果GO，证明capacity64中心场的
+主要限制确实是训练分布太小。
+
+当前已完成审计：[G3 P1-Y Train5k Candidate Reachability](20260804-g3-p1y-train5k-candidate-reachability.md)：
+capacity64中心场的固定96+32候选在train5k仅3346/5000 exact、route仅69/100；即使每尺度
+top1024仍不全覆盖，因此先训练中心场而非扩大selector token。
+
 当前已完成实验：[G3 P1-X Multiscale Peak Selector Capacity64](20260804-g3-p1x-multiscale-peak-selector-capacity64.md)：
 固定`stride2 top96 + stride1 top32`候选，用105,089参数集合selector和动态最大基数一对一监督，
 overfit32从1199/1424、0/32提高到1424/1424、32/32，adjacent32从1225/1473、0/32提高到
