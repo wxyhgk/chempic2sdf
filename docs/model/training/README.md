@@ -26,6 +26,10 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P2-S Fixed Identity Listwise Existence Capacity64](20260804-g3-p2s-fixed-identity-listwise-existence-capacity64.md)：
+相同固定identity与P2-J初始化下加入平滑全正负对listwise排序，结果仍为28/32、26/32，NO-GO。
+线性head的两类目标均未过容量门；下一步只替换为8,577参数MLP，正确隔离非线性容量。
+
 当前已完成实验：[G3 P2-R P2-J Identity Existence Capacity64](20260804-g3-p2r-p2j-identity-existence-capacity64.md)：
 固定P2-J原始existence-aware identity后，65参数head的weighted BCE得到easy/hard 29/32、27/32，
 仍为NO-GO；但强制cache identity解码两域均32/32，已把剩余断点严格定位为existence整组排序。

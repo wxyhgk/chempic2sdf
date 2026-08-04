@@ -10,6 +10,9 @@ from chemvector.training.atoms.train_g3_p2r_p2j_identity_existence_capacity64 im
     fixed_identity_existence_loss,
     validate_action_cache,
 )
+from chemvector.training.atoms.train_g3_p2s_fixed_identity_listwise_existence_capacity64 import (
+    smooth_fixed_identity_listwise_loss,
+)
 
 
 class G3P2RIdentityCacheTests(unittest.TestCase):
@@ -52,6 +55,19 @@ class G3P2RIdentityCacheTests(unittest.TestCase):
         self.assertEqual(float(good_loss["boundary_exact_images"]), 1.0)
         good_loss["loss"].backward()
         self.assertTrue(torch.isfinite(good.grad).all())
+
+    def test_smooth_listwise_loss_focuses_misordered_queries(self) -> None:
+        targets = torch.tensor([[True, False, True, False]])
+        ordered = torch.tensor([[4.0, -2.0, 3.0, -3.0]], requires_grad=True)
+        violated = torch.tensor([[4.0, 3.5, 3.0, -3.0]])
+        ordered_loss = smooth_fixed_identity_listwise_loss(ordered, targets)
+        violated_loss = smooth_fixed_identity_listwise_loss(violated, targets)
+        self.assertLess(
+            float(ordered_loss["listwise_ordering_loss"].detach()),
+            float(violated_loss["listwise_ordering_loss"].detach()),
+        )
+        ordered_loss["loss"].backward()
+        self.assertTrue(torch.isfinite(ordered.grad).all())
 
 
 if __name__ == "__main__":
