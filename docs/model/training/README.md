@@ -26,10 +26,15 @@
 
 ## 训练时间线
 
+当前已完成审计：[G3 P2-G 渲染可恢复性审计](20260804-g3-p2g-render-recoverability-audit.md)：
+基于真实`layers.visible_text`将route100的7张粗几何标记收敛为2张困难图、1张severe；冻结P2-F
+重放显示eligible为3003/3003、98/98，唯一severe为47/53且top1024仍只49/53。P2-F正式NO-GO
+不变，但最后残差已隔离到不可安全监督的stress渲染；下一步转未知Count下的Atom整组选择。
+
 当前已完成实验：[G3 P2-F Stride-1 Center Field Train25k](20260804-g3-p2f-stride1-center-field-train25k.md)：
 保持6250 updates/25000 exposures不变，将5k×5轮改为25k唯一图×1轮；route从3073/3080、
 98/100小幅提高到3074/3080、99/100，但未达到预注册3075门，正式NO-GO。数据扩量仍有边际
-收益，但不支持直接上100k；下一步应修改密集/交叉局部的center target。
+收益，但不支持直接上100k；P2-G随后确认剩余失败属于severe stress渲染。
 
 当前已完成实验：[G3 P2-E Stride-1 Top128 Selector Train5k](20260804-g3-p2e-stride1-top128-selector-train5k.md)：
 冻结P2-A候选后，selector在train5k从152423/155216、3344/5000提高到152789/155216、
