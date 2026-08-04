@@ -26,6 +26,12 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P3-E14 Style90k Count 数据规模 A/B](20260804-g3-p3e14-style-count-scale.md)：
+从style100k严格排除dev/confirm/route molecule与scaffold后，保留22,733个分子、90,932图。
+相同99,480 exposure/1,560 step下，confirm从108/256、MAE1.27提高到117/256、1.08；dev
+103→120，route exact持平37但MAE1.57→1.28。能力门仍NO-GO，数据规模因果GO；下一步固定
+数据/模型续到总计3个unique-data epoch，只看fixed-final。
+
 当前已完成实验：[G3 P3-E13 Cardinality Curve Refiner](20260804-g3-p3e13-cardinality-curve.md)：
 P3-E10 coarse Count 的 `±4` 窗口覆盖 confirm 243/256，但九点 base/expert 精确匹配曲线 refiner
 仅得 101/256、MAE1.30，低于 coarse 的108/256、1.27；四门均失败。正式NO-GO，下一步在
@@ -606,6 +612,12 @@ Skeleton exact 48.09%、Chemical exact 24.00%；count-pair 正确条件下 Skele
 | H01 | [历史 PaddleOCR 教师方案](historical-paddleocr-teacher.md) | 通用 OCR 不再作为训练教师 | 停止 |
 
 ## 当前下一步
+
+P3-E14 已用严格 matched-exposure A/B 证明数据规模有效：在 optimizer step 与 exposure 完全
+不变时，22,733 个 molecule 将 confirm exact `108→117/256`、MAE `1.27→1.08`。但新
+style90k 训练集自身只有42.14% exact，说明近似单遍欠拟合。P3-E15保持manifest、evidence、
+DeepSets h64和optimizer不变，从P3-E14续训到总计3个完整unique-data epoch；禁止选择中间
+checkpoint，route100仍只做fixed-final历史诊断。
 
 P3-E13 已否定“冻结现有 selector 的 scalar matching curve + 3,316 图 offset MLP”：confirm
 的真实 Count 有243/256位于`coarse ±4`，refiner却只选对101/256，并低于P3-E10的108/256。
