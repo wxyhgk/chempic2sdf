@@ -103,7 +103,11 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
   best-invalid Hall/Hungarian solver也通过穷举和延迟门。P3-E1将general192从9/192提高到
   155/192，但hard32从32/32崩到2/32。E1b确认固定`mean margin=1`把只漏1个Atom的错误按整图
   K倍尺度继续强推，正式否决该margin；下一步保留latent solver，改做coverage-calibrated A/B，
-  并把同分子多风格样本与molecule-disjoint能力验证分开。
+  并把同分子多风格样本与molecule-disjoint能力验证分开。P3-E2随后证明即使只训已正确的
+  capacity64，固定margin也会把hard降到12/32，coverage margin的microbatch4更会级联到2/32。
+  P3-E3改为整组梯度累积后完整保住双域32/32，确认约束同一步可见是必要条件；但P3-E4混合
+  general后仍只有hard 8/32、general 111/192。下一步不再调margin或追加epoch，而是把capacity
+  作为保护域执行A-GEM受约束更新。
 - 版本从 `v0.7` 开始，每次发布增加 `0.0.1`。
 - 根目录 `VERSION` 是开发版本的唯一来源。
 

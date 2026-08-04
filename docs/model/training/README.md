@@ -26,6 +26,18 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P3-E4 Mixed Coverage Full-set](20260804-g3-p3e4-mixed-fullset.md)：
+256图每epoch只做一次整组更新后，general达到6077/6202、111/192，hard较P3-E1从2/32改善到
+8/32，但仍未保护capacity，正式NO-GO。下一步将capacity作为硬保护域做A-GEM，而不是继续调margin。
+
+当前已完成实验：[G3 P3-E3 Capacity Coverage Full-set](20260804-g3-p3e3-capacity-fullset.md)：
+相同30次曝光下，把64张capacity梯度累积后每epoch只更新一次，easy/hard完整保持967/967、
+807/807和双域32/32；coverage margin仅62/64，严格Gate仍NO-GO。证明整组约束同一步可见是必要条件。
+
+当前已完成实验：[G3 P3-E2 Margin A/B Capacity64](20260804-g3-p3e2-margin-ab-capacity64.md)：
+不使用general数据时，旧固定margin仍把hard从32/32破坏到12/32，因果否决；coverage margin
+在microbatch4下仍级联到2/32。下一步不是继续调margin，而是扩大单次更新的约束可见范围。
+
 当前已完成实验：[G3 P3-E1 Latent Structured Pilot256](20260804-g3-p3e1-latent-structured-pilot256.md)：
 latent valid-vs-best-invalid 将 general192 从5663/6202、9/192提高到6082/6202、155/192，
 但 hard32 从807/807、32/32崩到704/807、2/32，正式NO-GO。E1b确认capacity起点的best-invalid
