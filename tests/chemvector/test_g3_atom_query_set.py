@@ -8,6 +8,7 @@ from chemvector.components.atoms.objects.g3_atom_query_set import (
     G3AtomQuerySet,
     G3AtomQuerySetConfig,
     decode_g3_atom_query_set,
+    g3_atom_existence_calibration_loss,
     g3_atom_query_set_loss,
     hungarian_pointer_query_targets,
     unique_pointer_targets,
@@ -33,6 +34,7 @@ class G3AtomQuerySetTests(unittest.TestCase):
         self.assertEqual(output["count_logits"].shape, (2, 129))
         self.assertEqual(output["pointer_logits"].shape, (2, 128, 128))
         self.assertEqual(output["coordinates"].shape, (2, 128, 2))
+        self.assertEqual(output["query_hidden"].shape, (2, 128, 64))
         self.assertTrue(all(torch.isfinite(value).all() for value in output.values()))
 
     def test_heads_must_divide_model_dimension(self) -> None:
@@ -159,6 +161,31 @@ class G3AtomQuerySetTests(unittest.TestCase):
         )
         self.assertGreater(float(losses["existence_boundary_loss"].detach()), 0.0)
         losses["loss"].backward()
+
+    def test_frozen_pointer_existence_calibration_backpropagates(self) -> None:
+        candidates = self.candidates(batch=1)
+        target_anchors = torch.zeros(1, 4, 2)
+        target_anchors[0, :2] = candidates["candidate_anchors"][0, :2]
+        target_mask = torch.tensor([[True, True, False, False]])
+        model = G3AtomQuerySet()
+        model.requires_grad_(False)
+        model.existence_head.requires_grad_(True)
+        output = model(candidates)
+        losses = g3_atom_existence_calibration_loss(
+            output,
+            candidates["candidate_anchors"],
+            target_anchors,
+            target_mask,
+        )
+        losses["loss"].backward()
+        self.assertTrue(all(
+            value.grad is not None for value in model.existence_head.parameters()
+        ))
+        self.assertTrue(all(
+            value.grad is None
+            for name, value in model.named_parameters()
+            if not name.startswith("existence_head.")
+        ))
 
 
 if __name__ == "__main__":

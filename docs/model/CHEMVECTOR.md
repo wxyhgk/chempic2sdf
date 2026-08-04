@@ -78,7 +78,8 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
   连续提高，因此允许固定optimizer续训到8,000步。P2-K final只到30/32、27/32，中间最好也
   只有30/32、29/32且后程振荡；停止追加epoch。P2-L从同初始化加入动态极值existence边界后
   崩到0/32、0/32，明确NO-GO；下一步冻结pointer/query，只训练65参数existence head，并让
-  冻结pointer mass独立定义query标签。
+  冻结pointer mass独立定义query标签。P2-M只训65参数head仍为0/32、0/32，证明独立线性
+  existence表示不足；下一步把NULL并入pointer第129类，统一对象存在与候选身份。
 - 版本从 `v0.7` 开始，每次发布增加 `0.0.1`。
 - 根目录 `VERSION` 是开发版本的唯一来源。
 

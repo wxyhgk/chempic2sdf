@@ -26,10 +26,15 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P2-M Frozen Pointer Existence Head Capacity64](20260804-g3-p2m-frozen-pointer-existence-head-capacity64.md)：
+加载P2-J并冻结291,329参数，仅训练65参数existence head；pointer-only固定标签下仍退到
+803/967、0/32和637/807、0/32。独立线性existence head容量NO-GO；下一版将NULL并入pointer
+第129类，让存在性与唯一候选身份使用同一输出语言。
+
 当前已完成实验：[G3 P2-L Existence Boundary Query Set Capacity64](20260804-g3-p2l-existence-boundary-query-set-capacity64.md)：
 在P2-J同初始化上加入最低正query对最高负query的极值margin，boundary全程0/4 batch exact，
 easy/hard崩到603/967、0/32和456/807、0/32。动态身份下极值边界明确NO-GO；下一步冻结
-pointer/query，只训练65参数existence head，并从Hungarian中删除existence cost。
+pointer/query，只训练65参数existence head；P2-M随后证明独立线性head本身也不够。
 
 当前已完成实验：[G3 P2-K Pointer-Matched Query Set Step8000](20260804-g3-p2k-pointer-matched-query-set-step8000.md)：
 从P2-J完整恢复optimizer续训到8,000步，final easy/hard为965/967、30/32和801/807、27/32；

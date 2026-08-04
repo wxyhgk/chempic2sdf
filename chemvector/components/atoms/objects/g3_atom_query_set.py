@@ -177,6 +177,7 @@ class G3AtomQuerySet(nn.Module):
             "count_logits": self.count_head(memory.mean(dim=1)).float(),
             "pointer_logits": pointer_logits.float(),
             "coordinates": coordinates.float(),
+            "query_hidden": hidden.float(),
         }
 
 
@@ -216,6 +217,7 @@ def hungarian_pointer_query_targets(
     *,
     radius_pixels: float = 6.0,
     image_size: int = 768,
+    existence_cost_weight: float = 1.0,
 ) -> list[tuple[torch.Tensor, torch.Tensor]]:
     """Match queries to GT by probability mass on each compatible peak set."""
 
@@ -237,7 +239,9 @@ def hungarian_pointer_query_targets(
             )
             for mask in compatible
         ], dim=1)
-        cost = -support - existence[batch_index, :, None]
+        if existence_cost_weight < 0.0:
+            raise ValueError("G3 Atom pointer matching existence weight must be nonnegative")
+        cost = -support - existence_cost_weight * existence[batch_index, :, None]
         queries, columns = linear_sum_assignment(cost.cpu().numpy())
         matched_targets = target_indices[
             torch.as_tensor(columns, dtype=torch.long, device=target_indices.device)
@@ -247,6 +251,54 @@ def hungarian_pointer_query_targets(
             matched_targets.to(target_anchors.device),
         ))
     return assignments
+
+
+def g3_atom_existence_calibration_loss(
+    output: dict[str, torch.Tensor],
+    candidate_anchors: torch.Tensor,
+    target_anchors: torch.Tensor,
+    target_mask: torch.Tensor,
+    *,
+    boundary_margin: float = 1.0,
+) -> dict[str, torch.Tensor]:
+    """Calibrate a frozen query set against pointer-only, fixed object identities."""
+
+    existence = output["existence_logits"]
+    assignments = hungarian_pointer_query_targets(
+        output,
+        candidate_anchors,
+        target_anchors,
+        target_mask,
+        existence_cost_weight=0.0,
+    )
+    targets = torch.zeros_like(existence)
+    for batch_index, (query_indices, _) in enumerate(assignments):
+        targets[batch_index, query_indices] = 1.0
+    weights = torch.where(
+        targets.bool(), torch.ones_like(targets), torch.full_like(targets, 0.1)
+    )
+    object_loss = F.binary_cross_entropy_with_logits(
+        existence, targets, weight=weights, reduction="sum"
+    ) / weights.sum().clamp_min(1.0)
+    boundary_losses = []
+    boundary_exact_images = 0
+    for batch_index in range(len(existence)):
+        positives = existence[batch_index, targets[batch_index].bool()]
+        negatives = existence[batch_index, ~targets[batch_index].bool()]
+        boundary_losses.append(F.softplus(
+            negatives.max() - positives.min() + boundary_margin
+        ))
+        boundary_exact_images += int(bool((positives.min() > negatives.max()).detach()))
+    boundary_loss = torch.stack(boundary_losses).mean()
+    return {
+        "loss": object_loss + boundary_loss,
+        "object_loss": object_loss,
+        "existence_boundary_loss": boundary_loss,
+        "boundary_exact_images": existence.new_tensor(float(boundary_exact_images)),
+        "matched_queries": existence.new_tensor(
+            float(sum(len(value[0]) for value in assignments))
+        ),
+    }
 
 
 @torch.no_grad()
@@ -460,6 +512,7 @@ __all__ = [
     "G3AtomQuerySet",
     "G3AtomQuerySetConfig",
     "decode_g3_atom_query_set",
+    "g3_atom_existence_calibration_loss",
     "g3_atom_query_set_loss",
     "hungarian_pointer_query_targets",
     "hungarian_query_targets",
