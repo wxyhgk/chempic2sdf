@@ -13,7 +13,8 @@
 1. 强制选择全部same-stride4-cell碰撞图；
 2. 其余样本按整图最近Atom距离从小到大选择；
 3. 相同距离按`sample_key`排序；
-4. 固定取32图并记录源train5k、overfit32和结果manifest SHA。
+4. 选择完成后恢复train5k源顺序，满足WebDataset确定性流式加载；
+5. 固定取32图并记录源train5k、overfit32和结果manifest SHA。
 
 ## 结果
 
@@ -21,8 +22,12 @@
 - train5k全部7张same-stride4-cell碰撞图均入选；
 - 最近Atom距离范围`0.75px..6.7134428px`；
 - 与原overfit32重叠2图：`train_000005_coordgen`、`train_000006_stress`；
-- 样本序列SHA：`57d1133a4ca4766cc269cd26b1cbc38f98bc9489522e7cf9337ec2445c918ad0`；
-- manifest SHA：`aa2ca0b1b671a3268c084169a4582052889806a3b4d12a5ad051cf519d4f8ef6`。
+- 样本序列SHA：`6bb2e770590b486e4dec72282f6576520d2099477c37867a95bc04089a2cb803`；
+- manifest SHA：`6e4eca6fcace2e9e20a29c0414972cc5b967d71da1df9f7e31034c083f07442f`。
+
+最初按困难度直接写manifest的版本在P1-U启动前流式预检中被拒绝，未发生训练。该无效顺序审计
+保留在`outputs/audits/chemvector-g3-adjacent-atom-capacity32-invalid-difficulty-order`，不属于正式
+协议。
 
 产物：
 

@@ -26,9 +26,14 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P1-U Adjacent Atom Capacity64](20260804-g3-p1u-adjacent-atom-capacity64.md)：
+从P1-T相同初始化交替训练原32图和近邻专项32图4,800步。原域保持1424/1424、32/32；专项域
+known为1461/1473、20/32，top128为1468/1473、27/32，双域容量`NO-GO`。target审计确认384
+网格仍有3图各丢1个Atom，而768网格零碰撞；下一步只测试连续stride-1中心场，不追加同一训练。
+
 当前已完成数据审计：[G3 Adjacent Atom Capacity32 Manifest](20260803-g3-adjacent-atom-capacity32-manifest.md)：
 从固定train5k选出32张近邻Atom困难图，包含全部7张same-stride4-cell碰撞图；距离范围
-`0.75px..6.713px`，manifest SHA为`aa2ca0...f8ef6`。P1-T第二阶段将从相同初始化重开4,800步，
+`0.75px..6.713px`，manifest SHA为`6e4eca...7442f`。P1-T第二阶段将从相同初始化重开4,800步，
 要求原32图与专项32图同时100%，未过不进入5k。
 
 当前已完成实验：[G3 P1-T Continuous Stride-2 Center Field Overfit32](20260803-g3-p1t-continuous-stride2-center-field-overfit32.md)：

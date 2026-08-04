@@ -89,6 +89,7 @@ def main() -> None:
                     "inchikey": source.inchikey,
                     "shard": source.shard,
                     "variant": source.variant,
+                    "source_index": len(candidates),
                     **geometry,
                 }
             )
@@ -104,6 +105,9 @@ def main() -> None:
     selected_collision_count = sum(item["same_stride4_cell"] for item in selected)
     if selected_collision_count != EXPECTED_COLLISION_IMAGES:
         raise RuntimeError("Adjacent-Atom capacity selection omitted a collision image")
+    for selection_rank, item in enumerate(selected):
+        item["selection_rank"] = selection_rank
+    selected.sort(key=lambda item: item["source_index"])
 
     args.output_dir.mkdir(parents=True, exist_ok=False)
     manifest_path = args.output_dir / "manifest.jsonl"
@@ -127,6 +131,7 @@ def main() -> None:
         "schema_version": "g3-adjacent-atom-capacity32-0.1",
         "status": "passed",
         "selection": "all_stride4_collisions_then_minimum_distance",
+        "manifest_order": "source_train5k_order",
         "image_count": len(selected),
         "molecule_count": len({item["molecule_id"] for item in selected}),
         "collision_images": selected_collision_count,

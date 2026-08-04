@@ -33,6 +33,27 @@ class BuildG3AdjacentAtomCapacityTests(unittest.TestCase):
             ["collision", "ordinary-close"],
         )
 
+    def test_selected_records_can_be_restored_to_source_order(self) -> None:
+        records = [
+            {
+                "sample_key": "later-collision",
+                "minimum_distance_pixels": 1.0,
+                "same_stride4_cell": True,
+                "source_index": 3,
+            },
+            {
+                "sample_key": "earlier",
+                "minimum_distance_pixels": 2.0,
+                "same_stride4_cell": False,
+                "source_index": 1,
+            },
+        ]
+        selected = select_capacity_records(records, count=2)
+        selected.sort(key=lambda item: item["source_index"])
+        self.assertEqual(
+            [item["sample_key"] for item in selected], ["earlier", "later-collision"]
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
