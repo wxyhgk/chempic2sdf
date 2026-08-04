@@ -26,6 +26,11 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P3-B Joint Atom Query Train4937](20260804-g3-p3b-joint-atom-query-train4937.md)：
+全量解冻后route100从0提高到11/100 exact、known-count到30/100，但capacity64从双域32/32
+崩到5/32、0/32。容量样本已在训练集，故不是普通遗忘，而是动态Hungarian身份与joint MAP
+推理目标冲突。停止同协议扩量；下一步固定identity replay并直接对齐结构解码目标。
+
 当前已完成实验：[G3 P3-A Count Head Train5k](20260804-g3-p3a-count-head-train5k.md)：
 冻结P2-W表示只训8,513参数Count head，route100 exact从3/100升至8/100、MAE降至4.59，
 但train5k自身也仅14.54% exact，正式NO-GO。下一步必须联合适配encoder/decoder与三类head。
