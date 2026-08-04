@@ -17,13 +17,15 @@ P2-O加载P2-J final，冻结291,329个非existence参数，pointer-only Hungari
 | easy32 | 963/967，28/32 | **960/967，26/32** | 32/32 |
 | hard32 | 798/807，26/32 | **795/807，24/32** | 32/32 |
 
-BCE从约0.307降到0.162并平台，但整组exact略回退。与P2-M不同，本实验没有boundary梯度，
-因此可以独立判定：冻结P2-J的64维query hidden不能由这个共享线性head在64张图上严格分离。
+BCE从约0.307降到0.162并平台，但整组exact略回退。与P2-M不同，本实验没有boundary梯度。
+
+P2-Q后的复核发现，本实验将P2-J存在感知的Hungarian identity换成了pointer-only identity；两套
+正query只重合约90%。因此这里只能否决“切换identity后训练线性head”，不能证明原identity线性不可分。
 
 ## 决策
 
-- 正式结论：`frozen_pointer_existence_bce_capacity_no_go`。
-- 不再调线性head学习率、权重、margin或epoch。
+- 正式结论：当前固定标签协议`frozen_pointer_existence_bce_capacity_no_go`。
+- 不再调该identity下的线性head学习率、权重、margin或epoch。
 - 当前最好完整训练仍是P2-J 4,800步的28/32、26/32；同loss续训P2-K最好观察30/32、29/32，
   但未通过门且不做事后选模。
 - P2-P冻结P2-J的pointer/query/Count，唯一把65参数线性head替换为小型非线性MLP，再用相同

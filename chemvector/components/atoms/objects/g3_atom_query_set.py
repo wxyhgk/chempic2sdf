@@ -224,6 +224,92 @@ class G3ExistenceMLP(nn.Sequential):
         )
 
 
+def g3_pointer_utility_features(
+    output: dict[str, torch.Tensor], candidates: dict[str, torch.Tensor]
+) -> torch.Tensor:
+    """Summarize where each query points without consulting GT structure."""
+
+    logits = output["pointer_logits"].float()
+    probabilities = logits.softmax(dim=-1)
+    top = probabilities.topk(2, dim=-1)
+    maximum = top.values[..., 0]
+    margin = top.values[..., 0] - top.values[..., 1]
+    entropy = -(probabilities * probabilities.clamp_min(1e-12).log()).sum(dim=-1)
+    entropy = entropy / math.log(probabilities.size(-1))
+
+    expected_features = []
+    argmax_features = []
+    indices = top.indices[..., 0]
+    for name in ("raw_scores", "normalized_scores", "scale_ranks"):
+        values = candidates[name].detach().float()
+        expected_features.append(torch.einsum("bqc,bc->bq", probabilities, values))
+        argmax_features.append(values.gather(1, indices))
+    anchors = candidates["candidate_anchors"].detach().float()
+    coordinates = torch.matmul(probabilities, anchors)
+    spatial_variance = (
+        probabilities.unsqueeze(-1)
+        * (anchors[:, None] - coordinates[:, :, None]).square()
+    ).sum(dim=(-1, -2))
+    return torch.stack(
+        (
+            maximum,
+            margin,
+            entropy,
+            *expected_features,
+            *argmax_features,
+            spatial_variance,
+        ),
+        dim=-1,
+    )
+
+
+class G3PointerUtilityExistenceHead(nn.Sequential):
+    """Existence MLP over 64D query state plus 10 explicit pointer utilities."""
+
+    INPUT_DIM = 74
+
+    def __init__(self, hidden_dim: int = 128) -> None:
+        if hidden_dim < 1:
+            raise ValueError("G3 pointer utility hidden dimension must be positive")
+        super().__init__(
+            nn.LayerNorm(self.INPUT_DIM),
+            nn.Linear(self.INPUT_DIM, hidden_dim),
+            nn.GELU(),
+            nn.Linear(hidden_dim, 1),
+        )
+
+
+class G3PointerUtilityExistenceModel(nn.Module):
+    """Wrap a frozen Atom-query model with explicit pointer-utility evidence."""
+
+    def __init__(self, base_model: G3AtomQuerySet) -> None:
+        super().__init__()
+        if not isinstance(base_model, G3AtomQuerySet):
+            raise TypeError("G3 pointer utility wrapper requires G3AtomQuerySet")
+        del base_model.existence_head
+        self.base_model = base_model
+        self.existence_head = G3PointerUtilityExistenceHead()
+
+    @property
+    def config(self) -> G3AtomQuerySetConfig:
+        return self.base_model.config
+
+    def parameter_count(self) -> int:
+        return sum(value.numel() for value in self.parameters())
+
+    def forward(self, candidates: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
+        output = self.base_model._forward_queries(candidates)
+        utilities = g3_pointer_utility_features(output, candidates)
+        logits = self.existence_head(
+            torch.cat((output["query_hidden"], utilities), dim=-1)
+        ).squeeze(-1).float()
+        return {
+            **output,
+            "existence_logits": logits,
+            "pointer_utility_features": utilities,
+        }
+
+
 @torch.no_grad()
 def hungarian_query_targets(
     output: dict[str, torch.Tensor],
@@ -622,10 +708,13 @@ __all__ = [
     "G3AtomQuerySetConfig",
     "G3ExistenceMLP",
     "G3NullPointerAtomQuerySet",
+    "G3PointerUtilityExistenceHead",
+    "G3PointerUtilityExistenceModel",
     "decode_g3_atom_query_set",
     "g3_atom_existence_calibration_loss",
     "g3_atom_query_set_loss",
     "g3_null_pointer_query_set_loss",
+    "g3_pointer_utility_features",
     "hungarian_pointer_query_targets",
     "hungarian_query_targets",
     "unique_pointer_targets",

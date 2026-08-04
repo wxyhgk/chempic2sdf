@@ -26,10 +26,15 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P2-Q Pointer Utility Existence Capacity64](20260804-g3-p2q-pointer-utility-existence-capacity64.md)：
+显式加入10个pointer utility后仅22/32、23/32。复核确认P2-M至Q删除existence tie-break后，
+正query identity与P2-J原身份只重合90.49%/89.47%，导致校准head被迫学习另一套等价排列。
+下一步冻结P2-J existence-aware assignment做Action Cache，再执行正确的固定identity M-step。
+
 当前已完成实验：[G3 P2-P Frozen Pointer Existence MLP Capacity64](20260804-g3-p2p-frozen-pointer-existence-mlp-capacity64.md)：
 冻结同一P2-J表示，将65参数线性head换成8,577参数MLP，BCE降到0.125但easy/hard仅
-952/967、20/32和795/807、22/32，非线性容量NO-GO。下一步不再扩大纯MLP，而是显式输入
-pointer熵、峰分数和rank等target-independent utility证据。
+952/967、20/32和795/807、22/32；P2-Q复核后归因修正为pointer-only identity协议NO-GO，
+不能据此判定P2-J原identity的hidden容量。
 
 当前已完成实验：[G3 P2-O Frozen Pointer Existence BCE Capacity64](20260804-g3-p2o-frozen-pointer-existence-bce-capacity64.md)：
 冻结P2-J全部表示、pointer-only固定标签，仅训练65参数线性head和weighted BCE，final为

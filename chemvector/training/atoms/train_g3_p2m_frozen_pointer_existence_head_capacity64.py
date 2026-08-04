@@ -183,6 +183,9 @@ def run_experiment(args, *, protocol) -> None:
     head_factory = protocol.get("existence_head_factory")
     if head_factory is not None:
         model.existence_head = head_factory().to(device)
+    wrapper_factory = protocol.get("model_wrapper_factory")
+    if wrapper_factory is not None:
+        model = wrapper_factory(model).to(device)
     head_initial_sha = module_state_sha256(model.existence_head)
     trainable_parameters = int(protocol.get("trainable_parameters", TRAINABLE_PARAMETERS))
     model.requires_grad_(False)
@@ -204,6 +207,7 @@ def run_experiment(args, *, protocol) -> None:
         "p2j_model_state_sha256": source_state_sha,
         "existence_head_initial_sha256": head_initial_sha,
         "existence_head_type": protocol.get("existence_head_type", "linear-64-to-1"),
+        "model_wrapper_type": protocol.get("model_wrapper_type"),
         "p2j_metrics": source["metrics"],
         "candidate_cache_sha256": p2e.CACHE_SHA256,
         "candidate_cache_tensor_sha256": cache_audit["candidate_protocol"][

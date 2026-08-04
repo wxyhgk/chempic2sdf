@@ -9,10 +9,13 @@ from chemvector.components.atoms.objects.g3_atom_query_set import (
     G3AtomQuerySetConfig,
     G3ExistenceMLP,
     G3NullPointerAtomQuerySet,
+    G3PointerUtilityExistenceHead,
+    G3PointerUtilityExistenceModel,
     decode_g3_atom_query_set,
     g3_atom_existence_calibration_loss,
     g3_atom_query_set_loss,
     g3_null_pointer_query_set_loss,
+    g3_pointer_utility_features,
     hungarian_pointer_query_targets,
     unique_pointer_targets,
 )
@@ -49,6 +52,25 @@ class G3AtomQuerySetTests(unittest.TestCase):
         output = head(torch.randn(2, 128, 64))
         self.assertEqual(output.shape, (2, 128, 1))
         self.assertEqual(sum(value.numel() for value in head.parameters()), 8_577)
+
+    def test_pointer_utility_features_are_target_independent_and_finite(self) -> None:
+        candidates = self.candidates(batch=2)
+        base = G3AtomQuerySet()
+        output = base(candidates)
+        utilities = g3_pointer_utility_features(output, candidates)
+        self.assertEqual(utilities.shape, (2, 128, 10))
+        self.assertTrue(torch.isfinite(utilities).all())
+
+    def test_pointer_utility_wrapper_replaces_existence_language(self) -> None:
+        candidates = self.candidates(batch=2)
+        model = G3PointerUtilityExistenceModel(G3AtomQuerySet())
+        output = model(candidates)
+        self.assertEqual(output["existence_logits"].shape, (2, 128))
+        self.assertEqual(output["pointer_utility_features"].shape, (2, 128, 10))
+        self.assertEqual(
+            sum(value.numel() for value in model.existence_head.parameters()),
+            9_877,
+        )
 
     def test_loss_accepts_equivalent_candidate_set(self) -> None:
         candidates = self.candidates(batch=1)

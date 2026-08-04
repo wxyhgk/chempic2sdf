@@ -20,13 +20,13 @@ LayerNorm(64) -> Linear(64,128) -> GELU -> Linear(128,1)
 | easy32 | 960/967，26/32 | **952/967，20/32** | 32/32 |
 | hard32 | 795/807，24/32 | **795/807，22/32** | 32/32 |
 
-MLP BCE降到约0.125，低于线性head约0.162，但top-N exact反而下降。因此单纯增加query-hidden
-分类容量不能解决，BCE降低也不是整组选择改善的可靠代理。
+MLP BCE降到约0.125，低于线性head约0.162，但top-N exact反而下降。P2-Q复核表明本实验学习的
+pointer-only identity与P2-J原identity只重合约90%；因此BCE降低不是部署整组改善的可靠代理。
 
 ## 决策
 
-- 正式结论：`frozen_pointer_existence_mlp_capacity_no_go`。
-- 停止继续扩大只读取64维query hidden的head。
+- 正式结论：当前pointer-only固定identity下`frozen_pointer_existence_mlp_capacity_no_go`。
+- 停止在该错误identity上继续扩大head。
 - 下一步应显式给head提供target-independent pointer证据：pointer最大概率/熵、概率加权的原始
   center score、normalized score、rank，以及argmax候选的对应值。pointer、Count和主干继续冻结。
 
