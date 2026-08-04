@@ -88,6 +88,16 @@ ARM_CONFIGS = {
         "expected_exposure": 7_680,
         "update_mode": "fullset_gradient_accumulation",
     },
+    "mixed-coverage-agem": {
+        "model_type": "chemvector-g3-p3e5-mixed-coverage-agem-pilot256",
+        "training_scope": "mixed256",
+        "margin_mode": "gt_coverage_deficiency",
+        "training_images": 256,
+        "steps_per_epoch": 64,
+        "expected_steps": 30,
+        "expected_exposure": 7_680,
+        "update_mode": "capacity_anchored_agem_fullset",
+    },
 }
 EPOCHS = 30
 LEARNING_RATE = 3e-4
@@ -261,6 +271,152 @@ def fullset_training_step(
             name: (value if name.endswith("satisfied_images") else value / image_count)
             for name, value in sums.items()
         },
+        "gradient_norm": gradient_norm_float,
+        "clip_scale": min(1.0, MAX_GRAD_NORM / max(gradient_norm_float, 1e-12)),
+    }
+
+
+def project_agem_vector(
+    gradient: torch.Tensor, reference: torch.Tensor
+) -> tuple[torch.Tensor, bool]:
+    """Project a task gradient when it would increase the reference loss."""
+
+    if gradient.ndim != 1 or reference.shape != gradient.shape:
+        raise ValueError("P3-E5 A-GEM gradients must be equal one-dimensional vectors")
+    if not bool(torch.isfinite(gradient).all()) or not bool(
+        torch.isfinite(reference).all()
+    ):
+        raise ValueError("P3-E5 A-GEM gradients must be finite")
+    reference_norm_sq = torch.dot(reference, reference)
+    dot = torch.dot(gradient, reference)
+    if float(dot) < 0.0 and float(reference_norm_sq) > 0.0:
+        return gradient - dot / reference_norm_sq * reference, True
+    return gradient.clone(), False
+
+
+def _domain_gradient(
+    model,
+    parameters,
+    records,
+    *,
+    device,
+    margin_mode: str,
+) -> tuple[torch.Tensor, dict[str, float]]:
+    model.zero_grad(set_to_none=True)
+    sums: dict[str, float] = {}
+    image_count = len(records)
+    for start in range(0, image_count, 4):
+        current = records[start : start + 4]
+        batch = p2h.collate(current, device)
+        with _autocast_context(device, "bf16"):
+            output = model(p2h.model_candidates(batch))
+            losses = latent_structured_loss(
+                output,
+                batch["candidate_anchors"],
+                batch["atom_anchors"],
+                batch["full_atom_mask"],
+                margin_mode=margin_mode,
+            )
+            scaled = losses["loss"] * len(current) / image_count
+        scaled.backward()
+        for name, value in losses.items():
+            number = float(value.detach())
+            if name.endswith("satisfied_images"):
+                sums[name] = sums.get(name, 0.0) + number
+            else:
+                sums[name] = sums.get(name, 0.0) + number * len(current)
+    pieces = []
+    for parameter in parameters:
+        pieces.append(
+            torch.zeros_like(parameter).flatten()
+            if parameter.grad is None else parameter.grad.detach().clone().flatten()
+        )
+    vector = torch.cat(pieces)
+    metrics = {
+        name: (value if name.endswith("satisfied_images") else value / image_count)
+        for name, value in sums.items()
+    }
+    return vector, metrics
+
+
+def agem_fullset_training_step(
+    model,
+    optimizer,
+    general_records,
+    capacity_records,
+    *,
+    device,
+    margin_mode: str,
+) -> dict:
+    model.train()
+    parameters = [value for value in model.parameters() if value.requires_grad]
+    general_gradient, general_metrics = _domain_gradient(
+        model,
+        parameters,
+        general_records,
+        device=device,
+        margin_mode=margin_mode,
+    )
+    capacity_gradient, capacity_metrics = _domain_gradient(
+        model,
+        parameters,
+        capacity_records,
+        device=device,
+        margin_mode=margin_mode,
+    )
+    raw_dot = torch.dot(general_gradient, capacity_gradient)
+    general_norm = torch.linalg.vector_norm(general_gradient)
+    capacity_norm = torch.linalg.vector_norm(capacity_gradient)
+    denominator = general_norm * capacity_norm
+    raw_cosine = (
+        raw_dot / denominator if float(denominator) > 0.0 else raw_dot.new_tensor(0.0)
+    )
+    projected, projection_applied = project_agem_vector(
+        general_gradient, capacity_gradient
+    )
+    projected_dot = torch.dot(projected, capacity_gradient)
+    projected_norm = torch.linalg.vector_norm(projected)
+    projected_denominator = projected_norm * capacity_norm
+    projected_cosine = (
+        projected_dot / projected_denominator
+        if float(projected_denominator) > 0.0 else projected_dot.new_tensor(0.0)
+    )
+    combined = 0.75 * projected + 0.25 * capacity_gradient
+    before = torch.cat([value.detach().flatten().clone() for value in parameters])
+    optimizer.zero_grad(set_to_none=True)
+    offset = 0
+    for parameter in parameters:
+        width = parameter.numel()
+        parameter.grad = combined[offset : offset + width].view_as(parameter).clone()
+        offset += width
+    if offset != len(combined):
+        raise RuntimeError("P3-E5 A-GEM gradient vector width differs")
+    gradient_norm = torch.nn.utils.clip_grad_norm_(parameters, MAX_GRAD_NORM)
+    if not bool(torch.isfinite(gradient_norm)):
+        raise FloatingPointError("P3-E5 A-GEM gradient norm is not finite")
+    optimizer.step()
+    after = torch.cat([value.detach().flatten() for value in parameters])
+    update_capacity_dot = torch.dot(after - before, capacity_gradient)
+    if any(value.grad is not None for value in model.base_model.count_head.parameters()):
+        raise RuntimeError("P3-E5 produced Count-head gradients")
+    gradient_norm_float = float(gradient_norm.detach())
+    return {
+        "general_loss": general_metrics["loss"],
+        "capacity_loss": capacity_metrics["loss"],
+        "general_selected_margin_satisfied_images": general_metrics[
+            "selected_margin_satisfied_images"
+        ],
+        "capacity_selected_margin_satisfied_images": capacity_metrics[
+            "selected_margin_satisfied_images"
+        ],
+        "general_gradient_norm": float(general_norm),
+        "capacity_gradient_norm": float(capacity_norm),
+        "raw_gradient_dot": float(raw_dot),
+        "raw_gradient_cosine": float(raw_cosine),
+        "projection_applied": float(projection_applied),
+        "projected_gradient_dot": float(projected_dot),
+        "projected_gradient_cosine": float(projected_cosine),
+        "update_capacity_dot": float(update_capacity_dot),
         "gradient_norm": gradient_norm_float,
         "clip_scale": min(1.0, MAX_GRAD_NORM / max(gradient_norm_float, 1e-12)),
     }
@@ -506,7 +662,22 @@ def main() -> None:
         batches = list(epoch_batches(config, records, generator))
         if len(batches) != config["steps_per_epoch"]:
             raise RuntimeError("P3-E2 epoch batch count changed")
-        if config["update_mode"] == "fullset_gradient_accumulation":
+        if config["update_mode"] == "capacity_anchored_agem_fullset":
+            general_order = torch.randperm(192, generator=generator).tolist()
+            capacity_order = torch.randperm(64, generator=generator).tolist()
+            last = agem_fullset_training_step(
+                model,
+                optimizer,
+                [records["general192"][index] for index in general_order],
+                [records["capacity64"][index] for index in capacity_order],
+                device=device,
+                margin_mode=config["margin_mode"],
+            )
+            step += 1
+            exposure += 256
+            sums = dict(last)
+            log_divisor = 1
+        elif config["update_mode"] == "fullset_gradient_accumulation":
             last = fullset_training_step(
                 model,
                 optimizer,

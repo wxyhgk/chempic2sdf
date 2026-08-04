@@ -108,6 +108,9 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
   P3-E3改为整组梯度累积后完整保住双域32/32，确认约束同一步可见是必要条件；但P3-E4混合
   general后仍只有hard 8/32、general 111/192。下一步不再调margin或追加epoch，而是把capacity
   作为保护域执行A-GEM受约束更新。
+  P3-E5中A-GEM按预期多次把冲突点积投影到0，但final hard仅5/32、general 110/192；一阶安全
+  不能保证AdamW有限步不跨过离散exact边界。下一步必须检查实际候选更新，break即回滚并缩步，
+  不再调gradient-surgery权重。
 - 版本从 `v0.7` 开始，每次发布增加 `0.0.1`。
 - 根目录 `VERSION` 是开发版本的唯一来源。
 

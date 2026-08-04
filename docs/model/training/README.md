@@ -26,6 +26,10 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P3-E5 Capacity-Anchored A-GEM](20260804-g3-p3e5-capacity-anchored-agem.md)：
+投影确实将冲突梯度点积压到约0，但AdamW有限步仍跨过离散exact边界；final easy/hard为29/32、
+5/32，general为6079/6202、110/192，正式NO-GO。下一步改成实际更新后检查capacity并事务回滚。
+
 当前已完成实验：[G3 P3-E4 Mixed Coverage Full-set](20260804-g3-p3e4-mixed-fullset.md)：
 256图每epoch只做一次整组更新后，general达到6077/6202、111/192，hard较P3-E1从2/32改善到
 8/32，但仍未保护capacity，正式NO-GO。下一步将capacity作为硬保护域做A-GEM，而不是继续调margin。

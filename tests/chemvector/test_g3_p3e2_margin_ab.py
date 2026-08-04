@@ -7,6 +7,7 @@ import torch
 from chemvector.training.atoms.train_g3_p3e2_margin_ab import (
     ARM_CONFIGS,
     latent_structured_loss,
+    project_agem_vector,
     structured_margin,
 )
 
@@ -60,6 +61,26 @@ class G3P3E2MarginABTests(unittest.TestCase):
         mixed = ARM_CONFIGS["mixed-coverage-fullset"]
         self.assertEqual(mixed["expected_exposure"], 256 * 30)
         self.assertEqual(mixed["expected_steps"], 30)
+
+    def test_agem_projects_only_conflicting_gradient(self) -> None:
+        reference = torch.tensor([1.0, 0.0])
+        projected, applied = project_agem_vector(
+            torch.tensor([-1.0, 2.0]), reference
+        )
+        self.assertTrue(applied)
+        self.assertTrue(torch.allclose(projected, torch.tensor([0.0, 2.0])))
+        self.assertAlmostEqual(float(torch.dot(projected, reference)), 0.0)
+        unchanged, applied = project_agem_vector(
+            torch.tensor([1.0, 2.0]), reference
+        )
+        self.assertFalse(applied)
+        self.assertTrue(torch.equal(unchanged, torch.tensor([1.0, 2.0])))
+
+    def test_agem_zero_reference_is_stable(self) -> None:
+        gradient = torch.tensor([-1.0, 2.0])
+        projected, applied = project_agem_vector(gradient, torch.zeros(2))
+        self.assertFalse(applied)
+        self.assertTrue(torch.equal(projected, gradient))
 
 
 if __name__ == "__main__":
