@@ -86,6 +86,22 @@ class G3P1NRegionalMaximaTests(unittest.TestCase):
         self.assertEqual(len(objects["anchors"]), 1)
         self.assertEqual(objects["plateau_sizes"], [4])
 
+    def test_multiple_plateaus_use_row_major_representatives(self) -> None:
+        scores = torch.tensor(
+            [[[3.0, 3.0, 0.0, 2.0], [0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 4.0, 4.0]]],
+            dtype=torch.float32,
+        )
+        anchors = torch.zeros(1, 2, 3, 4)
+        source_ids = torch.arange(12).reshape(1, 3, 4)
+
+        objects = extract_regional_maximum_objects(
+            {"scores": scores, "anchors": anchors, "source_ids": source_ids}
+        )[0]
+
+        self.assertEqual(objects["source_ids"].tolist(), [10, 0, 3])
+        self.assertEqual(objects["plateau_sizes"], [2, 2, 1])
+        self.assertEqual(sorted(objects["all_plateau_sizes"]), [1, 2, 2])
+
     def test_decision_uses_reachability_not_top128_count_exact(self) -> None:
         train = {
             "top128_reachability": {"atom_recall": 0.999, "exact_rate": 0.96},

@@ -95,24 +95,33 @@ def extract_regional_maximum_objects(
     for batch_index in range(batch):
         labels, plateau_count = ndimage.label(masks[batch_index], structure=structure)
         objects = []
-        plateau_sizes = []
-        for label in range(1, plateau_count + 1):
-            flat_cells = np.flatnonzero(labels.reshape(-1) == label)
-            if not len(flat_cells):
-                raise RuntimeError("P1-N produced an empty regional-max plateau")
+        flat_labels = labels.reshape(-1)
+        active_cells = np.flatnonzero(flat_labels)
+        active_labels = flat_labels[active_cells]
+        plateau_sizes = np.bincount(
+            active_labels, minlength=plateau_count + 1
+        )[1:].astype(np.int64, copy=False)
+        representatives = np.full(plateau_count, height * width, dtype=np.int64)
+        np.minimum.at(representatives, active_labels - 1, active_cells)
+        if (
+            len(plateau_sizes) != plateau_count
+            or bool((plateau_sizes < 1).any())
+            or bool((representatives >= height * width).any())
+        ):
+            raise RuntimeError("P1-N produced an empty regional-max plateau")
+        for plateau_index, representative in enumerate(representatives):
             # A regional maximum is an equal-valued flat zone. Row-major cell ID
             # is the deterministic representative and does not inspect targets.
-            flat_cell = int(flat_cells[0])
+            flat_cell = int(representative)
             y, x = divmod(flat_cell, width)
             objects.append(
                 (
                     float(scores_cpu[batch_index, y, x]),
                     int(source_cpu[batch_index, y, x]),
                     anchors_cpu[batch_index, y, x].copy(),
-                    len(flat_cells),
+                    int(plateau_sizes[plateau_index]),
                 )
             )
-            plateau_sizes.append(len(flat_cells))
         objects.sort(key=lambda item: (-item[0], item[1]))
         selected = objects[:maximum_objects]
         outputs.append(
@@ -127,7 +136,7 @@ def extract_regional_maximum_objects(
                     [item[1] for item in selected], dtype=torch.long
                 ),
                 "plateau_sizes": [item[3] for item in selected],
-                "all_plateau_sizes": plateau_sizes,
+                "all_plateau_sizes": plateau_sizes.tolist(),
                 "regional_maxima_count": len(objects),
             }
         )

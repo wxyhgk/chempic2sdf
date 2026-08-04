@@ -10,6 +10,7 @@ import torch
 from torch import nn
 
 from chemvector.components.atoms.objects.g3_atom_center_field import (
+    ContinuousStride1AtomCenterField,
     ContinuousStride2AtomCenterField,
     G3AtomCenterField,
     G3AtomCenterFieldHighResolutionResidual,
@@ -449,6 +450,39 @@ class G3AtomCenterFieldTests(unittest.TestCase):
 
     def test_continuous_stride2_field_allows_stroke_but_not_base_gradient(self) -> None:
         field = ContinuousStride2AtomCenterField(self._p1a_head())
+        objects = torch.randn(1, 256, 192, 192, requires_grad=True)
+        stroke = torch.randn(1, 96, 192, 192, requires_grad=True)
+
+        output = field(objects, stroke)
+        (output["center_logits"].mean() + output["offset_logits"].mean()).backward()
+
+        self.assertIsNone(objects.grad)
+        self.assertIsNotNone(stroke.grad)
+        self.assertIsNotNone(field.output_projection.weight.grad)
+
+    def test_continuous_stride1_field_is_lossless_768_grid_at_step_zero(self) -> None:
+        atom_head = self._p1a_head()
+        field = ContinuousStride1AtomCenterField(atom_head)
+        objects = torch.randn(1, 256, 192, 192, requires_grad=True)
+        stroke = torch.randn(1, 96, 192, 192, requires_grad=True)
+
+        output = field(objects, stroke)
+        expected = torch.nn.functional.interpolate(
+            atom_head.presence(objects)[:, 0:1],
+            scale_factor=4.0,
+            mode="bilinear",
+            align_corners=False,
+        )
+
+        self.assertEqual(field.trainable_parameter_count(), 17_379)
+        self.assertEqual(output["stride2_features"].shape, (1, 32, 384, 384))
+        self.assertEqual(output["stride1_features"].shape, (1, 32, 768, 768))
+        self.assertTrue(torch.equal(output["center_logits"], expected))
+        self.assertEqual(int(torch.count_nonzero(output["center_residual"])), 0)
+        self.assertEqual(int(torch.count_nonzero(output["offset_logits"])), 0)
+
+    def test_continuous_stride1_field_passes_only_residual_stroke_gradient(self) -> None:
+        field = ContinuousStride1AtomCenterField(self._p1a_head())
         objects = torch.randn(1, 256, 192, 192, requires_grad=True)
         stroke = torch.randn(1, 96, 192, 192, requires_grad=True)
 

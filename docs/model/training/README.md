@@ -26,6 +26,11 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P1-V Continuous Stride-1 Capacity64](20260804-g3-p1v-continuous-stride1-capacity64.md)：
+连续768 feature使adjacent32 top128达到1473/1473、32/32，7个碰撞对全部由不同峰命中，证明
+stride-1表示机制GO；但known仅1447/1473、18/32，原overfit32也回退到1399/1424、22/32，
+双域容量NO-GO。下一步冻结P1-U/P1-V做多尺度峰rank与最小充分K审计，不追加相同训练。
+
 当前已完成实验：[G3 P1-U Adjacent Atom Capacity64](20260804-g3-p1u-adjacent-atom-capacity64.md)：
 从P1-T相同初始化交替训练原32图和近邻专项32图4,800步。原域保持1424/1424、32/32；专项域
 known为1461/1473、20/32，top128为1468/1473、27/32，双域容量`NO-GO`。target审计确认384
