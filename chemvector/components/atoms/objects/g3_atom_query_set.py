@@ -289,6 +289,7 @@ def g3_atom_existence_calibration_loss(
     target_mask: torch.Tensor,
     *,
     boundary_margin: float = 1.0,
+    boundary_weight: float = 1.0,
 ) -> dict[str, torch.Tensor]:
     """Calibrate a frozen query set against pointer-only, fixed object identities."""
 
@@ -319,8 +320,10 @@ def g3_atom_existence_calibration_loss(
         ))
         boundary_exact_images += int(bool((positives.min() > negatives.max()).detach()))
     boundary_loss = torch.stack(boundary_losses).mean()
+    if boundary_weight < 0.0:
+        raise ValueError("G3 Atom calibration boundary weight must be nonnegative")
     return {
-        "loss": object_loss + boundary_loss,
+        "loss": object_loss + boundary_weight * boundary_loss,
         "object_loss": object_loss,
         "existence_boundary_loss": boundary_loss,
         "boundary_exact_images": existence.new_tensor(float(boundary_exact_images)),

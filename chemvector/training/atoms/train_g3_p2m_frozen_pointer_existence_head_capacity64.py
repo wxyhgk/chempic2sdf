@@ -42,11 +42,22 @@ STEPS = 1_600
 EXPECTED_EXPOSURE = 6_400
 SAVE_EVERY = 400
 TRAINABLE_PARAMETERS = 65
+P2M_PROTOCOL = {
+    "experiment": "P2-M",
+    "model_type": MODEL_TYPE,
+    "output": OUTPUT,
+    "checkpoint_schema_version": "g3-p2m-frozen-pointer-existence-head-0.1",
+    "audit_schema_version": "g3-p2m-capacity64-audit-0.1",
+    "scope": "frozen P2-J representation, existence-head capacity only",
+    "existence_objective": "weighted-bce-plus-fixed-label-extreme-margin1",
+    "boundary_weight": 1.0,
+    "decision_prefix": "frozen_pointer_existence_head",
+}
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output-dir", type=Path, default=OUTPUT)
+def build_parser(*, output: Path = OUTPUT, description: str = __doc__) -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=description)
+    parser.add_argument("--output-dir", type=Path, default=output)
     parser.add_argument("--batch-size", type=int, default=4)
     parser.add_argument("--learning-rate", type=float, default=1e-3)
     parser.add_argument("--weight-decay", type=float, default=0.01)
@@ -56,7 +67,7 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def validate_args(args) -> None:
+def validate_args(args, *, output: Path = OUTPUT, experiment: str = "P2-M") -> None:
     fixed = {
         "batch_size": 4,
         "learning_rate": 1e-3,
@@ -66,11 +77,11 @@ def validate_args(args) -> None:
     }
     for name, expected in fixed.items():
         if getattr(args, name) != expected:
-            raise ValueError(f"P2-M requires fixed {name}={expected}")
-    if args.output_dir.resolve() != OUTPUT.resolve():
-        raise ValueError(f"P2-M requires output directory {OUTPUT}")
+            raise ValueError(f"{experiment} requires fixed {name}={expected}")
+    if args.output_dir.resolve() != output.resolve():
+        raise ValueError(f"{experiment} requires output directory {output}")
     if args.log_every < 1 or not torch.cuda.is_available():
-        raise RuntimeError("P2-M requires positive logging interval and CUDA BF16")
+        raise RuntimeError(f"{experiment} requires positive logging interval and CUDA BF16")
 
 
 def validate_trainable_scope(model, optimizer) -> None:
@@ -85,7 +96,9 @@ def validate_trainable_scope(model, optimizer) -> None:
             raise ValueError(f"P2-M trainability differs: {name}")
 
 
-def training_step(model, optimizer, batch, *, max_grad_norm: float) -> dict:
+def training_step(
+    model, optimizer, batch, *, max_grad_norm: float, boundary_weight: float = 1.0
+) -> dict:
     optimizer.zero_grad(set_to_none=True)
     with _autocast_context(batch["candidate_anchors"].device, "bf16"):
         output = model(p2h.model_candidates(batch))
@@ -94,6 +107,7 @@ def training_step(model, optimizer, batch, *, max_grad_norm: float) -> dict:
             batch["candidate_anchors"],
             batch["atom_anchors"],
             batch["full_atom_mask"],
+            boundary_weight=boundary_weight,
         )
     losses["loss"].backward()
     gradient_norm = torch.nn.utils.clip_grad_norm_(
@@ -114,10 +128,13 @@ def training_step(model, optimizer, batch, *, max_grad_norm: float) -> dict:
     }
 
 
-def checkpoint_payload(model, optimizer, args, lineage, *, step, exposure, losses, metrics):
+def checkpoint_payload(
+    model, optimizer, args, lineage, *, step, exposure, losses, metrics,
+    protocol=P2M_PROTOCOL,
+):
     return {
-        "checkpoint_schema_version": "g3-p2m-frozen-pointer-existence-head-0.1",
-        "model_type": MODEL_TYPE,
+        "checkpoint_schema_version": protocol["checkpoint_schema_version"],
+        "model_type": protocol["model_type"],
         "atom_query_set": model.state_dict(),
         "model_config": asdict(model.config),
         "optimizer": optimizer.state_dict(),
@@ -129,20 +146,20 @@ def checkpoint_payload(model, optimizer, args, lineage, *, step, exposure, losse
         "trainable_parameter_count": TRAINABLE_PARAMETERS,
         "frozen_parameter_count": model.parameter_count() - TRAINABLE_PARAMETERS,
         "query_matching": "frozen-pointer-mass-with-zero-existence-cost",
-        "existence_objective": "weighted-bce-plus-fixed-label-extreme-margin1",
+        "existence_objective": protocol["existence_objective"],
         "lineage": lineage,
         "last_losses": losses,
         "metrics": metrics,
     }
 
 
-def main() -> None:
-    args = build_parser().parse_args()
-    validate_args(args)
+def run_experiment(args, *, protocol) -> None:
+    experiment = protocol["experiment"]
+    validate_args(args, output=protocol["output"], experiment=experiment)
     if args.output_dir.exists() and any(args.output_dir.iterdir()):
-        raise RuntimeError(f"P2-M output is not empty: {args.output_dir}")
+        raise RuntimeError(f"{experiment} output is not empty: {args.output_dir}")
     if file_sha256(P2J_CHECKPOINT) != P2J_CHECKPOINT_SHA256:
-        raise ValueError("P2-M P2-J checkpoint SHA256 differs")
+        raise ValueError(f"{experiment} P2-J checkpoint SHA256 differs")
     os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
     random.seed(args.seed)
     np.random.seed(args.seed)
@@ -181,8 +198,8 @@ def main() -> None:
     }
     args.output_dir.mkdir(parents=True, exist_ok=False)
     _atomic_json(args.output_dir / "audit.json", {
-        "schema_version": "g3-p2m-capacity64-audit-0.1",
-        "scope": "frozen P2-J representation, existence-head capacity only",
+        "schema_version": protocol["audit_schema_version"],
+        "scope": protocol["scope"],
         "trainable_parameters": TRAINABLE_PARAMETERS,
         "pointer_query_count_chemistry_frozen": True,
         "existence_removed_from_matching_cost": True,
@@ -212,6 +229,7 @@ def main() -> None:
                 optimizer,
                 p2h.collate(records, device),
                 max_grad_norm=args.max_grad_norm,
+                boundary_weight=protocol["boundary_weight"],
             )
             step += 1
             exposure += len(records)
@@ -234,6 +252,7 @@ def main() -> None:
                 payload = checkpoint_payload(
                     model, optimizer, args, lineage,
                     step=step, exposure=exposure, losses=losses, metrics=None,
+                    protocol=protocol,
                 )
                 _atomic_torch_save(args.output_dir / f"step-{step:06d}.pt", payload)
                 _atomic_torch_save(args.output_dir / "last.pt", payload)
@@ -247,7 +266,7 @@ def main() -> None:
         for domain, records in domains.items()
     }
     decision, checks = p2h.gate(metrics)
-    decision = decision.replace("atom_query_set", "frozen_pointer_existence_head")
+    decision = decision.replace("atom_query_set", protocol["decision_prefix"])
     protocol_checks = {
         "fixed_steps": step == STEPS,
         "fixed_exposure": exposure == EXPECTED_EXPOSURE,
@@ -268,6 +287,7 @@ def main() -> None:
     payload = checkpoint_payload(
         model, optimizer, args, lineage,
         step=step, exposure=exposure, losses=losses, metrics=final,
+        protocol=protocol,
     )
     checkpoint = args.output_dir / "step-001600.pt"
     _atomic_torch_save(checkpoint, payload)
@@ -288,6 +308,11 @@ def main() -> None:
         "checkpoint": str(checkpoint),
         "checkpoint_sha256": final["checkpoint_sha256"],
     }, indent=2))
+
+
+def main() -> None:
+    args = build_parser().parse_args()
+    run_experiment(args, protocol=P2M_PROTOCOL)
 
 
 if __name__ == "__main__":
