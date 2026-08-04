@@ -2,11 +2,62 @@
 
 from __future__ import annotations
 
+from collections import deque
 import unittest
 
 import torch
 
 from chemvector.components.vision.regional_maxima import regional_maxima_mask
+
+
+def brute_regional_maxima(
+    values: torch.Tensor, valid: torch.Tensor, connectivity: int
+) -> torch.Tensor:
+    height, width = values.shape
+    offsets = (
+        ((-1, 0), (0, -1), (0, 1), (1, 0))
+        if connectivity == 4
+        else tuple(
+            (delta_y, delta_x)
+            for delta_y in (-1, 0, 1)
+            for delta_x in (-1, 0, 1)
+            if (delta_y, delta_x) != (0, 0)
+        )
+    )
+    visited = torch.zeros_like(valid)
+    output = torch.zeros_like(valid)
+    for start_y in range(height):
+        for start_x in range(width):
+            if bool(visited[start_y, start_x] or not valid[start_y, start_x]):
+                continue
+            value = values[start_y, start_x]
+            visited[start_y, start_x] = True
+            pending = deque(((start_y, start_x),))
+            plateau = []
+            maximum = True
+            while pending:
+                y, x = pending.popleft()
+                plateau.append((y, x))
+                for delta_y, delta_x in offsets:
+                    neighbor_y, neighbor_x = y + delta_y, x + delta_x
+                    if not (
+                        0 <= neighbor_y < height
+                        and 0 <= neighbor_x < width
+                        and bool(valid[neighbor_y, neighbor_x])
+                    ):
+                        continue
+                    neighbor = values[neighbor_y, neighbor_x]
+                    if bool(neighbor > value):
+                        maximum = False
+                    elif bool(
+                        neighbor == value and not visited[neighbor_y, neighbor_x]
+                    ):
+                        visited[neighbor_y, neighbor_x] = True
+                        pending.append((neighbor_y, neighbor_x))
+            if maximum:
+                for y, x in plateau:
+                    output[y, x] = True
+    return output
 
 
 class RegionalMaximaTests(unittest.TestCase):
@@ -99,6 +150,20 @@ class RegionalMaximaTests(unittest.TestCase):
 
         torch.testing.assert_close(first, second)
         torch.testing.assert_close(values, before)
+
+    def test_vectorized_result_matches_brute_reference_on_discrete_fields(self) -> None:
+        generator = torch.Generator().manual_seed(20260713)
+        for connectivity in (4, 8):
+            for _ in range(20):
+                values = torch.randint(
+                    -2, 4, (8, 9), generator=generator
+                ).float()
+                valid = torch.rand((8, 9), generator=generator) > 0.15
+                expected = brute_regional_maxima(values, valid, connectivity)
+                actual = regional_maxima_mask(
+                    values, valid_mask=valid, connectivity=connectivity
+                )
+                torch.testing.assert_close(actual, expected)
 
     def test_rejects_invalid_contracts(self) -> None:
         with self.assertRaisesRegex(ValueError, "FP32"):

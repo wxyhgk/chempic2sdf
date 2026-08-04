@@ -94,7 +94,6 @@ def extract_regional_maximum_objects(
     outputs = []
     for batch_index in range(batch):
         labels, plateau_count = ndimage.label(masks[batch_index], structure=structure)
-        objects = []
         flat_labels = labels.reshape(-1)
         active_cells = np.flatnonzero(flat_labels)
         active_labels = flat_labels[active_cells]
@@ -109,35 +108,34 @@ def extract_regional_maximum_objects(
             or bool((representatives >= height * width).any())
         ):
             raise RuntimeError("P1-N produced an empty regional-max plateau")
-        for plateau_index, representative in enumerate(representatives):
-            # A regional maximum is an equal-valued flat zone. Row-major cell ID
-            # is the deterministic representative and does not inspect targets.
-            flat_cell = int(representative)
-            y, x = divmod(flat_cell, width)
-            objects.append(
-                (
-                    float(scores_cpu[batch_index, y, x]),
-                    int(source_cpu[batch_index, y, x]),
-                    anchors_cpu[batch_index, y, x].copy(),
-                    int(plateau_sizes[plateau_index]),
-                )
-            )
-        objects.sort(key=lambda item: (-item[0], item[1]))
-        selected = objects[:maximum_objects]
+        # A regional maximum is an equal-valued flat zone. The vectorized gather
+        # preserves the row-major plateau representative and score/source sort.
+        representative_y, representative_x = np.divmod(representatives, width)
+        object_scores = scores_cpu[
+            batch_index, representative_y, representative_x
+        ]
+        object_sources = source_cpu[
+            batch_index, representative_y, representative_x
+        ]
+        object_anchors = anchors_cpu[
+            batch_index, representative_y, representative_x
+        ]
+        order = np.lexsort((object_sources, -object_scores))
+        selected = order[:maximum_objects]
         outputs.append(
             {
                 "anchors": torch.tensor(
-                    np.asarray([item[2] for item in selected], dtype=np.float32)
-                    if selected
+                    np.asarray(object_anchors[selected], dtype=np.float32)
+                    if len(selected)
                     else np.zeros((0, 2), dtype=np.float32)
                 ),
-                "scores": torch.tensor([item[0] for item in selected]),
+                "scores": torch.tensor(object_scores[selected].copy()),
                 "source_ids": torch.tensor(
-                    [item[1] for item in selected], dtype=torch.long
+                    object_sources[selected].copy(), dtype=torch.long
                 ),
-                "plateau_sizes": [item[3] for item in selected],
+                "plateau_sizes": plateau_sizes[selected].tolist(),
                 "all_plateau_sizes": plateau_sizes.tolist(),
-                "regional_maxima_count": len(objects),
+                "regional_maxima_count": int(plateau_count),
             }
         )
     return outputs

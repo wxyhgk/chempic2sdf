@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from collections import deque
-
 import numpy as np
+from scipy import ndimage
 import torch
 
 
@@ -66,42 +65,43 @@ def regional_maxima_mask(
     )
     maxima = np.zeros_like(valid_maps, dtype=np.bool_)
     offsets = _NEIGHBOR_OFFSETS[connectivity]
+    structure = (
+        ndimage.generate_binary_structure(2, 1)
+        if connectivity == 4
+        else np.ones((3, 3), dtype=np.bool_)
+    )
 
     for map_index, (current, valid) in enumerate(zip(maps, valid_maps)):
-        visited = np.zeros((height, width), dtype=np.bool_)
-        for start_y in range(height):
-            for start_x in range(width):
-                if visited[start_y, start_x] or not valid[start_y, start_x]:
-                    continue
-                value = current[start_y, start_x]
-                visited[start_y, start_x] = True
-                pending = deque(((start_y, start_x),))
-                plateau = []
-                is_maximum = True
-                while pending:
-                    y, x = pending.popleft()
-                    plateau.append((y, x))
-                    for delta_y, delta_x in offsets:
-                        neighbor_y = y + delta_y
-                        neighbor_x = x + delta_x
-                        if not (
-                            0 <= neighbor_y < height
-                            and 0 <= neighbor_x < width
-                            and valid[neighbor_y, neighbor_x]
-                        ):
-                            continue
-                        neighbor = current[neighbor_y, neighbor_x]
-                        if neighbor > value:
-                            is_maximum = False
-                        elif (
-                            neighbor == value
-                            and not visited[neighbor_y, neighbor_x]
-                        ):
-                            visited[neighbor_y, neighbor_x] = True
-                            pending.append((neighbor_y, neighbor_x))
-                if is_maximum:
-                    for y, x in plateau:
-                        maxima[map_index, y, x] = True
+        working = np.where(valid, current, -np.inf)
+        local = valid & (
+            current
+            == ndimage.maximum_filter(
+                working, footprint=structure, mode="constant", cval=-np.inf
+            )
+        )
+
+        # A non-maximum flat zone can have an interior that passes the local
+        # maximum test. Reject every local component touching an equal-valued
+        # valid neighbor that failed that test. A true regional maximum keeps
+        # its complete flat zone, so it has no such escape edge.
+        incomplete = np.zeros_like(local)
+        for delta_y, delta_x in offsets:
+            current_y = slice(max(0, -delta_y), min(height, height - delta_y))
+            current_x = slice(max(0, -delta_x), min(width, width - delta_x))
+            neighbor_y = slice(max(0, delta_y), min(height, height + delta_y))
+            neighbor_x = slice(max(0, delta_x), min(width, width + delta_x))
+            incomplete[current_y, current_x] |= (
+                local[current_y, current_x]
+                & valid[neighbor_y, neighbor_x]
+                & (current[current_y, current_x] == current[neighbor_y, neighbor_x])
+                & ~local[neighbor_y, neighbor_x]
+            )
+
+        labels, component_count = ndimage.label(local, structure=structure)
+        rejected = np.zeros(component_count + 1, dtype=np.bool_)
+        rejected[np.unique(labels[incomplete])] = True
+        rejected[0] = False
+        maxima[map_index] = local & ~rejected[labels]
 
     result = torch.from_numpy(maxima.reshape(values.shape))
     return result.to(device=values.device)
