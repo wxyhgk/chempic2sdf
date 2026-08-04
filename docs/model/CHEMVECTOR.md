@@ -119,6 +119,9 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
   P3-E8固定阈值切到P2-W predicted Count后，confirm从111/256跌到4/256、route100从36/100跌到
   0/100；Count exact仅9/256与3/100。当前首要瓶颈已从selector切换为Count，下一步单独训练读取
   candidate/query分布统计的DeepSets Count，不再使用`memory.mean -> linear`。
+  P3-E9独立DeepSets Count将confirm从12/256、MAE8.65提高到81/256、1.56，route100从3/100
+  提高到34/100；但train85.2%而confirm31.6%，正式NO-GO。下一步保持证据特征不变，扩大训练
+  molecule并缩小Count头，避免继续增加共享模型复杂度。
 - 版本从 `v0.7` 开始，每次发布增加 `0.0.1`。
 - 根目录 `VERSION` 是开发版本的唯一来源。
 

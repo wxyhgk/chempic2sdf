@@ -26,6 +26,10 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P3-E9 DeepSets Count Train1760](20260804-g3-p3e9-deepsets-count.md)：
+独立集合统计Count将confirm从12/256、MAE8.65提高到81/256、1.56，route100从3/100提高到
+34/100；但train85.2%对confirm31.6%，严格NO-GO。下一步扩molecule并缩小Count头，输入特征不变。
+
 当前已完成审计：[G3 P3-E8 Predicted Count Router](20260804-g3-p3e8-predicted-count-router.md)：
 固定P3-E7路由从known Count切到P2-W Count后，confirm从111/256跌到4/256，route100从36/100
 跌到0/100；Count exact仅9/256、3/100。Count已成为明确首要瓶颈，下一步重做DeepSets统计Count。
