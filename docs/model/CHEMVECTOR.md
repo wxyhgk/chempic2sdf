@@ -57,7 +57,9 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
   target仍在3张图各丢一个Atom，而768网格零碰撞；P1-U容量NO-GO，不进入5k，下一步只测试
   连续stride-1中心场。P1-V的adjacent32 top128达到1473/1473、32/32，7个碰撞对全部由不同
   峰命中，确认stride-1表示机制GO；但known仅1447/1473、18/32，且原域回退到22/32。当前
-  瓶颈已转为约9.8万高召回峰的整组选择，下一步先做冻结多尺度rank审计，不继续提高分辨率。
+  瓶颈已转为约9.8万高召回峰的整组选择。P1-W冻结审计找到首个双域全覆盖协议：stride-2
+  top96加stride-1 top32，共128候选，在overfit和adjacent均达到全Atom、32/32。下一P1-X固定
+  该输入并以动态一对一集合匹配训练known-count selector，不继续提高分辨率或固定candidate身份。
 - 版本从 `v0.7` 开始，每次发布增加 `0.0.1`。
 - 根目录 `VERSION` 是开发版本的唯一来源。
 

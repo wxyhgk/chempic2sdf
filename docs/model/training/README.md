@@ -26,6 +26,11 @@
 
 ## 训练时间线
 
+当前已完成审计：[G3 P1-W Multiscale Peak Rank Audit](20260804-g3-p1w-multiscale-peak-rank-audit.md)：
+冻结P1-U/P1-V后，首个双域100%固定协议是`stride2 top96 + stride1 top32`：只用128候选即达到
+overfit 1424/1424、32/32和adjacent 1473/1473、32/32。top128内同GT等价峰很多，下一P1-X
+selector必须动态一对一集合匹配，禁止固定candidate身份监督和半径聚类。
+
 当前已完成实验：[G3 P1-V Continuous Stride-1 Capacity64](20260804-g3-p1v-continuous-stride1-capacity64.md)：
 连续768 feature使adjacent32 top128达到1473/1473、32/32，7个碰撞对全部由不同峰命中，证明
 stride-1表示机制GO；但known仅1447/1473、18/32，原overfit32也回退到1399/1424、22/32，
