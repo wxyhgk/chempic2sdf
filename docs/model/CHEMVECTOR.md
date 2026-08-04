@@ -113,6 +113,9 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
   不再调gradient-surgery权重。P3-E6事务更新完整保持capacity双域32/32，并把general从9/192
   提高到37/192，但30次中仅9次更新被接受；共享参数可行域过窄。下一步冻结P2-W作为安全base，
   general learner改为独立expert，先审计两者oracle并集和可证安全路由，不继续细分共享步长。
+  P3-E7随后在512个molecule-disjoint selector样本上固定单阈值路由，confirm从base 13/256提高到
+  111/256，98 rescue/0 break；冻结策略在历史route100也从4/100提高到36/100，32/0。
+  base+expert方向正式GO，但当前仍是known-count Atom selector口径，必须补predicted Count与完整流水线。
 - 版本从 `v0.7` 开始，每次发布增加 `0.0.1`。
 - 根目录 `VERSION` 是开发版本的唯一来源。
 

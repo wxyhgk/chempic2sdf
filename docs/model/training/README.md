@@ -26,6 +26,11 @@
 
 ## 训练时间线
 
+当前已完成审计：[G3 P3-E7 Base / Expert Router](20260804-g3-p3e7-base-expert-router-audit.md)：
+512个molecule-disjoint样本上，固定单阈值路由在confirm将known-count exact从base 13/256提高到
+111/256，98 rescue/0 break；冻结后在历史route100从4/100提高到36/100，32/0。路由方向GO，
+下一步实现shadow组件并补predicted-count口径；不得表述为端到端结果。
+
 当前已完成实验：[G3 P3-E6 Transactional Capacity Guard](20260804-g3-p3e6-transactional-capacity.md)：
 实际更新后break即回滚，成功完整保持capacity双域32/32，并将general从9/192提高到37/192；
 但只有9/30次更新可接受，最小1/128步长连续21次被拒，严格NO-GO。下一步冻结base并训练独立expert。
