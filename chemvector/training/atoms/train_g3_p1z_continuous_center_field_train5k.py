@@ -25,6 +25,8 @@ from chemvector.training.atoms import train_g3_p1d_boundary_band_set_ranker as p
 from chemvector.training.atoms import train_g3_p1t_continuous_stride2_center_field as p1t
 from chemvector.training.atoms import train_g3_p1u_adjacent_atom_capacity as p1u
 from chemvector.training.atoms import train_g3_p1v_continuous_stride1_capacity as p1v
+from chemvector.evaluation.audits.atoms import build_g3_p2f_train25k_manifest as p2f
+from chemvector.training.graph.scenes.g3_structural_data import load_g3_sample_manifest
 from chemvector.training.graph.scenes.train_g3_hierarchical_graph import (
     _atomic_json,
     _atomic_torch_save,
@@ -46,6 +48,8 @@ SCALE_PROTOCOLS = {
         "trainable_parameters": 92_035,
         "step0_matched": 2_989,
         "step0_exact": 49,
+        "epochs": 5,
+        "gate_mode": "relative",
     },
     "stride1": {
         "model_type": "chemvector-g3-p2a-stride1-center-field-train5k",
@@ -58,6 +62,8 @@ SCALE_PROTOCOLS = {
         "trainable_parameters": 96_579,
         "step0_matched": 2_912,
         "step0_exact": 26,
+        "epochs": 5,
+        "gate_mode": "relative",
     },
 }
 STEPS = 6_250
@@ -68,12 +74,16 @@ EXPECTED_EXPOSURE = 25_000
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--scale", choices=tuple(SCALE_PROTOCOLS), required=True)
+    parser.add_argument(
+        "--training-set", choices=("train5k", "train25k"), default="train5k"
+    )
     parser.add_argument("--batch-size", type=int, default=4)
     parser.add_argument("--learning-rate", type=float, default=3e-4)
     parser.add_argument("--weight-decay", type=float, default=0.01)
     parser.add_argument("--max-grad-norm", type=float, default=1.0)
     parser.add_argument("--seed", type=int, default=20260713)
     parser.add_argument("--log-every", type=int, default=100)
+    parser.add_argument("--resume-step2500", action="store_true")
     return parser
 
 
@@ -90,8 +100,25 @@ def validate_args(args: argparse.Namespace) -> dict:
             raise ValueError(f"P1-Z requires fixed {name}={expected}")
     if args.log_every < 1:
         raise ValueError("P1-Z log interval must be positive")
+    if args.resume_step2500 and args.training_set != "train25k":
+        raise ValueError("P2-F step2500 resume is only valid for train25k")
     if not torch.cuda.is_available():
         raise RuntimeError("P1-Z requires CUDA BF16")
+    if args.training_set == "train25k":
+        if args.scale != "stride1":
+            raise ValueError("P2-F train25k supports only stride1")
+        return {
+            **SCALE_PROTOCOLS["stride1"],
+            "model_type": "chemvector-g3-p2f-stride1-center-field-train25k",
+            "output": Path("outputs/checkpoints/chemvector-g3-p2f-stride1-center-field-train25k"),
+            "checkpoint": SCALE_PROTOCOLS["stride1"]["output"] / "step-006250.pt",
+            "checkpoint_sha256": "2869451245f50f98f5e3f5259179ca338e82ad81a8fd59de2d2037a10056404b",
+            "source_model_type": SCALE_PROTOCOLS["stride1"]["model_type"],
+            "step0_matched": 3_073,
+            "step0_exact": 98,
+            "epochs": 1,
+            "gate_mode": "absolute",
+        }
     return SCALE_PROTOCOLS[args.scale]
 
 
@@ -135,10 +162,13 @@ def gate(protocol: dict, step0: dict, final: dict) -> tuple[str, dict[str, bool]
         == protocol["step0_matched"],
         "step0_exact_matches_independent_audit": step0_reach["exact_images"]
         == protocol["step0_exact"],
-        "route_recall_gain_0_5pp": final_reach["atom_recall"]
-        >= step0_reach["atom_recall"] + 0.005,
-        "route_exact_gain_10_images": final_reach["exact_images"]
-        >= step0_reach["exact_images"] + 10,
+        "route_capability": (
+            final_reach["matched_targets"] >= 3_075
+            and final_reach["exact_images"] >= 99
+            if protocol["gate_mode"] == "absolute"
+            else final_reach["atom_recall"] >= step0_reach["atom_recall"] + 0.005
+            and final_reach["exact_images"] >= step0_reach["exact_images"] + 10
+        ),
     }
     return (
         "route_causal_go" if all(checks.values()) else "route_causal_no_go",
@@ -177,7 +207,7 @@ def main() -> None:
     args = build_parser().parse_args()
     protocol = validate_args(args)
     output_dir = protocol["output"]
-    if output_dir.exists() and any(output_dir.iterdir()):
+    if not args.resume_step2500 and output_dir.exists() and any(output_dir.iterdir()):
         raise RuntimeError(f"P1-Z output directory is not empty: {output_dir}")
     os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
     random.seed(args.seed)
@@ -220,8 +250,30 @@ def main() -> None:
         weight_decay=args.weight_decay,
     )
     validate_optimizer(field, atom_head, vision, optimizer, protocol)
+    resume_payload = None
+    if args.resume_step2500:
+        resume_path = output_dir / "step-002500.pt"
+        resume_payload = torch.load(resume_path, map_location=device, weights_only=False)
+        if (
+            resume_payload.get("model_type") != protocol["model_type"]
+            or resume_payload.get("global_step") != 2_500
+            or resume_payload.get("samples_seen") != 10_000
+        ):
+            raise ValueError("P2-F step2500 resume checkpoint contract differs")
+        field.load_state_dict(resume_payload["atom_center_field"], strict=True)
+        block.load_state_dict(resume_payload["vision_last_stride4_block"], strict=True)
+        optimizer.load_state_dict(resume_payload["optimizer"])
 
-    train, train_audit = p1a.load_train_manifest()
+    if args.training_set == "train25k":
+        train, train_audit = load_g3_sample_manifest(
+            p2f.MANIFEST,
+            expected_sha256="b0f10eb0922599636895e19294e55b95ba9c051492b7bd69ae42a639c2846161",
+            expected_samples=25_000,
+            expected_molecules=6_250,
+            expected_variants=p1a.EXPECTED_VARIANTS,
+        )
+    else:
+        train, train_audit = p1a.load_train_manifest()
     route, route_audit = p1a.load_route_manifest()
     collator = p1a.G3AtomCollator(maximum_atoms=128, image_size=768)
     lineage = {
@@ -240,21 +292,33 @@ def main() -> None:
         "route100_manifest": route_audit,
         "optimizer_state_loaded_from_capacity": False,
     }
-    output_dir.mkdir(parents=True, exist_ok=False)
+    output_dir.mkdir(parents=True, exist_ok=args.resume_step2500)
     _atomic_json(output_dir / "training_args.json", vars(args))
-    step0 = p1t.evaluate(
-        field, atom_head, vision, frozen_block, route, collator, device=device
-    )
-    _atomic_json(output_dir / "step0_route_metrics.json", step0)
+    if args.resume_step2500:
+        step0 = json.loads(
+            (output_dir / "step0_route_metrics.json").read_text(encoding="utf-8")
+        )
+    else:
+        step0 = p1t.evaluate(
+            field, atom_head, vision, frozen_block, route, collator, device=device
+        )
+        _atomic_json(output_dir / "step0_route_metrics.json", step0)
 
-    step = exposure = 0
-    losses = {}
+    step = 2_500 if args.resume_step2500 else 0
+    exposure = 10_000 if args.resume_step2500 else 0
+    losses = resume_payload.get("last_losses", {}) if resume_payload else {}
     started = time.perf_counter()
-    log_path = output_dir / "train.jsonl"
+    log_path = output_dir / (
+        "train-resumed-step2500.jsonl" if args.resume_step2500 else "train.jsonl"
+    )
     epoch_key_sha = None
-    for epoch in range(1, 6):
+    training_manifest = train[10_000:] if args.resume_step2500 else train
+    expected_training_sha = hashlib.sha256(
+        "".join(f"{record.sample_key}\n" for record in training_manifest).encode()
+    ).hexdigest()
+    for epoch in range(1, protocol["epochs"] + 1):
         key_digest = hashlib.sha256()
-        for batch in p1a.iter_manifest_batches(train, collator, batch_size=4):
+        for batch in p1a.iter_manifest_batches(training_manifest, collator, batch_size=4):
             for key in batch["keys"]:
                 key_digest.update(f"{key}\n".encode())
             field.train()
@@ -299,8 +363,8 @@ def main() -> None:
     protocol_checks = {
         "fixed_steps": step == STEPS,
         "fixed_exposure": exposure == EXPECTED_EXPOSURE,
-        "fixed_epochs": epoch == 5,
-        "fixed_train_sequence": epoch_key_sha == p1a.TRAIN_SEQUENCE_SHA256,
+        "fixed_epochs": epoch == protocol["epochs"],
+        "fixed_train_sequence": epoch_key_sha == expected_training_sha,
         "field_changed": module_state_sha256(field) != initial_field_sha,
         "vision_block_changed": module_state_sha256(block) != initial_block_sha,
         "frozen_base_block_unchanged": module_state_sha256(frozen_block)

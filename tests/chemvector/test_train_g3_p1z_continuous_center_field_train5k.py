@@ -51,6 +51,25 @@ class G3P1ZContinuousCenterFieldTrain5kTests(unittest.TestCase):
         decision, _ = gate(protocol, metrics(2_989, 49), metrics(3_000, 60))
         self.assertEqual(decision, "route_causal_no_go")
 
+    def test_train25k_stage_is_stride1_only_with_absolute_gate(self) -> None:
+        args = build_parser().parse_args(
+            ["--scale", "stride1", "--training-set", "train25k"]
+        )
+        protocol = validate_args(args)
+        self.assertEqual(protocol["epochs"], 1)
+        self.assertEqual(protocol["gate_mode"], "absolute")
+        decision, checks = gate(
+            protocol, metrics(3_073, 98), metrics(3_075, 99)
+        )
+        self.assertEqual(decision, "route_causal_go")
+        self.assertTrue(all(checks.values()))
+        with self.assertRaisesRegex(ValueError, "only stride1"):
+            validate_args(
+                build_parser().parse_args(
+                    ["--scale", "stride2", "--training-set", "train25k"]
+                )
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

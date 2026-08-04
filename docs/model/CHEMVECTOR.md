@@ -63,7 +63,9 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
   独立确定性重放逐位一致，容量GO。P1-Y随后证明capacity64中心场在train5k的96+32候选仅
   3346/5000 exact；P1-Z/P2-A把中心场正式训练到5k后，route top128分别提升到96/100和
   98/100，证实训练数据不足是上游主因。P2-E扩大selector训练后train提高但route退化到61/100，
-  动态硬匹配boundary loss已经NO-GO；下一步继续扩充/改进中心场，不追加同一selector epoch。
+  动态硬匹配boundary loss已经NO-GO。P2-F在相同exposure下将5k重复改成25k唯一图，route只从
+  3073/3080、98/100增至3074/3080、99/100，未过预注册门；下一步改进密集/交叉局部的center
+  target，不直接上100k，也不追加同一selector epoch。
 - 版本从 `v0.7` 开始，每次发布增加 `0.0.1`。
 - 根目录 `VERSION` 是开发版本的唯一来源。
 

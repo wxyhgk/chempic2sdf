@@ -26,6 +26,11 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P2-F Stride-1 Center Field Train25k](20260804-g3-p2f-stride1-center-field-train25k.md)：
+保持6250 updates/25000 exposures不变，将5k×5轮改为25k唯一图×1轮；route从3073/3080、
+98/100小幅提高到3074/3080、99/100，但未达到预注册3075门，正式NO-GO。数据扩量仍有边际
+收益，但不支持直接上100k；下一步应修改密集/交叉局部的center target。
+
 当前已完成实验：[G3 P2-E Stride-1 Top128 Selector Train5k](20260804-g3-p2e-stride1-top128-selector-train5k.md)：
 冻结P2-A候选后，selector在train5k从152423/155216、3344/5000提高到152789/155216、
 3492/5000，但route从3022/3080、63/100退化到3018/3080、61/100；全部中间checkpoint
