@@ -26,6 +26,10 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P3-E11 Ordinal Count](20260804-g3-p3e11-ordinal-count.md)：
+`CE+0.1*期望Count Huber`使dev提高但confirm从108/256退到91/256，route100为39/100；正式
+NO-GO并恢复普通CE。下一步按molecule组织四variant batch，加入风格一致性监督。
+
 当前已完成实验：[G3 P3-E10 Count 数据量 / 容量 A/B](20260804-g3-p3e10-count-scale-ab.md)：
 训练从1760扩到3316图后，h64 confirm从81/256、MAE1.56提高到108/256、1.27；h32为109/256、
 1.16但route100 exact退到29%。两臂严格NO-GO；下一步保持h64，只加入Count有序距离损失。

@@ -125,6 +125,8 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
   P3-E10把Count训练扩到829个molecule/3316图后，h64 confirm提高到108/256、MAE1.27，
   route100为37/100、1.57；h32 confirm为109/256、1.16但route100 exact退到29%。数据扩量
   因果有效，缩容出现欠拟合；下一步保留h64并加入Count有序距离监督。
+  P3-E11有序期望损失使confirm从108/256退到91/256，正式NO-GO；route100的39/100不能用于
+  反向选择checkpoint。下一步恢复普通CE，按molecule组织四variant batch并加入风格一致性监督。
 - 版本从 `v0.7` 开始，每次发布增加 `0.0.1`。
 - 根目录 `VERSION` 是开发版本的唯一来源。
 
