@@ -26,6 +26,10 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P3-E12 Style-Consistent Count](20260804-g3-p3e12-style-consistent-count.md)：
+四variant batch加0.1一致性后confirm为106/256、MAE1.25，未超过E10的108/256；route100虽39/100
+但不可反向选模。正式NO-GO，停止调DeepSets loss，下一步转结构化cardinality matching curve。
+
 当前已完成实验：[G3 P3-E11 Ordinal Count](20260804-g3-p3e11-ordinal-count.md)：
 `CE+0.1*期望Count Huber`使dev提高但confirm从108/256退到91/256，route100为39/100；正式
 NO-GO并恢复普通CE。下一步按molecule组织四variant batch，加入风格一致性监督。
