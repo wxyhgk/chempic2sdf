@@ -26,6 +26,10 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P3-E10 Count 数据量 / 容量 A/B](20260804-g3-p3e10-count-scale-ab.md)：
+训练从1760扩到3316图后，h64 confirm从81/256、MAE1.56提高到108/256、1.27；h32为109/256、
+1.16但route100 exact退到29%。两臂严格NO-GO；下一步保持h64，只加入Count有序距离损失。
+
 当前已完成实验：[G3 P3-E9 DeepSets Count Train1760](20260804-g3-p3e9-deepsets-count.md)：
 独立集合统计Count将confirm从12/256、MAE8.65提高到81/256、1.56，route100从3/100提高到
 34/100；但train85.2%对confirm31.6%，严格NO-GO。下一步扩molecule并缩小Count头，输入特征不变。
