@@ -26,6 +26,10 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P3-E6 Transactional Capacity Guard](20260804-g3-p3e6-transactional-capacity.md)：
+实际更新后break即回滚，成功完整保持capacity双域32/32，并将general从9/192提高到37/192；
+但只有9/30次更新可接受，最小1/128步长连续21次被拒，严格NO-GO。下一步冻结base并训练独立expert。
+
 当前已完成实验：[G3 P3-E5 Capacity-Anchored A-GEM](20260804-g3-p3e5-capacity-anchored-agem.md)：
 投影确实将冲突梯度点积压到约0，但AdamW有限步仍跨过离散exact边界；final easy/hard为29/32、
 5/32，general为6079/6202、110/192，正式NO-GO。下一步改成实际更新后检查capacity并事务回滚。

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 from dataclasses import asdict
 import hashlib
 import json
@@ -98,6 +99,16 @@ ARM_CONFIGS = {
         "expected_exposure": 7_680,
         "update_mode": "capacity_anchored_agem_fullset",
     },
+    "mixed-coverage-transactional": {
+        "model_type": "chemvector-g3-p3e6-mixed-coverage-transactional-pilot256",
+        "training_scope": "mixed256",
+        "margin_mode": "gt_coverage_deficiency",
+        "training_images": 256,
+        "steps_per_epoch": 64,
+        "expected_steps": 30,
+        "expected_exposure": 7_680,
+        "update_mode": "capacity_transactional_agem",
+    },
 }
 EPOCHS = 30
 LEARNING_RATE = 3e-4
@@ -105,6 +116,7 @@ WEIGHT_DECAY = 0.01
 MAX_GRAD_NORM = 1.0
 SEED = 20260713
 TRAINABLE_PARAMETERS = 292_693
+TRANSACTIONAL_FACTORS = tuple(0.5**index for index in range(8))
 
 
 def structured_margin(mode: str, count: int, deficiency: int) -> float:
@@ -422,6 +434,130 @@ def agem_fullset_training_step(
     }
 
 
+def transactional_agem_training_step(
+    model,
+    count_model,
+    optimizer,
+    general_records,
+    capacity_records,
+    easy_records,
+    hard_records,
+    *,
+    device,
+    margin_mode: str,
+) -> dict:
+    """Apply the largest preregistered AdamW step preserving capacity exactness."""
+
+    model.train()
+    parameters = [value for value in model.parameters() if value.requires_grad]
+    general_gradient, general_metrics = _domain_gradient(
+        model,
+        parameters,
+        general_records,
+        device=device,
+        margin_mode=margin_mode,
+    )
+    capacity_gradient, capacity_metrics = _domain_gradient(
+        model,
+        parameters,
+        capacity_records,
+        device=device,
+        margin_mode=margin_mode,
+    )
+    raw_dot = torch.dot(general_gradient, capacity_gradient)
+    general_norm = torch.linalg.vector_norm(general_gradient)
+    capacity_norm = torch.linalg.vector_norm(capacity_gradient)
+    denominator = general_norm * capacity_norm
+    raw_cosine = (
+        raw_dot / denominator if float(denominator) > 0.0 else raw_dot.new_tensor(0.0)
+    )
+    projected, projection_applied = project_agem_vector(
+        general_gradient, capacity_gradient
+    )
+    combined = 0.75 * projected + 0.25 * capacity_gradient
+    combined_norm = torch.linalg.vector_norm(combined)
+    clip_scale = min(1.0, MAX_GRAD_NORM / max(float(combined_norm), 1e-12))
+    clipped = combined * clip_scale
+
+    model_state = {
+        name: value.detach().clone() for name, value in model.state_dict().items()
+    }
+    optimizer_state = copy.deepcopy(optimizer.state_dict())
+    before = torch.cat([value.detach().flatten().clone() for value in parameters])
+    base_lrs = [group["lr"] for group in optimizer.param_groups]
+    accepted = False
+    accepted_factor = 0.0
+    accepted_index = -1
+    accepted_easy = accepted_hard = None
+    for trial_index, factor in enumerate(TRANSACTIONAL_FACTORS):
+        if trial_index:
+            model.load_state_dict(model_state, strict=True)
+            optimizer.load_state_dict(optimizer_state)
+        optimizer.zero_grad(set_to_none=True)
+        offset = 0
+        for parameter in parameters:
+            width = parameter.numel()
+            parameter.grad = clipped[offset : offset + width].view_as(parameter).clone()
+            offset += width
+        for group, base_lr in zip(optimizer.param_groups, base_lrs):
+            group["lr"] = base_lr * factor
+        optimizer.step()
+        accepted_easy = p3e1.evaluate_structure(
+            model, count_model, easy_records, device=device
+        )
+        accepted_hard = p3e1.evaluate_structure(
+            model, count_model, hard_records, device=device
+        )
+        easy_exact = accepted_easy["known_count"]["whole_set_exact_images"]
+        hard_exact = accepted_hard["known_count"]["whole_set_exact_images"]
+        if easy_exact == 32 and hard_exact == 32:
+            accepted = True
+            accepted_factor = factor
+            accepted_index = trial_index
+            break
+    if not accepted:
+        model.load_state_dict(model_state, strict=True)
+        optimizer.load_state_dict(optimizer_state)
+        accepted_easy = p3e1.evaluate_structure(
+            model, count_model, easy_records, device=device
+        )
+        accepted_hard = p3e1.evaluate_structure(
+            model, count_model, hard_records, device=device
+        )
+    for group, base_lr in zip(optimizer.param_groups, base_lrs):
+        group["lr"] = base_lr
+    after = torch.cat([value.detach().flatten() for value in parameters])
+    update_capacity_dot = torch.dot(after - before, capacity_gradient)
+    return {
+        "general_loss": general_metrics["loss"],
+        "capacity_loss": capacity_metrics["loss"],
+        "general_selected_margin_satisfied_images": general_metrics[
+            "selected_margin_satisfied_images"
+        ],
+        "capacity_selected_margin_satisfied_images": capacity_metrics[
+            "selected_margin_satisfied_images"
+        ],
+        "general_gradient_norm": float(general_norm),
+        "capacity_gradient_norm": float(capacity_norm),
+        "raw_gradient_dot": float(raw_dot),
+        "raw_gradient_cosine": float(raw_cosine),
+        "projection_applied": float(projection_applied),
+        "accepted_update": float(accepted),
+        "accepted_factor": accepted_factor,
+        "accepted_trial_index": float(accepted_index),
+        "rejected_trials": float(accepted_index if accepted else len(TRANSACTIONAL_FACTORS)),
+        "post_update_easy_exact": float(
+            accepted_easy["known_count"]["whole_set_exact_images"]
+        ),
+        "post_update_hard_exact": float(
+            accepted_hard["known_count"]["whole_set_exact_images"]
+        ),
+        "update_capacity_dot": float(update_capacity_dot),
+        "gradient_norm": float(combined_norm),
+        "clip_scale": clip_scale,
+    }
+
+
 @torch.no_grad()
 def evaluate_margins(model, records, *, device, margin_mode: str) -> dict:
     model.eval()
@@ -662,17 +798,33 @@ def main() -> None:
         batches = list(epoch_batches(config, records, generator))
         if len(batches) != config["steps_per_epoch"]:
             raise RuntimeError("P3-E2 epoch batch count changed")
-        if config["update_mode"] == "capacity_anchored_agem_fullset":
+        if config["update_mode"] in {
+            "capacity_anchored_agem_fullset",
+            "capacity_transactional_agem",
+        }:
             general_order = torch.randperm(192, generator=generator).tolist()
             capacity_order = torch.randperm(64, generator=generator).tolist()
-            last = agem_fullset_training_step(
-                model,
-                optimizer,
-                [records["general192"][index] for index in general_order],
-                [records["capacity64"][index] for index in capacity_order],
-                device=device,
-                margin_mode=config["margin_mode"],
-            )
+            if config["update_mode"] == "capacity_transactional_agem":
+                last = transactional_agem_training_step(
+                    model,
+                    count_model,
+                    optimizer,
+                    [records["general192"][index] for index in general_order],
+                    [records["capacity64"][index] for index in capacity_order],
+                    records["easy32"],
+                    records["hard32"],
+                    device=device,
+                    margin_mode=config["margin_mode"],
+                )
+            else:
+                last = agem_fullset_training_step(
+                    model,
+                    optimizer,
+                    [records["general192"][index] for index in general_order],
+                    [records["capacity64"][index] for index in capacity_order],
+                    device=device,
+                    margin_mode=config["margin_mode"],
+                )
             step += 1
             exposure += 256
             sums = dict(last)

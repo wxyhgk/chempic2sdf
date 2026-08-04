@@ -110,7 +110,9 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
   作为保护域执行A-GEM受约束更新。
   P3-E5中A-GEM按预期多次把冲突点积投影到0，但final hard仅5/32、general 110/192；一阶安全
   不能保证AdamW有限步不跨过离散exact边界。下一步必须检查实际候选更新，break即回滚并缩步，
-  不再调gradient-surgery权重。
+  不再调gradient-surgery权重。P3-E6事务更新完整保持capacity双域32/32，并把general从9/192
+  提高到37/192，但30次中仅9次更新被接受；共享参数可行域过窄。下一步冻结P2-W作为安全base，
+  general learner改为独立expert，先审计两者oracle并集和可证安全路由，不继续细分共享步长。
 - 版本从 `v0.7` 开始，每次发布增加 `0.0.1`。
 - 根目录 `VERSION` 是开发版本的唯一来源。
 

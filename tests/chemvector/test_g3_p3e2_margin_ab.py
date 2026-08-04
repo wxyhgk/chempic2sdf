@@ -6,6 +6,7 @@ import torch
 
 from chemvector.training.atoms.train_g3_p3e2_margin_ab import (
     ARM_CONFIGS,
+    TRANSACTIONAL_FACTORS,
     latent_structured_loss,
     project_agem_vector,
     structured_margin,
@@ -81,6 +82,15 @@ class G3P3E2MarginABTests(unittest.TestCase):
         projected, applied = project_agem_vector(gradient, torch.zeros(2))
         self.assertFalse(applied)
         self.assertTrue(torch.equal(projected, gradient))
+
+    def test_transactional_schedule_is_fixed_and_bounded(self) -> None:
+        self.assertEqual(
+            TRANSACTIONAL_FACTORS,
+            (1.0, 0.5, 0.25, 0.125, 0.0625, 0.03125, 0.015625, 0.0078125),
+        )
+        config = ARM_CONFIGS["mixed-coverage-transactional"]
+        self.assertEqual(config["expected_steps"], 30)
+        self.assertEqual(config["expected_exposure"], 256 * 30)
 
 
 if __name__ == "__main__":
