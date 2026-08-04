@@ -92,7 +92,8 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
   optimizer续到固定4,800步。P2-W得到31/32、32/32并停止续训；将query选择与唯一pointer
   分配合并为固定基数MAP后，P2-X正式重复审计双域32/32，Atom query容量Gate关闭，转入
   未见样本泛化审计。P2-Y在分子隔离route100上确认候选oracle 98/100，但Count仅3/100；
-  即使真实Count，joint也只有4/100。下一阶段先隔离Count，再扩训query/pointer。
+  即使真实Count，joint也只有4/100。P3-A只训Count head后route仍仅8/100，train5k自身也只有
+  14.54%，证明冻结表示不足；下一步联合适配整个Atom query模块。
 - 版本从 `v0.7` 开始，每次发布增加 `0.0.1`。
 - 根目录 `VERSION` 是开发版本的唯一来源。
 

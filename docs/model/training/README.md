@@ -26,6 +26,10 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P3-A Count Head Train5k](20260804-g3-p3a-count-head-train5k.md)：
+冻结P2-W表示只训8,513参数Count head，route100 exact从3/100升至8/100、MAE降至4.59，
+但train5k自身也仅14.54% exact，正式NO-GO。下一步必须联合适配encoder/decoder与三类head。
+
 当前已完成审计：[G3 P2-Y Joint Cardinality Decode Route100](20260804-g3-p2y-joint-cardinality-decode-route100.md)：
 route100与train5k分子重叠0；候选oracle 3073/3080、98/100。P2-W joint在预测Count下
 2399/3080、0/100，Count仅3/100；真实Count下也只有2827/3080、4/100。下一步先Count-only
