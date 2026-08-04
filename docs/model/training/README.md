@@ -26,6 +26,11 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P3-E15 Style90k Count 三次完整遍历](20260805-g3-p3e15-style-count-epoch3.md)：
+恢复P3-E14模型与optimizer后再完整遍历90,932图两次。style exact 42.14%→46.83%，dev
+120→134/256并过50%门，confirm 117→120且MAE1.08→0.91，route37→39、MAE1.28→1.12。
+能力门仍NO-GO，exposure因果GO；下一步固定协议续到总计6次完整遍历，并增加Count/variant分桶。
+
 当前已完成实验：[G3 P3-E14 Style90k Count 数据规模 A/B](20260804-g3-p3e14-style-count-scale.md)：
 从style100k严格排除dev/confirm/route molecule与scaffold后，保留22,733个分子、90,932图。
 相同99,480 exposure/1,560 step下，confirm从108/256、MAE1.27提高到117/256、1.08；dev
@@ -612,6 +617,12 @@ Skeleton exact 48.09%、Chemical exact 24.00%；count-pair 正确条件下 Skele
 | H01 | [历史 PaddleOCR 教师方案](historical-paddleocr-teacher.md) | 通用 OCR 不再作为训练教师 | 停止 |
 
 ## 当前下一步
+
+P3-E15 增加两个完整unique-data epoch后，dev exact和confirm MAE已经过门，但confirm exact
+只有120/256、route100为39/100。训练域exact仍从42.14%继续升到46.83%，continuation loss
+未饱和，因此P3-E16保持checkpoint、optimizer、90,932图和普通CE不变，再增加三个完整
+unique-data epoch，使累计完整遍历数达到6。fixed-final除原四门外，必须按真实Count区间和四种
+variant报告错误；仍禁止用route100选择epoch或checkpoint。
 
 P3-E14 已用严格 matched-exposure A/B 证明数据规模有效：在 optimizer step 与 exposure 完全
 不变时，22,733 个 molecule 将 confirm exact `108→117/256`、MAE `1.27→1.08`。但新

@@ -137,6 +137,9 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
   在与P3-E10完全相同的99,480 exposure和1,560 step下，confirm提高到117/256、MAE1.08，
   dev提高到120/256，route exact持平37但MAE降到1.28。能力门NO-GO、数据规模因果GO；
   P3-E14成为当前Count研究checkpoint，下一步固定协议增加到3个完整unique-data epoch。
+  P3-E15恢复P3-E14模型与AdamW后再完整遍历style90k两次。dev达到134/256、MAE0.87，confirm
+  达到120/256、MAE0.91，route100达到39/100、MAE1.12；相对P3-E14全部改善。能力门仍
+  NO-GO、exposure因果GO；P3-E15成为当前Count研究checkpoint，下一步固定续到6次完整遍历。
 - 版本从 `v0.7` 开始，每次发布增加 `0.0.1`。
 - 根目录 `VERSION` 是开发版本的唯一来源。
 
@@ -571,16 +574,16 @@ pilot 9k primitive-set 训练，不把上游泛化失败归因于 group decoder�
 
 ## 当前最佳结果
 
-当前 G3 独立 Count 研究 checkpoint 为 P3-E14 style90932 h64：
+当前 G3 独立 Count 研究 checkpoint 为 P3-E15 style90932 epoch3 h64：
 
 ```text
-outputs/smoke/chemvector-g3-p3e14-deepsets-count-style90932-h64/step-001560.pt
+outputs/smoke/chemvector-g3-p3e15-deepsets-count-style90932-epoch3-h64/step-004402.pt
 ```
 
-SHA256：`8dd295bc1e1b976c6e851cfa566ce990a1971726c23eebd48880450c4a809687`。
-confirm256 为117/256、MAE1.08，dev256为120/256、MAE1.23，historical route100为
-37/100、MAE1.28。它在相同exposure/step下全面改善P3-E10的固定dev/confirm与MAE，但仍未
-达到部署门，也不是端到端SDF准确率。
+SHA256：`f67ba0ceccabc5ca54217c75c009f685de81ee6a0eaed6fb1516901bdb5fb823`。
+confirm256 为120/256、MAE0.91，dev256为134/256、MAE0.87，historical route100为
+39/100、MAE1.12。dev exact和confirm MAE已经过门，但confirm/route exact仍未过门；该结果
+不是端到端SDF准确率。
 
 v0.7.10 沿用 v0.7.9 checkpoint：
 
