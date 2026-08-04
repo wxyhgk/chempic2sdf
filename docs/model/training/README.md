@@ -26,6 +26,11 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P3-E13 Cardinality Curve Refiner](20260804-g3-p3e13-cardinality-curve.md)：
+P3-E10 coarse Count 的 `±4` 窗口覆盖 confirm 243/256，但九点 base/expert 精确匹配曲线 refiner
+仅得 101/256、MAE1.30，低于 coarse 的108/256、1.27；四门均失败。正式NO-GO，下一步在
+style_train_100k 建立大规模冻结 Count evidence cache，做数据量因果A/B，不再调curve小头。
+
 当前已完成实验：[G3 P3-E12 Style-Consistent Count](20260804-g3-p3e12-style-consistent-count.md)：
 四variant batch加0.1一致性后confirm为106/256、MAE1.25，未超过E10的108/256；route100虽39/100
 但不可反向选模。正式NO-GO，停止调DeepSets loss，下一步转结构化cardinality matching curve。
@@ -601,6 +606,12 @@ Skeleton exact 48.09%、Chemical exact 24.00%；count-pair 正确条件下 Skele
 | H01 | [历史 PaddleOCR 教师方案](historical-paddleocr-teacher.md) | 通用 OCR 不再作为训练教师 | 停止 |
 
 ## 当前下一步
+
+P3-E13 已否定“冻结现有 selector 的 scalar matching curve + 3,316 图 offset MLP”：confirm
+的真实 Count 有243/256位于`coarse ±4`，refiner却只选对101/256，并低于P3-E10的108/256。
+下一步不再调整窗口、MLP或loss，而是在`style_train_100k`上生成冻结base/expert/P3-E10
+evidence cache，保持模型协议不变做3,316图对100,000图的数据量A/B。route100只做历史诊断，
+MR-TADF仍只做外部benchmark；当前Count winner保持P3-E10 h64。
 
 v0.9.67-v0.9.70 已确认训练数据扩量能显著提高 Atom proposal：MR-TADF 顶点整图完整率
 `93.73%→97.73%`，12-16px recall `89.67%→97.28%`。但直接替换、重训 selector、双头

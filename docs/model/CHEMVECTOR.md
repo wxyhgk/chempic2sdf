@@ -130,6 +130,9 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
   P3-E12四variant一致性得到confirm 106/256、MAE1.25，未超过E10的108/256；正式NO-GO。
   DeepSets loss/正则支线停止，下一步用不同K的最大匹配分数增量构造结构化cardinality curve，
   直接学习是否继续加入一条Atom matching。
+  P3-E13随后对`coarse ±4`九个K分别求base/expert精确一一匹配。窗口覆盖confirm 243/256，
+  但refiner只有101/256、MAE1.30，低于P3-E10的108/256、1.27；正式NO-GO。当前Count winner
+  保持P3-E10 h64，下一步固定协议扩到style_train_100k做数据量因果A/B，不继续调curve小头。
 - 版本从 `v0.7` 开始，每次发布增加 `0.0.1`。
 - 根目录 `VERSION` 是开发版本的唯一来源。
 
@@ -563,6 +566,16 @@ primitive 在独立 validation100 的 line F1 只有 0.055%、IoU 7.84%，所以
 pilot 9k primitive-set 训练，不把上游泛化失败归因于 group decoder。
 
 ## 当前最佳结果
+
+当前 G3 独立 Count winner 为 P3-E10 expanded3316 h64：
+
+```text
+outputs/smoke/chemvector-g3-p3e10-deepsets-count-expanded3316-h64/step-001560.pt
+```
+
+SHA256：`9f734bf72d1f0c432dd2d7da14212bc94b013caf12849f30c752801a1a5bb3b7`。
+confirm256 为108/256、MAE1.27，historical route100为37/100、MAE1.57。P3-E11、E12、E13
+均未超过它；该结果仍未达到部署门，也不是端到端SDF准确率。
 
 v0.7.10 沿用 v0.7.9 checkpoint：
 
