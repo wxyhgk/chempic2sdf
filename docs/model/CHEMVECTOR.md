@@ -67,7 +67,10 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
   3073/3080、98/100增至3074/3080、99/100，未过预注册门；下一步改进密集/交叉局部的center
   target，不直接上100k，也不追加同一selector epoch。P2-G读取真实文字层做可恢复性审计后，
   eligible route为3003/3003、98/98；唯一severe stress图在top128为47/53，扩大到top1024仍
-  只有49/53。P2-F正式NO-GO不变，但中心候选主线停止扩量，下一步转未知Count下的Atom整组选择。
+  只有49/53。P2-F正式NO-GO不变，但中心候选主线停止扩量，转未知Count下的Atom整组选择。
+  P2-H的291,394参数query集合在capacity64把Count做到64/64，但唯一pointer输出的easy/hard
+  exact只有9/32、8/32；训练期允许query pointer重复、推理期才强制唯一是明确协议缺口。下一步
+  将全局唯一pointer matching直接纳入训练，不追加同一loss或直接扩到5k。
 - 版本从 `v0.7` 开始，每次发布增加 `0.0.1`。
 - 根目录 `VERSION` 是开发版本的唯一来源。
 

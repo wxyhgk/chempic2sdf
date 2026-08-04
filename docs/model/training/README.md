@@ -26,10 +26,15 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P2-H Atom Query Set Capacity64](20260804-g3-p2h-atom-query-set-capacity64.md)：
+291,394参数query集合在easy/hard各32图上将Count做到64/64，但known-count整组仅9/32、8/32。
+训练时set-valued pointer允许多个query偏好同一peak，推理期唯一assignment出现148/102次独立
+pointer冲突。Count机制GO、pointer容量NO-GO；下一步把唯一pointer matching移入训练目标。
+
 当前已完成审计：[G3 P2-G 渲染可恢复性审计](20260804-g3-p2g-render-recoverability-audit.md)：
 基于真实`layers.visible_text`将route100的7张粗几何标记收敛为2张困难图、1张severe；冻结P2-F
 重放显示eligible为3003/3003、98/98，唯一severe为47/53且top1024仍只49/53。P2-F正式NO-GO
-不变，但最后残差已隔离到不可安全监督的stress渲染；下一步转未知Count下的Atom整组选择。
+不变，但最后残差已隔离到不可安全监督的stress渲染；P2-H随后进入未知Count下的Atom整组选择。
 
 当前已完成实验：[G3 P2-F Stride-1 Center Field Train25k](20260804-g3-p2f-stride1-center-field-train25k.md)：
 保持6250 updates/25000 exposures不变，将5k×5轮改为25k唯一图×1轮；route从3073/3080、
