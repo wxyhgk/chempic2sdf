@@ -2,7 +2,7 @@
 
 > 日期：2026-08-04
 >
-> 状态：latent-positive solver GO / pilot协议需先补best-invalid margin
+> 状态：latent-positive 与 best-invalid solver 均 GO / P3-E1 已执行
 
 ## 精确 latent positive
 
@@ -68,9 +68,21 @@ structured梯度；全部使用`autograd.grad`，权重摘要前后相同，训�
   另立独立Count实验。
 - best-invalid solver先做小规模穷举、Hall witness规模、重复摘要与延迟审计；未通过不得进入192图pilot。
 
+## Best-invalid E0b 复核
+
+Hall witness 加受限 dummy-row Hungarian 已通过小规模穷举和正式审计。4,937 图的 GT
+兼容 component 最大为 3，witness p50/p95/max 为 `29/53/100`。256 图两次摘要一致，
+best-invalid 延迟 p50/p95 为 `0.99/32.27ms`；无效解全部被精确识别。
+
+实现复核后，每张图只把 score 矩阵从 GPU 搬到 CPU 一次，witness 全程留在 CPU；同时增加
+candidate 宽度校验、极端负分测试，并把 `(query,candidate)` 边身份写入重复性 digest。
+
+E0b 通过后已运行 [P3-E1 pilot](20260804-g3-p3e1-latent-structured-pilot256.md)。
+
 ```text
 solver audit = outputs/audits/chemvector-g3-p3e0-latent-solver-audit/metrics.json
 gradient audit = outputs/audits/chemvector-g3-p3e0-gradient-conflicts/metrics.json
+best-invalid audit = outputs/audits/chemvector-g3-p3e0-best-invalid-solver/metrics.json
 training updates = 0
-decision = solver GO / training protocol revision required
+decision = both exact solvers GO
 ```

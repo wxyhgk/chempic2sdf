@@ -26,11 +26,17 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P3-E1 Latent Structured Pilot256](20260804-g3-p3e1-latent-structured-pilot256.md)：
+latent valid-vs-best-invalid 将 general192 从5663/6202、9/192提高到6082/6202、155/192，
+但 hard32 从807/807、32/32崩到704/807、2/32，正式NO-GO。E1b确认capacity起点的best-invalid
+全部只错1个GT，真实局部margin已63/64满足，而固定mean-margin=1仅1/64满足；当前整图margin
+尺度被否决。下一步做coverage-calibrated margin A/B，并单独使用molecule-disjoint能力样本。
+
 当前已完成审计：[G3 P3-E0 Latent Solver 与梯度审计](20260804-g3-p3e0-latent-solver-gradient-audit.md)：
 精确latent-positive solver在4,937图上最大仅32种归属、p95约1.6ms，正式GO。BF16/FP32下
 P2-W query exact仅190/256但candidate-set exact为249/256，确认等价query身份不稳定；同时
 梯度审计发现正确capacity梯度接近0、general梯度巨大，历史目标几乎全程强clip。下一步先补
-等价类不变的best-invalid margin oracle，再跑192图pilot；Count与结构彻底拆开。
+等价类不变的best-invalid margin oracle；E0b随后通过穷举、重复性和延迟门，Count与结构彻底拆开。
 
 当前已完成实验：[G3 P3-D Structured Matching Replay Train4937](20260804-g3-p3d-structured-matching-replay-train4937.md)：
 loss-augmented joint matching将route known-count提高到目前最高34/100，但capacity仅16/32、2/32，

@@ -99,9 +99,11 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
   但route回落为0/100；说明固定身份有效而factorized loss仍不对齐joint MAP，下一步进入结构化匹配loss。
   P3-D结构化hinge将route known-count提高到34/100，但固定唯一正matching仍使capacity只有16/32、
   2/32；下一步正分支改为GT-compatible latent matching，不再固定等价query排列。
-  P3-E0随后验证精确latent正solver可行，并量化query身份变化而candidate集合稳定；但正确capacity
-  样本梯度接近0、general梯度巨大且历史目标强clip。正式pilot前必须先补best-invalid margin，
-  Count与结构完全拆开。
+  P3-E0随后验证精确latent正solver可行，并量化query身份变化而candidate集合稳定；E0b的精确
+  best-invalid Hall/Hungarian solver也通过穷举和延迟门。P3-E1将general192从9/192提高到
+  155/192，但hard32从32/32崩到2/32。E1b确认固定`mean margin=1`把只漏1个Atom的错误按整图
+  K倍尺度继续强推，正式否决该margin；下一步保留latent solver，改做coverage-calibrated A/B，
+  并把同分子多风格样本与molecule-disjoint能力验证分开。
 - 版本从 `v0.7` 开始，每次发布增加 `0.0.1`。
 - 根目录 `VERSION` 是开发版本的唯一来源。
 
