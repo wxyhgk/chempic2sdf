@@ -26,10 +26,15 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P2-K Pointer-Matched Query Set Step8000](20260804-g3-p2k-pointer-matched-query-set-step8000.md)：
+从P2-J完整恢复optimizer续训到8,000步，final easy/hard为965/967、30/32和801/807、27/32；
+中间最好观察也仅30/32、29/32且后程振荡。严格NO-GO并停止追加epoch，下一步从相同随机初始化
+重开，在object BCE外加入整图existence正负边界损失。
+
 当前已完成实验：[G3 P2-J Pointer-Matched Query Set Capacity64](20260804-g3-p2j-pointer-matched-query-set-capacity64.md)：
 只把query-to-GT代价换成兼容候选pointer mass，easy/hard从P2-I的12/32、5/32大幅提高到
 28/32、26/32；pointer-linked query两域均已32/32。4,800步严格NO-GO，但step3200→4800
-持续单调提高，允许固定optimizer续训到8,000步，未过则转existence boundary目标。
+持续单调提高；P2-K固定optimizer续训到8,000步后仍未过门，转existence boundary目标。
 
 当前已完成实验：[G3 P2-I Unique Pointer Set Capacity64](20260804-g3-p2i-unique-pointer-set-capacity64.md)：
 相同初始化下将pointer监督改成训练期全局唯一匹配，easy/hard为943/967、12/32和768/807、5/32，

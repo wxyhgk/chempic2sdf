@@ -75,7 +75,8 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
   而部署existence top-N与GT-linked query只重合92.35%/93.31%。下一步不再改pointer，而是用
   兼容候选pointer质量替代不可靠的概率加权平均坐标，定义query-to-GT matching。P2-J完成该
   单变量A/B后大幅提高到28/32、26/32，pointer-linked query双域均32/32；step3200到4800仍
-  连续提高，因此允许固定optimizer续训到8,000步，未过则转existence boundary目标。
+  连续提高，因此允许固定optimizer续训到8,000步。P2-K final只到30/32、27/32，中间最好也
+  只有30/32、29/32且后程振荡；停止追加epoch，下一步从同随机初始化加入整图existence边界损失。
 - 版本从 `v0.7` 开始，每次发布增加 `0.0.1`。
 - 根目录 `VERSION` 是开发版本的唯一来源。
 

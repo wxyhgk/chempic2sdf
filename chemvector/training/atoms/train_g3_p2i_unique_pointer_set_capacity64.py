@@ -160,6 +160,22 @@ def run_experiment(args, *, protocol, training_step_fn) -> None:
     optimizer = torch.optim.AdamW(
         model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay
     )
+    start_step = 0
+    start_exposure = 0
+    resume = None
+    resume_checkpoint = protocol.get("resume_checkpoint")
+    if resume_checkpoint is not None:
+        if file_sha256(resume_checkpoint) != protocol["resume_checkpoint_sha256"]:
+            raise ValueError(f"{experiment} resume checkpoint SHA256 differs")
+        resume = torch.load(resume_checkpoint, map_location=device, weights_only=False)
+        if resume.get("model_type") != protocol["resume_model_type"]:
+            raise ValueError(f"{experiment} resume model type differs")
+        if resume.get("global_step") != protocol["resume_step"]:
+            raise ValueError(f"{experiment} resume step differs")
+        model.load_state_dict(resume["atom_query_set"], strict=True)
+        optimizer.load_state_dict(resume["optimizer"])
+        start_step = int(resume["global_step"])
+        start_exposure = int(resume["samples_seen"])
     lineage = {
         "p2h_checkpoint": str(P2H_CHECKPOINT.resolve()),
         "p2h_checkpoint_sha256": P2H_CHECKPOINT_SHA256,
@@ -173,6 +189,17 @@ def run_experiment(args, *, protocol, training_step_fn) -> None:
         ],
         "selection_audit": selection_audit,
         "initial_model_state_sha256": initial_sha,
+        "resume": (
+            {
+                "checkpoint": str(resume_checkpoint.resolve()),
+                "checkpoint_sha256": protocol["resume_checkpoint_sha256"],
+                "model_type": protocol["resume_model_type"],
+                "step": start_step,
+                "samples_seen": start_exposure,
+                "optimizer_restored": True,
+            }
+            if resume_checkpoint is not None else None
+        ),
     }
     args.output_dir.mkdir(parents=True, exist_ok=False)
     _atomic_json(
@@ -181,7 +208,9 @@ def run_experiment(args, *, protocol, training_step_fn) -> None:
             "schema_version": protocol["audit_schema_version"],
             "scope": protocol["scope"],
             "changed_variable": protocol["changed_variable"],
-            "same_architecture_data_initialization_budget_as_p2h": True,
+            "same_architecture_data_initialization_budget_as_p2h": protocol.get(
+                "same_architecture_data_initialization_budget_as_p2h", True
+            ),
             "fixed_pixel_clustering": False,
             "selection": selection_audit,
             "lineage": lineage,
@@ -197,12 +226,16 @@ def run_experiment(args, *, protocol, training_step_fn) -> None:
     }
     _atomic_json(args.output_dir / "step0_metrics.json", step0)
 
-    step = exposure = epoch = 0
-    losses = {}
+    target_steps = int(protocol.get("target_steps", p2h.STEPS))
+    expected_exposure = target_steps * args.batch_size
+    step = start_step
+    exposure = start_exposure
+    epoch = step // 16
+    losses = resume.get("last_losses", {}) if resume is not None else {}
     running = defaultdict(float)
     started = time.perf_counter()
     log_path = args.output_dir / "train.jsonl"
-    while step < p2h.STEPS:
+    while step < target_steps:
         epoch += 1
         for domain, records in p2h.epoch_batches(domains):
             model.train()
@@ -229,7 +262,7 @@ def run_experiment(args, *, protocol, training_step_fn) -> None:
                     handle.write(json.dumps(record, separators=(",", ":")) + "\n")
                 print(json.dumps(record, separators=(",", ":")), flush=True)
                 running.clear()
-            if step % p2h.SAVE_EVERY == 0 and step < p2h.STEPS:
+            if step % p2h.SAVE_EVERY == 0 and step < target_steps:
                 payload = checkpoint_payload(
                     model, optimizer, args, lineage,
                     step=step, exposure=exposure, losses=losses, metrics=None,
@@ -249,10 +282,11 @@ def run_experiment(args, *, protocol, training_step_fn) -> None:
     decision, checks = p2h.gate(metrics)
     decision = decision.replace("atom_query_set", protocol["decision_prefix"])
     protocol_checks = {
-        "fixed_steps": step == p2h.STEPS,
-        "fixed_exposure": exposure == p2h.EXPECTED_EXPOSURE,
-        "fixed_epochs": epoch == 300,
+        "fixed_steps": step == target_steps,
+        "fixed_exposure": exposure == expected_exposure,
+        "fixed_epochs": epoch == target_steps // 16,
         "same_initialization_as_p2h": initial_sha == EXPECTED_INITIAL_SHA256,
+        "resume_optimizer_restored": resume_checkpoint is None or resume is not None,
         "model_changed": module_state_sha256(model) != initial_sha,
         "repeat_metrics": repeated == metrics,
     }
@@ -271,7 +305,7 @@ def run_experiment(args, *, protocol, training_step_fn) -> None:
         step=step, exposure=exposure, losses=losses, metrics=final,
         protocol=protocol,
     )
-    checkpoint = args.output_dir / "step-004800.pt"
+    checkpoint = args.output_dir / f"step-{target_steps:06d}.pt"
     _atomic_torch_save(checkpoint, payload)
     _atomic_torch_save(args.output_dir / "last.pt", payload)
     final["checkpoint"] = str(checkpoint.resolve())
