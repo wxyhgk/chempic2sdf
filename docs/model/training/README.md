@@ -26,6 +26,12 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P1-X Multiscale Peak Selector Capacity64](20260804-g3-p1x-multiscale-peak-selector-capacity64.md)：
+固定`stride2 top96 + stride1 top32`候选，用105,089参数集合selector和动态最大基数一对一监督，
+overfit32从1199/1424、0/32提高到1424/1424、32/32，adjacent32从1225/1473、0/32提高到
+1473/1473、32/32；独立确定性重放逐位一致，双域容量GO。下一步固定协议进入P1-Y train5k，
+容量结果不得表述为公开分布泛化。
+
 当前已完成审计：[G3 P1-W Multiscale Peak Rank Audit](20260804-g3-p1w-multiscale-peak-rank-audit.md)：
 冻结P1-U/P1-V后，首个双域100%固定协议是`stride2 top96 + stride1 top32`：只用128候选即达到
 overfit 1424/1424、32/32和adjacent 1473/1473、32/32。top128内同GT等价峰很多，下一P1-X
