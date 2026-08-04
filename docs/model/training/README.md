@@ -26,6 +26,10 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P2-V Fixed Identity Pointer Utility Capacity64](20260804-g3-p2v-fixed-identity-pointer-utility-capacity64.md)：
+P2-Q改用正确固定identity后，10维pointer utility将easy/hard提高到31/32、28/32，机制GO但
+严格容量NO-GO。曲线在1,600步仍改善；下一步完整恢复optimizer并预先固定4,800步终点。
+
 当前已完成实验：[G3 P2-U Fixed Identity Listwise MLP Capacity64](20260804-g3-p2u-fixed-identity-listwise-mlp-capacity64.md)：
 正确identity上组合8,577参数MLP与平滑listwise后仅28/32、26/32，NO-GO。停止调纯query-hidden
 head；下一步用正确identity重做P2-Q的10维pointer utility实验。
