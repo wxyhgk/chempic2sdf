@@ -70,7 +70,10 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
   只有49/53。P2-F正式NO-GO不变，但中心候选主线停止扩量，转未知Count下的Atom整组选择。
   P2-H的291,394参数query集合在capacity64把Count做到64/64，但唯一pointer输出的easy/hard
   exact只有9/32、8/32；训练期允许query pointer重复、推理期才强制唯一是明确协议缺口。下一步
-  将全局唯一pointer matching直接纳入训练，不追加同一loss或直接扩到5k。
+  将全局唯一pointer matching直接纳入训练，不追加同一loss或直接扩到5k。P2-I完成该A/B后
+  easy/hard为12/32、5/32，仍NO-GO；但GT-linked query的同一pointer输出达到32/32、28/32，
+  而部署existence top-N与GT-linked query只重合92.35%/93.31%。下一步不再改pointer，而是用
+  兼容候选pointer质量替代不可靠的概率加权平均坐标，定义query-to-GT matching。
 - 版本从 `v0.7` 开始，每次发布增加 `0.0.1`。
 - 根目录 `VERSION` 是开发版本的唯一来源。
 

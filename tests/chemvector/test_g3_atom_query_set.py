@@ -9,6 +9,7 @@ from chemvector.components.atoms.objects.g3_atom_query_set import (
     G3AtomQuerySetConfig,
     decode_g3_atom_query_set,
     g3_atom_query_set_loss,
+    unique_pointer_targets,
 )
 
 
@@ -65,6 +66,43 @@ class G3AtomQuerySetTests(unittest.TestCase):
         decoded = decode_g3_atom_query_set(output, anchors)
         self.assertEqual(len(decoded[0]["candidate_indices"].unique()), 2)
         self.assertEqual(len(decoded[0]["anchors"]), 2)
+
+    def test_unique_pointer_targets_resolve_competing_queries(self) -> None:
+        pointer_logits = torch.tensor([[
+            [9.0, 8.0, 0.0],
+            [9.0, 7.0, 0.0],
+        ]])
+        candidates = torch.tensor([[
+            [0.100, 0.100],
+            [0.102, 0.100],
+            [0.800, 0.800],
+        ]])
+        targets = torch.tensor([[
+            [0.100, 0.100],
+            [0.102, 0.100],
+        ]])
+        assignments = [(torch.tensor([0, 1]), torch.tensor([0, 1]))]
+        selected = unique_pointer_targets(
+            pointer_logits, candidates, targets, assignments
+        )[0]
+        self.assertEqual(len(selected.unique()), 2)
+        self.assertEqual(set(selected.tolist()), {0, 1})
+
+    def test_unique_pointer_loss_backpropagates(self) -> None:
+        candidates = self.candidates(batch=1)
+        target_anchors = torch.zeros(1, 4, 2)
+        target_anchors[0, :2] = candidates["candidate_anchors"][0, :2]
+        target_mask = torch.tensor([[True, True, False, False]])
+        model = G3AtomQuerySet()
+        losses = g3_atom_query_set_loss(
+            model(candidates),
+            candidates["candidate_anchors"],
+            target_anchors,
+            target_mask,
+            unique_pointers=True,
+        )
+        self.assertTrue(torch.isfinite(losses["loss"]))
+        losses["loss"].backward()
 
 
 if __name__ == "__main__":

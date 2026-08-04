@@ -26,10 +26,15 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P2-I Unique Pointer Set Capacity64](20260804-g3-p2i-unique-pointer-set-capacity64.md)：
+相同初始化下将pointer监督改成训练期全局唯一匹配，easy/hard为943/967、12/32和768/807、5/32，
+仍NO-GO；但GT-linked query pointer达到967/967、32/32和802/807、28/32。existence top-N只与
+GT-linked query重合92.35%/93.31%，下一步改用pointer质量做query-to-GT matching。
+
 当前已完成实验：[G3 P2-H Atom Query Set Capacity64](20260804-g3-p2h-atom-query-set-capacity64.md)：
 291,394参数query集合在easy/hard各32图上将Count做到64/64，但known-count整组仅9/32、8/32。
 训练时set-valued pointer允许多个query偏好同一peak，推理期唯一assignment出现148/102次独立
-pointer冲突。Count机制GO、pointer容量NO-GO；下一步把唯一pointer matching移入训练目标。
+pointer冲突。Count机制GO、pointer容量NO-GO；P2-I随后把唯一pointer matching移入训练目标。
 
 当前已完成审计：[G3 P2-G 渲染可恢复性审计](20260804-g3-p2g-render-recoverability-audit.md)：
 基于真实`layers.visible_text`将route100的7张粗几何标记收敛为2张困难图、1张severe；冻结P2-F

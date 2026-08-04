@@ -207,6 +207,49 @@ def hungarian_query_targets(
     return assignments
 
 
+@torch.no_grad()
+def unique_pointer_targets(
+    pointer_logits: torch.Tensor,
+    candidate_anchors: torch.Tensor,
+    target_anchors: torch.Tensor,
+    assignments: list[tuple[torch.Tensor, torch.Tensor]],
+    *,
+    radius_pixels: float = 6.0,
+    image_size: int = 768,
+) -> list[torch.Tensor]:
+    """Assign one distinct compatible candidate to every matched Atom query."""
+
+    radius = float(radius_pixels) / float(image_size)
+    results = []
+    for batch_index, (query_indices, target_indices) in enumerate(assignments):
+        expected = target_anchors[batch_index, target_indices].detach().float()
+        compatible = torch.cdist(
+            expected, candidate_anchors[batch_index].detach().float()
+        ) <= radius
+        if bool((compatible.sum(dim=1) < 1).any()):
+            raise RuntimeError("G3 Atom query target has no compatible candidate")
+        costs = -pointer_logits[
+            batch_index, query_indices
+        ].detach().float().log_softmax(dim=-1)
+        invalid_cost = float(costs.max().cpu()) + 1_000_000.0
+        costs = costs.masked_fill(~compatible, invalid_cost)
+        rows, columns = linear_sum_assignment(costs.cpu().numpy())
+        if len(rows) != len(query_indices):
+            raise RuntimeError("G3 Atom query unique pointer assignment is incomplete")
+        ordered = torch.empty(
+            len(query_indices), dtype=torch.long, device=pointer_logits.device
+        )
+        row_tensor = torch.as_tensor(rows, dtype=torch.long, device=pointer_logits.device)
+        column_tensor = torch.as_tensor(
+            columns, dtype=torch.long, device=pointer_logits.device
+        )
+        if not bool(compatible[row_tensor, column_tensor].all()):
+            raise RuntimeError("G3 Atom query unique pointer assignment is incompatible")
+        ordered[row_tensor] = column_tensor
+        results.append(ordered)
+    return results
+
+
 def g3_atom_query_set_loss(
     output: dict[str, torch.Tensor],
     candidate_anchors: torch.Tensor,
@@ -215,6 +258,7 @@ def g3_atom_query_set_loss(
     *,
     radius_pixels: float = 6.0,
     image_size: int = 768,
+    unique_pointers: bool = False,
 ) -> dict[str, torch.Tensor]:
     existence = output["existence_logits"]
     count_logits = output["count_logits"]
@@ -233,23 +277,40 @@ def g3_atom_query_set_loss(
     pointer_losses = []
     pointer_log_probabilities = pointer_logits.log_softmax(dim=-1)
     radius = float(radius_pixels) / float(image_size)
+    unique_targets = (
+        unique_pointer_targets(
+            pointer_logits,
+            candidate_anchors,
+            target_anchors,
+            assignments,
+            radius_pixels=radius_pixels,
+            image_size=image_size,
+        )
+        if unique_pointers else None
+    )
     for batch_index, (query_indices, target_indices) in enumerate(assignments):
         object_targets[batch_index, query_indices] = 1.0
         expected = target_anchors[batch_index, target_indices]
         coordinate_losses.append(
             F.l1_loss(coordinates[batch_index, query_indices], expected)
         )
-        distances = torch.cdist(
-            expected.float(), candidate_anchors[batch_index].float()
-        )
-        compatible = distances <= radius
-        if bool((compatible.sum(dim=1) < 1).any()):
-            raise RuntimeError("G3 Atom query target has no compatible candidate")
-        for offset, query_index in enumerate(query_indices):
-            pointer_losses.append(-torch.logsumexp(
-                pointer_log_probabilities[batch_index, query_index][compatible[offset]],
-                dim=0,
+        if unique_targets is not None:
+            pointer_losses.append(F.cross_entropy(
+                pointer_logits[batch_index, query_indices],
+                unique_targets[batch_index],
             ))
+        else:
+            distances = torch.cdist(
+                expected.float(), candidate_anchors[batch_index].float()
+            )
+            compatible = distances <= radius
+            if bool((compatible.sum(dim=1) < 1).any()):
+                raise RuntimeError("G3 Atom query target has no compatible candidate")
+            for offset, query_index in enumerate(query_indices):
+                pointer_losses.append(-torch.logsumexp(
+                    pointer_log_probabilities[batch_index, query_index][compatible[offset]],
+                    dim=0,
+                ))
     object_weights = torch.where(
         object_targets.bool(),
         torch.ones_like(object_targets),
@@ -320,4 +381,5 @@ __all__ = [
     "decode_g3_atom_query_set",
     "g3_atom_query_set_loss",
     "hungarian_query_targets",
+    "unique_pointer_targets",
 ]
