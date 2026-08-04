@@ -97,6 +97,8 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
   但capacity64崩到5/32、0/32；动态Hungarian身份与fixed-cardinality MAP推理目标冲突，禁止
   继续同协议扩量。P3-C固定4,937图assignment并做25% capacity replay后恢复到22/32、10/32，
   但route回落为0/100；说明固定身份有效而factorized loss仍不对齐joint MAP，下一步进入结构化匹配loss。
+  P3-D结构化hinge将route known-count提高到34/100，但固定唯一正matching仍使capacity只有16/32、
+  2/32；下一步正分支改为GT-compatible latent matching，不再固定等价query排列。
 - 版本从 `v0.7` 开始，每次发布增加 `0.0.1`。
 - 根目录 `VERSION` 是开发版本的唯一来源。
 

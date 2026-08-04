@@ -26,6 +26,11 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P3-D Structured Matching Replay Train4937](20260804-g3-p3d-structured-matching-replay-train4937.md)：
+loss-augmented joint matching将route known-count提高到目前最高34/100，但capacity仅16/32、2/32，
+仍NO-GO。结构目标有效，错误在把一个任意query-candidate排列当唯一正解；下一步改为GT-compatible
+latent positive matching，保留排列等价性。
+
 当前已完成实验：[G3 P3-C Fixed Assignment Replay Train4937](20260804-g3-p3c-fixed-assignment-replay-train4937.md)：
 4,937张图固定assignment并每批25% capacity replay后，capacity从P3-B的5/32、0/32恢复到
 22/32、10/32，但route predicted exact回到0/100，仍NO-GO。固定身份有效但factorized loss与
