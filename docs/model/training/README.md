@@ -26,6 +26,11 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P3-C Fixed Assignment Replay Train4937](20260804-g3-p3c-fixed-assignment-replay-train4937.md)：
+4,937张图固定assignment并每批25% capacity replay后，capacity从P3-B的5/32、0/32恢复到
+22/32、10/32，但route predicted exact回到0/100，仍NO-GO。固定身份有效但factorized loss与
+joint MAP不对齐；下一步改为loss-augmented固定基数结构化匹配目标，不再调replay比例。
+
 当前已完成实验：[G3 P3-B Joint Atom Query Train4937](20260804-g3-p3b-joint-atom-query-train4937.md)：
 全量解冻后route100从0提高到11/100 exact、known-count到30/100，但capacity64从双域32/32
 崩到5/32、0/32。容量样本已在训练集，故不是普通遗忘，而是动态Hungarian身份与joint MAP
