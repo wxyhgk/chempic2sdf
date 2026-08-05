@@ -143,6 +143,10 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
   P3-E16再增加三个完整遍历后，dev148/256、confirm128/256且MAE0.926、route100 41/100，
   首次通过全部四个独立Count门。分桶残差集中在Count41–60和stress；停止追加同一Count
   epoch，下一步冻结P3-E16并接回P3-E7 base/expert router验证predicted-count Atom set。
+  P3-E17不重选P3-E7阈值，只接入P3-E16 Count后，route_confirm predicted Atom set从旧
+  4/256提高到79/256，历史route100从0/100提高到21/100；known-count 111/256、36/100精确
+  复现。Count正确条件expert为107/124而router仅79/124，下一步先做fresh_dev跨字体固定审计，
+  不用已消费的route_confirm调router。
 - 版本从 `v0.7` 开始，每次发布增加 `0.0.1`。
 - 根目录 `VERSION` 是开发版本的唯一来源。
 

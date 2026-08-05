@@ -26,6 +26,11 @@
 
 ## 训练时间线
 
+当前已完成审计：[G3 P3-E17 P3-E16 Count 接回冻结 Router](20260805-g3-p3e17-p3e16-count-router.md)：
+不重选P3-E7阈值，仅替换Count后，predicted-count Atom set从P3-E8的4/256、0/100提高到
+79/256、21/100；known-count 111/256、36/100精确复现，batch4/16 Count完全一致。Count正确
+条件expert为107/124而router仅79/124，下一步先在fresh_dev held-out字体域做固定跨风格审计。
+
 当前已完成实验：[G3 P3-E16 Style90k Count 六次完整遍历](20260805-g3-p3e16-style-count-epoch6.md)：
 从P3-E15再完整遍历90,932图三次后，dev148/256、confirm128/256且MAE0.926、route41/100，
 首次通过全部四个Count门。残差集中在confirm Count41–60（22.73%）和stress（40.63%）；
@@ -622,6 +627,12 @@ Skeleton exact 48.09%、Chemical exact 24.00%；count-pair 正确条件下 Skele
 | H01 | [历史 PaddleOCR 教师方案](historical-paddleocr-teacher.md) | 通用 OCR 不再作为训练教师 | 停止 |
 
 ## 当前下一步
+
+P3-E17将P3-E16 Count接回冻结P3-E7后，route_confirm从旧4/256提高到79/256，历史route100
+从0/100提高到21/100。误差已分成Count错误和保守router漏用expert两部分；不能用已消费的
+route_confirm重选阈值。下一步固定P3-E16、P2-W、P3-E1和P3-E7阈值，在不读取sealed_test
+的前提下，对`fresh_eval_12k/fresh_dev` held-out字体域做单遍Count与predicted Atom set审计；
+该fresh结果只评估泛化，不做任何选择。
 
 P3-E16 已首次关闭独立Count Gate：dev148/256、confirm128/256、confirm MAE0.926、历史
 route100 41/100。继续普通epoch已出现dev/confirm MAE轻微回退，且分桶确认主要残差为Count
