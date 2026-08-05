@@ -26,6 +26,11 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P3-E16 Style90k Count 六次完整遍历](20260805-g3-p3e16-style-count-epoch6.md)：
+从P3-E15再完整遍历90,932图三次后，dev148/256、confirm128/256且MAE0.926、route41/100，
+首次通过全部四个Count门。残差集中在confirm Count41–60（22.73%）和stress（40.63%）；
+停止追加同一Count epoch，下一步将P3-E16接回固定P3-E7 router验证predicted-count Atom set。
+
 当前已完成实验：[G3 P3-E15 Style90k Count 三次完整遍历](20260805-g3-p3e15-style-count-epoch3.md)：
 恢复P3-E14模型与optimizer后再完整遍历90,932图两次。style exact 42.14%→46.83%，dev
 120→134/256并过50%门，confirm 117→120且MAE1.08→0.91，route37→39、MAE1.28→1.12。
@@ -617,6 +622,12 @@ Skeleton exact 48.09%、Chemical exact 24.00%；count-pair 正确条件下 Skele
 | H01 | [历史 PaddleOCR 教师方案](historical-paddleocr-teacher.md) | 通用 OCR 不再作为训练教师 | 停止 |
 
 ## 当前下一步
+
+P3-E16 已首次关闭独立Count Gate：dev148/256、confirm128/256、confirm MAE0.926、历史
+route100 41/100。继续普通epoch已出现dev/confirm MAE轻微回退，且分桶确认主要残差为Count
+41–60和stress，因此停止Count单头续训。下一步冻结P3-E16 Count，替换P3-E8的P2-W Count，
+沿用P3-E7已冻结的base/expert与零break router，重新报告confirm256和历史route100的
+predicted-count Atom set exact；不得重选P3-E7阈值。
 
 P3-E15 增加两个完整unique-data epoch后，dev exact和confirm MAE已经过门，但confirm exact
 只有120/256、route100为39/100。训练域exact仍从42.14%继续升到46.83%，continuation loss
