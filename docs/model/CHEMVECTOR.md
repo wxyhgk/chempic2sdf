@@ -154,6 +154,10 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
   P3-E16后只改逆频率加权CE并完整遍历style90k一次，fresh exact从36.26%提高到39.21%、
   41–60提高7.5pp，但61–80仅提高0.85pp，未过预注册能力门。分布失衡只解释部分残差；全局
   129类Count分类正式停止，下一步改为候选occupancy概率相加的Poisson-binomial Count表示。
+  P3-E20在五个Count区间平衡的2560图训练、1280图molecule-disjoint dev上验证该表示：MAE从
+  P3-E16的3.42降到2.76，但exact仅28.36%→29.22%，训练集也只有29.34%，严格NO-GO。
+  Count-only标签能约束概率总和却不能将128个候选极化为0/1对象；下一步保留Poisson-binomial，
+  加入等价候选集合下的动态一一匹配presence监督，先过小容量门再扩量。
 - 版本从 `v0.7` 开始，每次发布增加 `0.0.1`。
 - 根目录 `VERSION` 是开发版本的唯一来源。
 

@@ -26,6 +26,12 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P3-E20 Poisson-binomial Count Pilot](20260806-g3-p3e20-poisson-binomial-count-pilot.md)：
+128个候选occupancy经Poisson-binomial得到Count，平衡的2560/1280图上dev MAE从P3-E16的
+3.42降到2.76，但exact只从28.36%提高到29.22%，训练集自身也仅29.34%，严格NO-GO。
+整图Count-only能学数量尺度却不能把候选概率极化为0/1；下一步保留可加和表示，加入等价候选
+集合下的动态一一匹配presence监督，不扩到90k、不读取fresh_dev。
+
 当前已完成实验：[G3 P3-E19 Count 区间平衡训练](20260806-g3-p3e19-bucket-balanced-count.md)：
 从P3-E16精确恢复后，只把CE改为Count区间逆频率权重并完整遍历style90k一次。fresh exact
 36.26%→39.21%、MAE1.98→1.80，41–60提高7.5pp，但61–80只提高0.85pp；三项能力门失败，
