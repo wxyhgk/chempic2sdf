@@ -26,6 +26,12 @@
 
 ## 训练时间线
 
+当前已完成审计：[G3 P3-E18 Fresh Dev 跨字体固定审计](20260806-g3-p3e18-freshdev-heldout-font-audit.md)：
+held-out字体fresh_dev8k上，candidate recall为99.6877%、known-count Router为2467/8000，两个
+子门通过；P3-E16 Count仅2901/8000、MAE1.98，使predicted Router降到1477/8000，总Gate
+NO-GO。按Count区间对照训练域后，两域准确率几乎一致，主因是style90k中61–80原子仅2372图
+而fresh_dev四个区间等量；下一步做Count区间平衡训练，不继续追加同分布epoch或回头改候选点。
+
 当前已完成审计：[G3 P3-E17 P3-E16 Count 接回冻结 Router](20260805-g3-p3e17-p3e16-count-router.md)：
 不重选P3-E7阈值，仅替换Count后，predicted-count Atom set从P3-E8的4/256、0/100提高到
 79/256、21/100；known-count 111/256、36/100精确复现，batch4/16 Count完全一致。Count正确

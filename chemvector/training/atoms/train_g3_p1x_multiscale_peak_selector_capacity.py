@@ -113,9 +113,12 @@ def _collect_scale(
     collator,
     device: torch.device,
     batch_size: int = 4,
+    accepted_split: str = "train",
 ) -> tuple[dict[str, dict[str, dict]], dict]:
     if batch_size < 1:
         raise ValueError("P1-X collection batch size must be positive")
+    if not accepted_split:
+        raise ValueError("P1-X accepted split must be non-empty")
     if file_sha256(checkpoint) != checkpoint_sha256:
         raise ValueError(f"P1-X checkpoint SHA differs: {checkpoint}")
     payload = torch.load(checkpoint, map_location="cpu", weights_only=False)
@@ -140,7 +143,10 @@ def _collect_scale(
     for domain, manifest in domains.items():
         current = {}
         for batch in p1a.iter_manifest_batches(
-            manifest, collator, batch_size=batch_size
+            manifest,
+            collator,
+            batch_size=batch_size,
+            accepted_split=accepted_split,
         ):
             objects, stroke = p1t.model_inputs(
                 atom_head,
@@ -201,6 +207,7 @@ def _collect_scale(
         "sample_keys_sha256": sample_digest.hexdigest(),
         "candidate_tensors_sha256": candidate_digest.hexdigest(),
         "batch_size": batch_size,
+        "accepted_split": accepted_split,
         "elapsed_seconds": time.perf_counter() - started,
     }
     del field, block, frozen_block, vision, atom_head, payload

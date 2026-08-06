@@ -127,6 +127,7 @@ def _default_dataset_factory(
 def iter_manifest_samples(
     manifest: list[G3SampleManifestRecord],
     *,
+    accepted_split: str = "train",
     dataset_factory: Callable[[list[str], set[str]], Iterator[dict]] = (
         _default_dataset_factory
     ),
@@ -135,6 +136,8 @@ def iter_manifest_samples(
 
     if not manifest:
         raise ValueError("P1-A manifest stream is empty")
+    if not accepted_split:
+        raise ValueError("P1-A accepted split must be non-empty")
     keys = {record.sample_key for record in manifest}
     if len(keys) != len(manifest):
         raise ValueError("P1-A manifest stream contains duplicate keys")
@@ -155,8 +158,10 @@ def iter_manifest_samples(
             raise ValueError(f"P1-A stream identity/order differs at sample {count}")
         split = sample.get("meta", {}).get("split")
         source_split = sample.get("meta", {}).get("source_split")
-        if split != "train" and source_split != "train":
-            raise ValueError(f"P1-A accepts only train samples: {key}")
+        if split != accepted_split and source_split != accepted_split:
+            raise ValueError(
+                f"P1-A accepts only {accepted_split} samples: {key}"
+            )
         yield sample
     if count != len(manifest):
         raise ValueError("P1-A stream did not consume the complete manifest")
@@ -238,6 +243,7 @@ def iter_manifest_batches(
     collator: G3AtomCollator,
     *,
     batch_size: int,
+    accepted_split: str = "train",
     dataset_factory: Callable[[list[str], set[str]], Iterator[dict]] = (
         _default_dataset_factory
     ),
@@ -245,7 +251,11 @@ def iter_manifest_batches(
     if batch_size < 1:
         raise ValueError("P1-A batch size must be positive")
     pending = []
-    for sample in iter_manifest_samples(manifest, dataset_factory=dataset_factory):
+    for sample in iter_manifest_samples(
+        manifest,
+        accepted_split=accepted_split,
+        dataset_factory=dataset_factory,
+    ):
         pending.append(sample)
         if len(pending) == batch_size:
             yield collator(pending)

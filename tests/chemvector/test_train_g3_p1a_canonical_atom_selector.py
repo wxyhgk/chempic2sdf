@@ -83,7 +83,14 @@ def tiny_config() -> G3HierarchicalGraphConfig:
     )
 
 
-def fake_sample(key: str, molecule: str, inchikey: str, variant: str) -> dict:
+def fake_sample(
+    key: str,
+    molecule: str,
+    inchikey: str,
+    variant: str,
+    *,
+    split: str = "train",
+) -> dict:
     return {
         "key": key,
         "image": Image.new("RGB", (32, 32), "white"),
@@ -108,7 +115,7 @@ def fake_sample(key: str, molecule: str, inchikey: str, variant: str) -> dict:
             "height": 32,
             "atoms": [{"atom_id": 0, "center": [15.5, 15.5]}],
         },
-        "meta": {"split": "train"},
+        "meta": {"split": split},
     }
 
 
@@ -183,6 +190,53 @@ class G3P1ACanonicalAtomSelectorTests(unittest.TestCase):
         )
 
         self.assertEqual([len(batch["keys"]) for batch in batches], [4, 1])
+
+    def test_stream_defaults_to_train_and_requires_explicit_fresh_split(self) -> None:
+        manifest, samples = fake_manifest_and_samples()
+        fresh_samples = [
+            {**sample, "meta": {"split": "fresh_dev"}} for sample in samples
+        ]
+
+        def factory(shards, include_keys):
+            return iter(fresh_samples)
+
+        with self.assertRaisesRegex(ValueError, "accepts only train"):
+            list(iter_manifest_samples(manifest, dataset_factory=factory))
+
+        streamed = list(
+            iter_manifest_samples(
+                manifest,
+                accepted_split="fresh_dev",
+                dataset_factory=factory,
+            )
+        )
+        batches = list(
+            iter_manifest_batches(
+                manifest,
+                G3AtomCollator(maximum_atoms=4, image_size=32),
+                batch_size=4,
+                accepted_split="fresh_dev",
+                dataset_factory=factory,
+            )
+        )
+
+        self.assertEqual(len(streamed), len(manifest))
+        self.assertEqual(len(batches), 1)
+
+    def test_stream_rejects_empty_accepted_split(self) -> None:
+        manifest, samples = fake_manifest_and_samples()
+
+        def factory(shards, include_keys):
+            return iter(samples)
+
+        with self.assertRaisesRegex(ValueError, "must be non-empty"):
+            list(
+                iter_manifest_samples(
+                    manifest,
+                    accepted_split="",
+                    dataset_factory=factory,
+                )
+            )
 
     def test_occupancy_rejects_overflow_and_identical_coordinates(self) -> None:
         accumulator = CanonicalOccupancyAccumulator(slots=3, height=10, width=10)

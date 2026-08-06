@@ -146,7 +146,11 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
   P3-E17不重选P3-E7阈值，只接入P3-E16 Count后，route_confirm predicted Atom set从旧
   4/256提高到79/256，历史route100从0/100提高到21/100；known-count 111/256、36/100精确
   复现。Count正确条件expert为107/124而router仅79/124，下一步先做fresh_dev跨字体固定审计，
-  不用已消费的route_confirm调router。
+  不用已消费的route_confirm调router。P3-E18在held-out字体fresh_dev8k上得到candidate recall
+  99.6877%、known-count Router 2467/8000，均过预注册门；但Count仅2901/8000、MAE1.98，
+  predicted Router为1477/8000，总Gate NO-GO。训练域与fresh_dev在相同Count区间的准确率接近，
+  真正断点是style90k高度集中在21–40原子而61–80仅2372图。下一步固定证据做Count区间平衡
+  训练，不继续追加同分布epoch；Router跨域利用率不足作为第二断点单独处理。
 - 版本从 `v0.7` 开始，每次发布增加 `0.0.1`。
 - 根目录 `VERSION` 是开发版本的唯一来源。
 
