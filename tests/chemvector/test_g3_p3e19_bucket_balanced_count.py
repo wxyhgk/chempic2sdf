@@ -11,6 +11,7 @@ from chemvector.training.atoms.train_g3_p3e19_bucket_balanced_count import (
     bucket_weights,
     capability_gate,
     epoch_batches,
+    evaluate_bucketed,
     weighted_count_loss,
 )
 
@@ -78,6 +79,10 @@ class G3P3E19BucketBalancedCountTests(unittest.TestCase):
         )
         self.assertEqual(decision, "bucket_balanced_count_no_go")
         self.assertFalse(checks["fresh_61_80_gain10pp"])
+
+    def test_evaluation_rejects_invalid_batch_size(self) -> None:
+        with self.assertRaisesRegex(ValueError, "batch size must be positive"):
+            evaluate_bucketed(None, [], device=torch.device("cpu"), batch_size=0)
 
 
 if __name__ == "__main__":

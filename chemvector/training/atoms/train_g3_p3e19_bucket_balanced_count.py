@@ -24,6 +24,7 @@ from chemvector.components.atoms.objects.g3_deepsets_count import (
 from chemvector.training.atoms import audit_g3_p3e0_latent_solver as p3e0
 from chemvector.training.atoms import audit_g3_p3e7_base_expert_router as p3e7
 from chemvector.training.atoms import train_g3_p2e_stride1_top128_selector_train5k as p2e
+from chemvector.training.atoms import train_g3_p2h_atom_query_set_capacity64 as p2h
 from chemvector.training.atoms import train_g3_p3e9_deepsets_count as p3e9
 from chemvector.training.atoms import train_g3_p3e10_count_scale_ab as p3e10
 from chemvector.training.atoms import train_g3_p3e14_style_count_scale as p3e14
@@ -48,6 +49,7 @@ FRESH_CACHE_SHA256 = "9d5f8f4ec14e0a43c62f5db7e411b1d9e4716692d22b77d8c07a917231
 FRESH_MANIFEST_SHA256 = "aa6d0254c5b0d8911972b8377a0628c2e0e3fbc72b95af95c9d8807591f4ab0d"
 TRAIN_IMAGES = p3e14.TRAIN_IMAGES
 BATCH_SIZE = 64
+EVALUATION_BATCH_SIZE = 16
 STEPS = math.ceil(TRAIN_IMAGES / BATCH_SIZE)
 EXPOSURE = TRAIN_IMAGES
 FINAL_GLOBAL_STEP = p3e16.FINAL_GLOBAL_STEP + STEPS
@@ -194,6 +196,38 @@ def capability_gate(fresh: dict, confirm: dict) -> tuple[str, dict[str, bool]]:
     )
 
 
+@torch.no_grad()
+def evaluate_bucketed(
+    model,
+    records: list[dict],
+    *,
+    device: torch.device,
+    batch_size: int = EVALUATION_BATCH_SIZE,
+) -> dict:
+    if batch_size < 1:
+        raise ValueError("P3-E19 evaluation batch size must be positive")
+    model.eval()
+    predicted = []
+    labels = []
+    baselines = []
+    variants = []
+    digest = hashlib.sha256()
+    for start in range(0, len(records), batch_size):
+        indices = list(range(start, min(start + batch_size, len(records))))
+        query, candidate, global_features, target = p3e9.batch(records, indices, device)
+        with _autocast_context(device, "bf16"):
+            current = model(query, candidate, global_features).argmax(dim=-1).long().cpu()
+        predicted.extend(current.tolist())
+        labels.extend(target.cpu().tolist())
+        baselines.extend(int(records[index]["baseline_count"]) for index in indices)
+        variants.extend(p2h._variant(str(records[index]["sample_key"])) for index in indices)
+        digest.update(current.numpy().tobytes())
+    return {
+        **p3e16.bucketed_count_metrics(predicted, labels, baselines, variants),
+        "prediction_digest": digest.hexdigest(),
+    }
+
+
 def main() -> None:
     if OUTPUT.exists() and any(OUTPUT.iterdir()):
         raise RuntimeError(f"P3-E19 output is not empty: {OUTPUT}")
@@ -229,8 +263,10 @@ def main() -> None:
     )
     del base_model, expert_model
     source, model, optimizer = load_source(device)
-    baseline_fresh = p3e16.evaluate_bucketed(
-        model, eval_evidence["fresh_dev8k"], device=device
+    baseline_fresh = evaluate_bucketed(
+        model,
+        eval_evidence["fresh_dev8k"],
+        device=device,
     )
     if (
         baseline_fresh["count_accuracy"] != BASELINE_FRESH["count_accuracy"]
@@ -248,6 +284,7 @@ def main() -> None:
             "checkpoint_selection": "fixed_final_only",
             "fresh_dev_training": False,
             "fresh_dev_intermediate_selection": False,
+            "evaluation_batch_size": EVALUATION_BATCH_SIZE,
             "sealed_test_read": False,
         },
         "schedule": schedule_audit,
@@ -313,7 +350,7 @@ def main() -> None:
         **eval_evidence,
     }
     metrics = {
-        name: p3e16.evaluate_bucketed(model, records, device=device)
+        name: evaluate_bucketed(model, records, device=device)
         for name, records in evaluation_sets.items()
     }
     decision, checks = capability_gate(

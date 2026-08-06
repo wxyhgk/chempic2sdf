@@ -23,6 +23,7 @@ P3-E16 的高 Count 残差主要由交叉熵的区间贡献失衡造成。
 - 五个非空区间对总 loss 的理论贡献相等，平均样本权重保持1；
 - fixed-final only，不保存或选择中间 checkpoint；
 - fresh_dev 不训练、不调权重、不看中间结果，只在最终模型评估一次；
+- Count 评估固定 batch16，与 P3-E18 正式口径一致；训练启动前必须逐值复现 P3-E18 基线；
 - route100只报告，不参与决策；sealed_test和MR-TADF不读取。
 
 ## 预注册门
