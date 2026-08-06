@@ -150,7 +150,10 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
   99.6877%、known-count Router 2467/8000，均过预注册门；但Count仅2901/8000、MAE1.98，
   predicted Router为1477/8000，总Gate NO-GO。训练域与fresh_dev在相同Count区间的准确率接近，
   真正断点是style90k高度集中在21–40原子而61–80仅2372图。下一步固定证据做Count区间平衡
-  训练，不继续追加同分布epoch；Router跨域利用率不足作为第二断点单独处理。
+  训练，不继续追加同分布epoch；Router跨域利用率不足作为第二断点单独处理。P3-E19精确恢复
+  P3-E16后只改逆频率加权CE并完整遍历style90k一次，fresh exact从36.26%提高到39.21%、
+  41–60提高7.5pp，但61–80仅提高0.85pp，未过预注册能力门。分布失衡只解释部分残差；全局
+  129类Count分类正式停止，下一步改为候选occupancy概率相加的Poisson-binomial Count表示。
 - 版本从 `v0.7` 开始，每次发布增加 `0.0.1`。
 - 根目录 `VERSION` 是开发版本的唯一来源。
 

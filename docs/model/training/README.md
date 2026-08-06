@@ -26,6 +26,12 @@
 
 ## 训练时间线
 
+当前已完成实验：[G3 P3-E19 Count 区间平衡训练](20260806-g3-p3e19-bucket-balanced-count.md)：
+从P3-E16精确恢复后，只把CE改为Count区间逆频率权重并完整遍历style90k一次。fresh exact
+36.26%→39.21%、MAE1.98→1.80，41–60提高7.5pp，但61–80只提高0.85pp；三项能力门失败，
+严格NO-GO。分布失衡只解释部分残差，停止追加加权epoch，下一步改为可加和occupancy /
+Poisson-binomial Count表示，不再直接分类129个全局Count类别。
+
 当前已完成审计：[G3 P3-E18 Fresh Dev 跨字体固定审计](20260806-g3-p3e18-freshdev-heldout-font-audit.md)：
 held-out字体fresh_dev8k上，candidate recall为99.6877%、known-count Router为2467/8000，两个
 子门通过；P3-E16 Count仅2901/8000、MAE1.98，使predicted Router降到1477/8000，总Gate
