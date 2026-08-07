@@ -26,10 +26,11 @@
 
 ## 训练时间线
 
-当前预注册训练：[G3 P3-E25 Hard Latent Occupancy Micro160](20260807-g3-p3e25-hard-latent-occupancy-micro160.md)：
+当前已完成训练：[G3 P3-E25 Hard Latent Occupancy Micro160](20260807-g3-p3e25-hard-latent-occupancy-micro160.md)：
 在true-global192冻结evidence上，candidate presence用6px动态一一匹配监督，并由同一presence导出
-Poisson-binomial Count。40个分子/160图按五Count桶平衡且优先包含tail-required组，固定1000步；
-Micro predicted Count/Atom exact均需152/160，失败不扩量。dev/fresh/sealed与SDF均不读取。
+Poisson-binomial Count。固定1000步后Count/known-count Atom/predicted Atom exact为76/47/36，
+新增可达0/27，正式NO-GO且不扩量。局部F1为95.67%但hard identity监督冲突，下一路转soft
+coverage+分量质量约束。dev/fresh/sealed与SDF均未读取。
 
 当前已完成审计：[G3 P3-E24 Top192 输入协议 A/B](20260807-g3-p3e24-top192-input-protocol-ab.md)：
 global/prefix的dev router matched相对top128增加203/248、exact增加36/27，但破坏19/18张旧正确图，

@@ -2,7 +2,7 @@
 
 > 日期：2026-08-07
 >
-> 状态：预注册，待训练
+> 状态：已完成，Micro Capacity NO-GO
 >
 > 模型：`chemvector-g3-p3e25-hard-latent-occupancy-micro160`
 
@@ -78,3 +78,38 @@ top-K以隔离Count与选择。固定门：
 
 本轮不读取dev、旧confirm、confirm_v2、fresh_dev、USPTO、MR-TADF或sealed_test，也不运行
 v0.10.10/v0.10.21 SDF；SDF只在Micro通过并完成下一阶段dev协议后运行。
+
+## 实际结果
+
+固定1,000步、16,000 exposures全部完成，重复评估和Count分布协议通过，但全部能力门失败：
+
+| 指标 | 结果 | 门 |
+|---|---:|---:|
+| Count exact | 76/160 | ≥152 |
+| Count MAE | 0.8188 | ≤0.10 |
+| predicted Atom set exact | 36/160 | ≥152 |
+| known-count Atom set exact | 47/160 | ≥152 |
+| predicted Atom recall | 95.07% | ≥99.9% |
+| gap≥0.8 | 29/160 | ≥152 |
+| 新增可达 exact | 0/27 | ≥50% |
+
+known-count micro precision/recall/F1均为95.67%，说明候选排序已学到大量局部信号，但整图集合仍
+不成立。presence gap均值为-0.306、最小-0.994；hard assignment每步只把一个兼容替代峰设正，
+其余兼容峰设负，等价候选之间持续发生相互矛盾监督。81--100桶predicted Atom exact为0/32，
+也否定了在相同目标上继续追加epoch。
+
+正式判定`hard_latent_occupancy_micro160_no_go`，不扩train3200、不运行dev/SDF。下一路线改为
+soft coverage：所有GT兼容候选共享coverage目标，同时用兼容分量总质量约束为GT数，避免固定或
+动态单一identity互相打架。
+
+## 产物
+
+- checkpoint：`outputs/checkpoints/chemvector-g3-p3e25-hard-latent-occupancy-micro160/step-001000.pt`；
+- checkpoint SHA256：`43bd9e0128794ab3a48e4a699f30f4d04ec658cbff98dbeb6fadca8ca8f1435b`；
+- audit SHA256：`2bea5768cd3ac9e83725032f1737bbe3b68c00098cc2b85a4efe02ff678642b4`；
+- final metrics SHA256：`fff2096e55b23e856af204683318f45cb7f18ba98a41a0e3c9da24f0b57a04e9`；
+- 训练耗时：47.63秒；
+- dev、旧confirm、fresh和sealed均未读取。
+
+结果提交后创建同名annotated tag：
+`chemvector-g3-p3e25-hard-latent-occupancy-micro160`。

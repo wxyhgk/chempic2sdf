@@ -22,6 +22,11 @@ global/prefix top192虽使dev router matched净增203/248，但在30张新增可
 破坏19/18张旧正确图；所以旧query没有真正利用新增容量。当前不做Count-only修补，转为训练
 直接读取192候选的动态一一匹配occupancy/query。
 
+[P3-E25 Hard Latent Occupancy](training/20260807-g3-p3e25-hard-latent-occupancy-micro160.md)
+在Micro160训练后known-count micro F1达95.67%，但Count/known/predicted exact仅76/47/36，
+新增可达0/27，正式NO-GO。hard单一identity会对兼容替代峰产生矛盾正负监督；下一路改为
+identity-invariant soft coverage与兼容分量质量约束。
+
 ## 当前版本
 
 - 当前完成的研究 tag：`v0.10.21`。
