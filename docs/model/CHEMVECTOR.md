@@ -6,6 +6,12 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
 本页只维护当前状态、架构说明和训练档案索引。每次训练的完整命令、指标、失败
 配置和结论统一放在 [`training/`](training/README.md) 中，不再追加到本页。
 
+2026-08-07 的 G3 P3-E22 零训练审计已将 Atom candidate 固定预算从128扩到192：
+train/dev/confirm recall为99.2409%/99.3549%/99.4125%，三组均通过预注册99%门。
+下一周期先验证旧base/expert和P3-E16对动态候选长度的兼容性，再恢复五路线完整SDF比较；
+top256不采用，`sealed_test`仍保持封存。详见
+[P3-E22 训练档案](training/20260807-g3-p3e22-candidate-budget-audit.md)。
+
 ## 当前版本
 
 - 当前完成的研究 tag：`v0.10.21`。

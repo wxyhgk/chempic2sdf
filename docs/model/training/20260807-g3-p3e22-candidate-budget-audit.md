@@ -2,7 +2,7 @@
 
 > 日期：2026-08-07
 >
-> 状态：预注册，待运行
+> 状态：已完成，Candidate Budget GO
 >
 > 输出：`outputs/audits/chemvector-g3-p3e22-candidate-budget-audit`
 
@@ -23,4 +23,37 @@ train/dev/confirm manifest和同一regional-maxima排序，一次提取top256，
 
 ## 结果
 
-待运行后填写。
+| split | top128 recall | top192 recall | top256 recall |
+|---|---:|---:|---:|
+| train | 98.8009% | 99.2409% | 99.3816% |
+| dev | 98.9290% | 99.3549% | 99.4383% |
+| confirm | 99.1095% | 99.4125% | 99.4798% |
+
+三个 split 同时通过 99% 门的最小预算是 `192`，因此本轮判定
+`candidate_budget_go`。top256 相对 top192 只增加 0.07--0.14pp recall，不足以抵消
+后续 pointer memory、缓存和完整 SDF 周期的额外成本；P3-E23 固定使用 top192，不按
+Count、variant 或 split 动态改变预算。
+
+整图 candidate 可达率也随预算提高：train/dev/confirm 从 top128 的
+79.13%/79.84%/83.75% 提高到 top192 的 82.69%/84.53%/87.50%。它不是后续模型的
+准确率，只表示所有 GT Atom 都能在候选池中找到 6px 一一匹配的图片比例。
+
+## 产物与复现
+
+- 指标：`outputs/audits/chemvector-g3-p3e22-candidate-budget-audit/metrics.json`；
+- top256 缓存：`outputs/audits/chemvector-g3-p3e22-candidate-budget-audit/top256-candidate-cache.pt`；
+- 缓存 SHA256：`c796da5a33cfc954e3f4f25d9da9d70e70296a9b76d32e0736fd6d5cd2655720`；
+- 固定视觉 checkpoint SHA256：
+  `2869451245f50f98f5e3f5259179ca338e82ad81a8fd59de2d2037a10056404b`；
+- 总耗时：155.76 秒；
+- `fresh_dev` 与 `sealed_test` 均未读取。
+
+复现命令：
+
+```bash
+python -m chemvector.evaluation.audits.atoms.audit_g3_p3e22_candidate_budgets
+```
+
+这是零训练容量审计，没有产生新 checkpoint，因此不创建模型 tag。下一步先验证现有
+base/expert checkpoint 能否以 `queries=128, candidates=192` 严格加载，并审计 P3-E16
+DeepSets 在 192 候选下的固定基线；通过后才恢复 P3-E21 的五路线训练与双下游完整 SDF。

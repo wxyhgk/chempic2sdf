@@ -26,10 +26,17 @@
 
 ## 训练时间线
 
+当前已完成审计：[G3 P3-E22 Candidate Budget 审计](20260807-g3-p3e22-candidate-budget-audit.md)：
+在冻结中心场、manifest和排序下，train/dev/confirm的top192 candidate recall分别为
+99.2409%/99.3549%/99.4125%，是128/192/256中首个三组均通过99%门的最小预算；top256仅再增
+0.07--0.14pp。决策为`candidate_budget_go`，下一步固定192验证旧checkpoint动态长度兼容性，
+再恢复五路线周期；本轮零训练，不创建tag。
+
 当前已停止周期：[G3 P3-E21 五路线完整 SDF 验证周期](20260807-g3-p3e21-five-route-sdf-cycle.md)：
 共享缓存与external junction接口完成，但预注册Candidate Oracle门在train/dev仅得98.80%/98.93%
 recall，未达99%；confirm为99.11%。残差集中在81–100原子（约97.5%–98.1%）和stress，说明
-top128在selector前已不可达。按协议五路训练与SDF均未启动；下一步先做top192/256候选容量审计。
+top128在selector前已不可达。按协议五路训练与SDF均未启动；P3-E22现已选出top192，等待
+动态长度兼容审计后以固定192恢复周期。
 
 当前已完成实验：[G3 P3-E20 Poisson-binomial Count Pilot](20260806-g3-p3e20-poisson-binomial-count-pilot.md)：
 128个候选occupancy经Poisson-binomial得到Count，平衡的2560/1280图上dev MAE从P3-E16的
