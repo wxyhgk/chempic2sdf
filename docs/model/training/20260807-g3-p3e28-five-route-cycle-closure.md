@@ -1,0 +1,59 @@
+# G3 P3-E28 五路线周期闭环
+
+> 日期：2026-08-07
+>
+> 状态：预注册，待执行机器审计
+>
+> 审计：`chemvector-g3-p3e28-five-route-cycle-closure`
+
+## 目标
+
+按P3-E21原预注册Micro门，至少2/5路线通过才允许进入dev与完整双profile SDF。本轮不训练，
+只绑定P3-E25/E26/E27 fixed-final结果，并验证剩余两路是否仍可能使通过数达到2。
+
+## 已执行三路
+
+| 路线 | Count exact | known Atom exact | predicted Atom exact | 新增可达 exact |
+|---|---:|---:|---:|---:|
+| hard latent occupancy | 76/160 | 47/160 | 36/160 | 0/27 |
+| soft coverage occupancy | 69/160 | 49/160 | 38/160 | 0/27 |
+| query-slot occupancy | 160/160 | 11/160 | 11/160 | 0/27 |
+
+三路均未达到known/predicted Atom exact 152/160，正式NO-GO，且各有同名annotated tag。
+
+## Hybrid 解析剪枝
+
+原`hybrid_structured_count`只融合结构occupancy Count posterior与P3-E16 Count posterior，不改变
+candidate selector/ranking。对任何图片：
+
+```text
+predicted Atom exact
+= (hybrid Count正确) AND (known-Count selector集合正确)
+<= known-Count Atom exact
+```
+
+即使取已执行三路最好的known-count上限也只有49/160，远低于152/160；其新增可达上限仍为
+0/27。因此该路线无需训练即可判定在当前Micro门下解析性不可行。若允许Count梯度反向改变
+selector，那是新架构，不是原预注册posterior凸融合，必须另开周期。
+
+## Bond 路线与停止证明
+
+`bond_conditioned_occupancy`仍有合规实现路径：原PNG经过冻结v0.10.10 BondObject，输出最多
+192个预测bond score/endpoints/type；top192 candidate anchor只读取这些预测端点的连续距离核，
+不得使用GT bond层、旧incidence logits、硬最近邻指派或删除规则。
+
+冻结source：
+
+- `outputs/checkpoints/chemvector-v0101-set-first-style10k/selected.pt`；
+- SHA256：`e982057d57dd4c03864eae890df12e1d8710fce60dfc452b94511d86a5f967ac`；
+- vision SHA256：`1eede2e814efc0c440c26eba88bc8e9ed86e0911d7727b770a992c1ea2671c6a`。
+
+但前三路0通过、hybrid解析失败；bond即使通过，五路最多也只有1路通过，严格小于原门2。
+因此本周期必须现在停止，不能进入dev、v0.10.10/v0.10.21完整SDF、confirm_v2、外部测试或
+sealed_test。继续训练bond不会改变本周期决策，只能作为下一代图条件selector新周期的证据审计。
+
+## 决策
+
+机器审计需验证全部输入SHA、三路decision/指标、hybrid上界与`maximum_possible_passes=1<2`，输出
+`five_route_micro_gate_no_go`。本轮零训练，不创建tag；不得读取dev、旧confirm、fresh或sealed。
+
