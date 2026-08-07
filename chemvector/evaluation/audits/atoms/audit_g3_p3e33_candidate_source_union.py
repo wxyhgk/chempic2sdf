@@ -12,6 +12,9 @@ from chemvector.evaluation.audits.atoms import (
     audit_g3_p3e22_candidate_budgets as p3e22,
 )
 from chemvector.evaluation.audits.atoms import (
+    audit_g3_p3e23_top192_cycle_recovery as p3e23,
+)
+from chemvector.evaluation.audits.atoms import (
     audit_g3_p3e29_bond_incident_signal as p3e29,
 )
 from chemvector.evaluation.audits.atoms import (
@@ -187,7 +190,7 @@ def main() -> None:
         "input": input_audit,
         "lineage": {
             "old_cache": str(p3e22.CACHE.resolve()),
-            "old_cache_sha256": p3e22.TOP256_CACHE_SHA256,
+            "old_cache_sha256": p3e23.TOP256_CACHE_SHA256,
             "new_cache": str(p3e32.CACHE.resolve()),
             "new_cache_sha256": P3E32_CACHE_SHA256,
             "p3e32_audit_sha256": P3E32_AUDIT_SHA256,

@@ -2,7 +2,7 @@
 
 > 日期：2026-08-07
 >
-> 状态：预注册，待执行cache-only审计
+> 状态：已完成，192容量NO-GO / 256容量可达性GO
 >
 > 审计：`chemvector-g3-p3e33-candidate-source-union`
 
@@ -34,3 +34,32 @@ raw exact排序，不允许结果后修改优先级。
 - 四种策略、160张样本和256个唯一source ID完整。
 
 全部通过才为`candidate_source_union_go`。本轮不训练、不读PNG，不创建tag。
+
+## 实际结果
+
+winner为`train25k160_then_train5k`：先保留train25k前160，再按train5k rank补满共同source-id
+并集。结果如下：
+
+| 容量 | Atom recall | candidate exact |
+|---|---:|---:|
+| top128 | 99.757% | 145/160 |
+| top192 | 99.927% | 154/160 |
+| top256 | 100% | 160/160 |
+
+winner完整保留P3-E32的13张旧tail恢复，只回退1张旧可达图；known-Count raw仍为56/160。四种
+固定策略都不能在192容量同时容纳两个中心场的互补峰，因此未通过160/160门，正式决策为
+`candidate_source_union_no_go`。但256容量达到160/160，并保留更强的train25k前缀，证明并集方向
+成立、最小充分容量是256而不是192。
+
+下一训练周期不得继续在Micro160上更换loss。应固定本轮256 winner输入，从style_train约100k中
+排除P3-E21 train/dev/confirm的molecule/scaffold后建立训练源，再比较两条可泛化路线：source-aware
+256-candidate set selector，以及继续训练center field使互补峰回到较小预算。Micro160只作门，不作
+训练数据；MR-TADF、USPTO和sealed_test仍不参与选模。
+
+## 产物
+
+- audit SHA256：`22fdfc5215ab072a605f0aba84002300a7ec3a1cab76f6095f51105720d3fa3d`；
+- union top256 cache SHA256：
+  `b8cd08b05e5caf95ee44163e1e1ea9d02ea8ab9696aba2bac2b73e8859e2f4cd`；
+- 不读PNG、不训练、不读取dev/confirm/fresh/外部或sealed_test；
+- 本轮零训练，不创建tag。
