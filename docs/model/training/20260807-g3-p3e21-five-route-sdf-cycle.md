@@ -114,3 +114,15 @@ checkpoint SHA和同名tag，再临时解封sealed_test4k单次运行；失败�
 因此本周期判定 `candidate_oracle_no_go`。不修改99%门，不训练五个route，不运行SDF来掩盖
 上游不可达。下一周期必须先验证top192/256或新的高Count候选表示，在train/dev/confirm三组
 同时达到99%后，才可原样恢复本周期的五路线部分。
+
+## 恢复周期最终闭环
+
+P3-E22用top192恢复了99% micro Candidate门，但P3-E23/E24证明旧模型不能直接利用新增候选。
+随后在同一Micro160上正式训练三条路线：hard latent、soft coverage、query-slot的known-count
+Atom exact分别为47/49/11，全部低于152门，新增可达均0/27。hybrid只融合Count，其predicted
+exact受known-count最高49的解析上界限制；bond即使成为唯一剩余通过路线，五路最多也只有1路，
+仍低于本页“至少2路”的Micro门。
+
+P3-E28机器审计因此最终给出`five_route_micro_gate_no_go`。本周期没有进入dev、双profile完整
+SDF、confirm_v2、外部或sealed阶段；这不是未执行遗漏，而是本页预注册停止规则的结果。详见
+[P3-E28闭环](20260807-g3-p3e28-five-route-cycle-closure.md)。

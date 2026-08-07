@@ -26,10 +26,10 @@
 
 ## 训练时间线
 
-当前预注册审计：[G3 P3-E28 五路线周期闭环](20260807-g3-p3e28-five-route-cycle-closure.md)：
+当前已完成审计：[G3 P3-E28 五路线周期闭环](20260807-g3-p3e28-five-route-cycle-closure.md)：
 前三路Micro全部NO-GO；hybrid只改Count，predicted exact受known-count最高49/160解析上界限制，
-无需训练即可剪枝。bond路线虽有合法冻结端点证据，但即使通过也最多1/5路，低于至少2路门；
-机器审计后按原协议停止dev/双profile SDF/confirm/external/sealed。
+无需训练即可剪枝。bond路线虽有合法冻结端点证据，但即使通过也最多1/5路，低于至少2路门。
+机器审计确认maximum possible=1<2，正式NO-GO；dev/双profile SDF/confirm/external/sealed均未运行。
 
 当前已完成训练：[G3 P3-E27 Query-slot Occupancy Micro160](20260807-g3-p3e27-query-slot-occupancy-micro160.md)：
 从冻结expert严格扩展为128 query×192 candidate并全量训练query-set，使用pointer-compatible

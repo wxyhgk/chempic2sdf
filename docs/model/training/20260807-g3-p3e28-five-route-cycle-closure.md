@@ -2,7 +2,7 @@
 
 > 日期：2026-08-07
 >
-> 状态：预注册，待执行机器审计
+> 状态：已完成，Five-route Micro Gate NO-GO
 >
 > 审计：`chemvector-g3-p3e28-five-route-cycle-closure`
 
@@ -57,3 +57,22 @@ sealed_test。继续训练bond不会改变本周期决策，只能作为下一�
 机器审计需验证全部输入SHA、三路decision/指标、hybrid上界与`maximum_possible_passes=1<2`，输出
 `five_route_micro_gate_no_go`。本轮零训练，不创建tag；不得读取dev、旧confirm、fresh或sealed。
 
+## 实际结果
+
+机器审计全部检查通过：
+
+- 已执行三路通过数：0；
+- best known-count Atom exact上界：49/160；
+- hybrid可过门：否；
+- 剩余bond路线最大贡献：1路；
+- maximum possible passes：1；
+- minimum required passes：2；
+- cycle can reach Micro gate：否。
+
+最终决策为`five_route_micro_gate_no_go`。audit SHA256：
+`aa1ce90bb3da5ba5043ceaf2fef208954b853e3f7e22d80d2fc060080ec2a136`。
+
+没有运行dev、v0.10.10/v0.10.21 SDF、旧confirm、confirm_v2、fresh、USPTO、MR-TADF或
+sealed_test。本轮零训练，不创建tag。下一周期若继续，应至少预注册两条真正引入新图证据的
+graph-conditioned selector；第一条可使用本文冻结Bond endpoint连续incident特征，第二条必须是
+独立可比较路线，不能再把只改Count的hybrid算作selector方案。

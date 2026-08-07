@@ -35,6 +35,10 @@ evidence candidate occupancy头都未利用tail；下一路线解冻128-query×1
 160/160，但Atom exact仅11/160、existence boundary 0/160、新增可达0/27，证明断点是稳定
 query/pointer集合而非Count容量。下一步先审计是否存在可合法冻结的incident Bond视觉证据。
 
+[P3-E28 五路线闭环](training/20260807-g3-p3e28-five-route-cycle-closure.md)确认前三路0通过，
+hybrid受known-count最高49/160上界限制；bond即使通过也只能使maximum possible passes=1，低于
+至少2路Micro门。原周期正式NO-GO，未进入dev、双profile SDF、confirm、外部或sealed阶段。
+
 ## 当前版本
 
 - 当前完成的研究 tag：`v0.10.21`。
