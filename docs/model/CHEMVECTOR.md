@@ -43,9 +43,9 @@ hybrid受known-count最高49/160上界限制；bond即使通过也只能使maxim
 确认冻结键端点局部证据虽有0.9608 candidate AUC，却无法救回任何tail-required图片（0/27）；
 停止独立候选局部融合，下一步转向同时解释一根键两个端点的全局pair consistency审计。
 
-[P3-E30 Bond Pair Consistency](training/20260807-g3-p3e30-bond-pair-consistency-micro160.md)已预注册：
-从P3-E29冻结cache构造双端点candidate-pair affinity，以自适应键长尺度做known-Count全局集合
-信号审计；tail至少救回5/27才允许进入可训练graph-conditioned selector。
+[P3-E30 Bond Pair Consistency](training/20260807-g3-p3e30-bond-pair-consistency-micro160.md)确认全局
+双端点关系也只能把整体recall从95.92%增至96.18%，tail exact仍为0/27；停止当前冻结BondObject
+驱动的selector路线，转而审计33个tail-only Atom的角色与视觉来源。
 
 ## 当前版本
 

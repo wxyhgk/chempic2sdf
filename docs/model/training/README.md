@@ -26,9 +26,9 @@
 
 ## 训练时间线
 
-当前预注册审计：[G3 P3-E30 Bond Pair Consistency Micro160](20260807-g3-p3e30-bond-pair-consistency-micro160.md)：
-不再把两个键端点拆成独立presence，改用一根预测键的双端点candidate-pair affinity和全局集合
-选择测试tail rescue上界。尺度按每图预测键长自适应；只读P3-E29预测cache，不读GT bond。
+当前已完成审计：[G3 P3-E30 Bond Pair Consistency Micro160](20260807-g3-p3e30-bond-pair-consistency-micro160.md)：
+双端点candidate-pair affinity将整体recall从95.92%增至96.18%，但tail仍为0/27；提高关系权重
+后性能快速下降，正式NO-GO。不再构造第三种selector，下一步审计33个tail-only Atom的来源。
 
 当前已完成审计：[G3 P3-E29 Bond Incident Signal Micro160](20260807-g3-p3e29-bond-incident-signal-micro160.md)：
 冻结Bond endpoint局部证据的candidate AUC为0.9608，普通exact由53/160增至55/160；但真正新增

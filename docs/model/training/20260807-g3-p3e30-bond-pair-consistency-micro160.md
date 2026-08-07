@@ -2,7 +2,7 @@
 
 > 日期：2026-08-07
 >
-> 状态：预注册，待执行零训练审计
+> 状态：已完成，全局双端点关系 NO-GO
 >
 > 审计：`chemvector-g3-p3e30-bond-pair-consistency-micro160`
 
@@ -38,3 +38,27 @@ selector。
 
 任一项失败即`bond_pair_consistency_signal_no_go`，不得追加alpha/scale搜索，也不得训练同类模型。
 本轮零训练，不创建tag。
+
+## 实际结果
+
+| 指标 | 原始score | 最佳pair consistency |
+|---|---:|---:|
+| 整体exact | 53/160 | 55/160 |
+| 整体Atom recall | 95.92% | 96.18% |
+| top128可达exact | 53/133 | 55/133 |
+| top128可达recall | 96.89% | 97.14% |
+| tail exact | 0/27 | 0/27 |
+| tail recall | 92.27% | 92.61% |
+
+最佳固定组合为`ratio=0.08, alpha=0.03125`。它只多匹配22个Atom、增加2张普通完整图，未救回
+任何tail完整图；提高alpha后整体和tail recall均快速下降。三个自适应ratio的平均实际尺度约为
+4.30、8.60、17.19像素，但没有任一尺度形成tail exact。
+
+最终决策为`bond_pair_consistency_signal_no_go`。P3-E29局部端点统计和本轮全局双端点关系都只
+强化已有容易候选，因此不再训练当前冻结BondObject驱动的selector。下一步审计33个tail-only
+GT Atom的角色、degree、variant和candidate rank，判断断点属于candidate generator、文字对象还是
+视觉backbone，而不是继续构造第三个selector目标。
+
+audit SHA256：`3ed3f58866b122a923341708367080a41cd6c8203534d4bf325edec23a5ec1ce`。
+本轮只读取P3-E29预测cache和训练集GT Atom坐标；未读取GT bond、PNG、dev、confirm、fresh、外部
+数据或sealed_test。零训练，不创建tag。
