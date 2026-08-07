@@ -829,10 +829,15 @@ def atom_center_peak_margin_loss(
         or min(center_logits.shape[-2:]) < 1
     ):
         raise ValueError("G3 AtomCenterField center logits have invalid shape")
-    if positive_mask.shape != center_logits.shape or positive_mask.dtype != torch.bool:
+    if (
+        positive_mask.shape != center_logits.shape
+        or positive_mask.dtype != torch.bool
+    ):
         raise ValueError("G3 AtomCenterField positive mask differs")
     if positive_mask.device != center_logits.device:
-        raise ValueError("G3 AtomCenterField logits and positive mask must share one device")
+        raise ValueError(
+            "G3 AtomCenterField logits and positive mask must share one device"
+        )
     if not center_logits.is_floating_point() or not bool(
         torch.isfinite(center_logits).all()
     ):
@@ -858,6 +863,98 @@ def atom_center_peak_margin_loss(
     return F.softplus(float(margin) + negative_max[eligible] - logits[eligible]).mean()
 
 
+def atom_center_global_peak_rank_loss(
+    center_logits: torch.Tensor,
+    positive_mask: torch.Tensor,
+    *,
+    candidate_budget: int = 128,
+    boundary_window: int = 16,
+    margin: float = 1.0,
+) -> torch.Tensor:
+    """Rank GT centers above false regional maxima at the candidate boundary.
+
+    For ``G`` occupied GT cells and a candidate budget ``K``, every GT center
+    must outrank the ``K - G + 1``-th false maximum to fit in the top ``K``.
+    Positions of false maxima are mined from detached logits, while scores at
+    the selected positions are gathered from the live tensor and keep their
+    gradients. The final window of false maxima above the boundary supplies a
+    less brittle signal than one order statistic without pushing GT centers
+    above every false maximum in the image.
+
+    Equal-valued local plateaus can contribute more than one mining position.
+    This is deliberate for the training-only approximation: it suppresses a
+    plateau instead of introducing an inference-time pixel clustering rule.
+    """
+
+    if (
+        center_logits.ndim != 4
+        or center_logits.size(1) != 1
+        or min(center_logits.shape[-2:]) < 1
+    ):
+        raise ValueError("G3 AtomCenterField center logits have invalid shape")
+    if positive_mask.shape != center_logits.shape or positive_mask.dtype != torch.bool:
+        raise ValueError("G3 AtomCenterField positive mask differs")
+    if positive_mask.device != center_logits.device:
+        raise ValueError("G3 AtomCenterField logits and positive mask must share one device")
+    if not center_logits.is_floating_point() or not bool(
+        torch.isfinite(center_logits).all()
+    ):
+        raise ValueError("G3 AtomCenterField center logits must be finite floating point")
+    if not isinstance(candidate_budget, int) or isinstance(candidate_budget, bool):
+        raise TypeError("G3 global peak candidate budget must be an integer")
+    if candidate_budget < 1:
+        raise ValueError("G3 global peak candidate budget must be positive")
+    if not isinstance(boundary_window, int) or isinstance(boundary_window, bool):
+        raise TypeError("G3 global peak boundary window must be an integer")
+    if boundary_window < 1:
+        raise ValueError("G3 global peak boundary window must be positive")
+    if not math.isfinite(float(margin)):
+        raise ValueError("G3 global peak margin must be finite")
+
+    live_logits = center_logits[:, 0].float()
+    selection_logits = live_logits.detach()
+    regional_maxima = selection_logits == F.max_pool2d(
+        selection_logits[:, None], kernel_size=3, stride=1, padding=1
+    )[:, 0]
+    false_maxima = regional_maxima & ~positive_mask[:, 0]
+
+    image_losses: list[torch.Tensor] = []
+    for image_index in range(center_logits.size(0)):
+        positive_indices = torch.where(positive_mask[image_index, 0].flatten())[0]
+        positive_count = int(positive_indices.numel())
+        if positive_count == 0:
+            continue
+
+        boundary_index = max(candidate_budget - positive_count, 0)
+        false_count = int(false_maxima[image_index].sum())
+        if false_count <= boundary_index:
+            continue
+
+        detached_false_scores = selection_logits[image_index].flatten().masked_fill(
+            ~false_maxima[image_index].flatten(), -torch.inf
+        )
+        ranked_false_indices = detached_false_scores.topk(
+            boundary_index + 1, sorted=True
+        ).indices
+        window_start = max(0, len(ranked_false_indices) - boundary_window)
+        hard_negative_indices = ranked_false_indices[window_start:]
+
+        flat_live = live_logits[image_index].flatten()
+        positive_scores = flat_live[positive_indices]
+        hard_negative_scores = flat_live[hard_negative_indices]
+        image_losses.append(
+            F.softplus(
+                float(margin)
+                + hard_negative_scores[None, :]
+                - positive_scores[:, None]
+            ).mean()
+        )
+
+    if not image_losses:
+        return center_logits.sum() * 0.0
+    return torch.stack(image_losses).mean()
+
+
 __all__ = [
     "G3_ATOM_CENTER_FIELD_CHANNELS",
     "G3_STROKE_FEATURE_CHANNELS",
@@ -869,6 +966,7 @@ __all__ = [
     "VirtualStride2AtomCenterField",
     "VirtualStride2AtomCenterResidual",
     "atom_center_field_loss",
+    "atom_center_global_peak_rank_loss",
     "atom_center_peak_margin_loss",
     "build_atom_center_field_targets",
     "decode_atom_center_field",

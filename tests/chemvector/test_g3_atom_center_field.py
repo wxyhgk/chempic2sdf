@@ -18,6 +18,7 @@ from chemvector.components.atoms.objects.g3_atom_center_field import (
     VirtualStride2AtomCenterField,
     VirtualStride2AtomCenterResidual,
     atom_center_field_loss,
+    atom_center_global_peak_rank_loss,
     atom_center_peak_margin_loss,
     build_atom_center_field_targets,
     decode_atom_center_field,
@@ -512,6 +513,95 @@ class G3AtomCenterFieldTests(unittest.TestCase):
         positive = torch.ones_like(logits, dtype=torch.bool)
 
         loss = atom_center_peak_margin_loss(logits, positive)
+        loss.backward()
+
+        self.assertEqual(float(loss.detach()), 0.0)
+        torch.testing.assert_close(logits.grad, torch.zeros_like(logits))
+
+    def test_global_peak_rank_penalizes_gt_below_candidate_boundary(self) -> None:
+        logits = torch.full((1, 1, 5, 7), -10.0)
+        logits[0, 0, 2, 1] = 0.0
+        logits[0, 0, 1, 3] = 5.0
+        logits[0, 0, 3, 3] = 4.0
+        logits[0, 0, 2, 5] = 3.0
+        positive = torch.zeros_like(logits, dtype=torch.bool)
+        positive[0, 0, 2, 1] = True
+
+        loss = atom_center_global_peak_rank_loss(
+            logits,
+            positive,
+            candidate_budget=2,
+            boundary_window=1,
+            margin=1.0,
+        )
+
+        torch.testing.assert_close(
+            loss, torch.nn.functional.softplus(torch.tensor(5.0))
+        )
+
+    def test_global_peak_rank_backpropagates_to_gt_and_hard_negative(self) -> None:
+        logits = torch.full((1, 1, 5, 7), -10.0, requires_grad=True)
+        with torch.no_grad():
+            logits[0, 0, 2, 1] = 0.0
+            logits[0, 0, 1, 3] = 5.0
+            logits[0, 0, 3, 3] = 4.0
+            logits[0, 0, 2, 5] = 3.0
+        positive = torch.zeros_like(logits, dtype=torch.bool)
+        positive[0, 0, 2, 1] = True
+
+        loss = atom_center_global_peak_rank_loss(
+            logits,
+            positive,
+            candidate_budget=2,
+            boundary_window=1,
+        )
+        loss.backward()
+
+        self.assertLess(float(logits.grad[0, 0, 2, 1]), 0.0)
+        self.assertGreater(float(logits.grad[0, 0, 3, 3]), 0.0)
+        self.assertEqual(float(logits.grad[0, 0, 1, 3]), 0.0)
+
+    def test_global_peak_rank_is_near_zero_after_margin_is_satisfied(self) -> None:
+        logits = torch.full((1, 1, 5, 7), -10.0)
+        logits[0, 0, 2, 1] = 20.0
+        logits[0, 0, 1, 3] = 2.0
+        logits[0, 0, 3, 3] = 1.0
+        positive = torch.zeros_like(logits, dtype=torch.bool)
+        positive[0, 0, 2, 1] = True
+
+        loss = atom_center_global_peak_rank_loss(
+            logits,
+            positive,
+            candidate_budget=2,
+            boundary_window=1,
+        )
+
+        self.assertLess(float(loss), 1e-7)
+
+    def test_global_peak_rank_excludes_adjacent_gt_centers(self) -> None:
+        logits = torch.full((1, 1, 5, 7), -10.0)
+        logits[0, 0, 2, 1] = 2.0
+        logits[0, 0, 2, 2] = 20.0
+        logits[0, 0, 2, 5] = 1.0
+        positive = torch.zeros_like(logits, dtype=torch.bool)
+        positive[0, 0, 2, 1:3] = True
+
+        loss = atom_center_global_peak_rank_loss(
+            logits,
+            positive,
+            candidate_budget=2,
+            boundary_window=1,
+        )
+
+        first = torch.nn.functional.softplus(torch.tensor(1.0 + 1.0 - 2.0))
+        second = torch.nn.functional.softplus(torch.tensor(1.0 + 1.0 - 20.0))
+        torch.testing.assert_close(loss, (first + second) / 2.0)
+
+    def test_global_peak_rank_is_differentiable_when_all_candidates_fit(self) -> None:
+        logits = torch.tensor([[[[2.0]]]], requires_grad=True)
+        positive = torch.ones_like(logits, dtype=torch.bool)
+
+        loss = atom_center_global_peak_rank_loss(logits, positive)
         loss.backward()
 
         self.assertEqual(float(loss.detach()), 0.0)

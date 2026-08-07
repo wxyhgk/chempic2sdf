@@ -26,9 +26,13 @@
 
 ## 训练时间线
 
+当前已完成审计：[G3 P4-E3 全图峰排序损失](20260807-g3-p4e3-global-peak-rank-loss-audit.md)：
+top128必要条件被写成整图假regional-maxima边界排序损失；索引detach但正负logit保留梯度，
+相邻GT排除。batch4、768² BF16前后向1.42ms、约99MiB，全部机制检查通过，允许预注册pilot20k。
+
 当前已完成训练：[G3 P4-E2 Center Field Pilot20k](20260807-g3-p4e2-center-field-pilot20k.md)：
 同目标训练20k后known-Count多71个Atom，但dev top128只多4个Atom、exact只+1，正式NO-GO；协议
-检查全过。停止同损失扩量与P4-E3，下一路线必须直接改变整图regional-maxima排序目标。
+检查全过。停止同损失扩量，下一路线直接改变整图regional-maxima排序目标。
 
 当前已完成审计：[G3 P4-E1 Pilot Union Cache](20260807-g3-p4e1-pilot-union-cache.md)：
 Micro为160/160，但pilot/dev recall仅99.883%/99.423%，stress更低；256×72 cache协议完整，

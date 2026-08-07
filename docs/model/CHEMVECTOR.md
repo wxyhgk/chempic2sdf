@@ -69,7 +69,11 @@ pilot/dev candidate recall仅99.883%/99.423%，虽Micro仍160/160，Candidate Or
 
 [P4-E2 Center Field Pilot20k](training/20260807-g3-p4e2-center-field-pilot20k.md)完成5,000步：
 known-Count多匹配71个Atom，但dev top128只多4个Atom、exact只+1，能力NO-GO；协议全部通过。
-不运行P4-E3、不追加同损失epoch，下一路线必须直接监督整图regional-maxima排序。
+不追加同损失epoch，下一路线必须直接监督整图regional-maxima排序。
+
+[P4-E3 全图峰排序损失审计](training/20260807-g3-p4e3-global-peak-rank-loss-audit.md)已经通过：
+新目标要求GT中心超过top128边界附近的整图假regional maxima，峰位置detach而选中logit保留
+梯度，相邻GT不作为负样本。batch4、768² BF16前后向仅1.42ms、约99MiB，允许进入受控pilot20k。
 
 ## 当前版本
 
