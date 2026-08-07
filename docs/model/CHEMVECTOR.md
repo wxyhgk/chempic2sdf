@@ -75,9 +75,10 @@ known-Count多匹配71个Atom，但dev top128只多4个Atom、exact只+1，能�
 新目标要求GT中心超过top128边界附近的整图假regional maxima，峰位置detach而选中logit保留
 梯度，相邻GT不作为负样本。batch4、768² BF16前后向仅1.42ms、约99MiB，允许进入受控pilot20k。
 
-[P4-E3 Global Peak Rank Pilot20k](training/20260807-g3-p4e3-global-peak-rank-pilot20k.md)已预注册：
-回到P4-E2之前的同一train25k初始化，在相同pilot20k加入权重10的全图排序项；固定5,000步和
-相同能力门，构成只改变目标函数的受控A/B。confirm_v2和外部/封存集继续未读。
+[P4-E3 Global Peak Rank Pilot20k](training/20260807-g3-p4e3-global-peak-rank-pilot20k.md)完成5,000步：
+top128 matched/exact相对step0增加97/+33，相对P4-E2增加93/+32，三项门全过，首次确认整图
+候选边界目标有效。regional maxima均值同时从3.03万升至5.68万，下一步先审计候选并集可达性
+和提取成本；confirm_v2及外部/封存集仍未读。
 
 ## 当前版本
 

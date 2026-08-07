@@ -2,7 +2,7 @@
 
 > 日期：2026-08-07
 >
-> 状态：预注册，待训练
+> 状态：已完成，协议通过 / 能力GO
 >
 > 模型：`chemvector-g3-p4e3-global-peak-rank-pilot20k`
 
@@ -44,3 +44,55 @@ confirm_v2、fresh、USPTO、MR-TADF和sealed_test均不得读取。
 - `outputs/checkpoints/chemvector-g3-p4e3-global-peak-rank-pilot20k/step-005000.pt`
 - `outputs/checkpoints/chemvector-g3-p4e3-global-peak-rank-pilot20k/final_metrics.json`
 - `outputs/checkpoints/chemvector-g3-p4e3-global-peak-rank-pilot20k/audit.json`
+
+## 实际结果
+
+固定5,000步、20,000 exposures完整运行，训练耗时550.88秒；包含两次final dev重放和写盘的
+总耗时623.98秒。全部协议检查通过，两次dev指标和candidate source digest逐项相同。
+
+| dev指标 | step0 | P4-E2 final | P4-E3 final | P4-E3相对step0 |
+|---|---:|---:|---:|---:|
+| top128 matched | 32,098 | 32,102 | **32,195** | **+97** |
+| top128 recall | 99.0679% | 99.0802% | **99.3673%** | **+0.2994pp** |
+| top128 exact | 517/640 | 518/640 | **550/640** | **+33** |
+| known-Count matched | 31,092 | 31,163 | **31,332** | **+240** |
+| known-Count recall | 95.9630% | 96.1821% | **96.7037%** | **+0.7407pp** |
+| known-Count exact | 270/640 | 277/640 | **296/640** | **+26** |
+
+相对只增加同目标训练量的P4-E2，P4-E3多恢复93个top128 Atom和32张整图exact。三项能力门
+全部通过，说明直接监督整图候选预算边界，而不是继续增加局部3×3损失的数据量，确实命中了
+P3-E31/P4-E2定位的candidate ranking断点。
+
+known-Count按variant的变化全部为正：
+
+| variant | matched变化 | exact变化 |
+|---|---:|---:|
+| coordgen | +51 | +3 |
+| original | +63 | +6 |
+| rdkit | +56 | +9 |
+| stress | **+70** | **+8** |
+
+stress仍是最弱桶，但恢复量最大，符合P3-E31中tail主要来自stress的诊断。
+
+## 风险与边界
+
+regional maxima平均数从30,279增至56,763/图，p90从32,524增至85,310，最大值为102,894。
+top128排序显著改善，但连续场变得更碎；这会增加完整plateau提取的CPU成本，也可能让跨checkpoint
+候选并集带入更多低价值峰。下一步必须先做冻结cache的可达性与峰数/耗时审计，不能仅凭本轮GO
+直接扩大训练或进入SDF。
+
+本轮没有读取confirm_v2、fresh、USPTO、MR-TADF或sealed_test。能力GO只说明新目标可以进入
+下一候选周期，不代表端到端模型已部署。
+
+## 产物与决策
+
+- 最终决策：`global_peak_rank_pilot20k_go`；
+- checkpoint SHA256：
+  `1c358d0c936c687fa0e40ea5e1d9364dd98a663bb762d294db76b43d5f009593`；
+- audit SHA256：
+  `da98b8bb4a576359936a7a73b0fc65ffbcbb67080501d074aaa4e8d59db61c48`；
+- final metrics SHA256：
+  `bfcdbf2dbb7fd931f857cbebfad5563f916cb40418a9653faffac13e3c720cc4`。
+
+结果提交后创建同名annotated tag：
+`chemvector-g3-p4e3-global-peak-rank-pilot20k`。
