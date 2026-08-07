@@ -51,9 +51,9 @@ hybrid受known-count最高49/160上界限制；bond即使通过也只能使maxim
 stress，角色分布混合、文字仅8/33；正确candidate仍存在但平均落到第151名。下一步冻结A/B已有
 train25k stride-1 center field，验证更多唯一stress训练图是否改善当前Micro tail排名。
 
-[P3-E32 Train25k Candidate Source A/B](training/20260807-g3-p3e32-train25k-candidate-source-ab.md)已
-预注册：同一Micro160比较train5k和已有train25k中心场的top128/192/256，至少恢复5/27旧tail
-图片且旧可达图最多回退3张，才允许替换candidate source。
+[P3-E32 Train25k Candidate Source A/B](training/20260807-g3-p3e32-train25k-candidate-source-ab.md)
+恢复13/27旧tail图，使top128 exact从133增至145、stress从21/40增至29/40；但其自身top192
+只有155/160，直接替换正式NO-GO。两个中心场错误互补，下一步按共同source_id审计候选并集。
 
 ## 当前版本
 

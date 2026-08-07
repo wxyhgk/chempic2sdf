@@ -26,9 +26,9 @@
 
 ## 训练时间线
 
-当前预注册审计：[G3 P3-E32 Train25k Candidate Source A/B](20260807-g3-p3e32-train25k-candidate-source-ab.md)：
-固定比较train5k与已有train25k stride-1 center field，在同一Micro160重建top256；旧27张tail图
-至少5张回到top128且旧可达图最多回退3张，才允许替换candidate source。本轮不训练。
+当前已完成审计：[G3 P3-E32 Train25k Candidate Source A/B](20260807-g3-p3e32-train25k-candidate-source-ab.md)：
+train25k恢复13/27旧tail图，top128 exact由133增至145、stress由21/40增至29/40，只回退1张；
+但自身top192只有155/160，不能直接替换。下一步按共同source_id审计train5k/train25k候选并集。
 
 当前已完成审计：[G3 P3-E31 Tail Failure Sources](20260807-g3-p3e31-tail-failure-sources.md)：
 33个tail-only Atom中stress占23（69.7%），角色则分散在chain/text/junction/endpoint；正确candidate

@@ -23,6 +23,9 @@ from chemvector.evaluation.audits.atoms import (
 from chemvector.evaluation.audits.atoms import (
     audit_g3_p3e29_bond_incident_signal as p3e29,
 )
+from chemvector.evaluation.audits.atoms import (
+    build_g3_p3e21_shared_cache as p3e21_cache,
+)
 from chemvector.training.atoms import (
     train_g3_p1a_canonical_atom_selector as p1a,
 )
@@ -32,6 +35,9 @@ from chemvector.training.atoms import (
 from chemvector.training.graph.scenes.train_g3_hierarchical_graph import (
     _atomic_json,
     _atomic_torch_save,
+)
+from chemvector.training.graph.scenes.g3_structural_data import (
+    load_g3_sample_manifest,
 )
 from chemvector.g3_structural_data import file_sha256
 
@@ -197,9 +203,19 @@ def main() -> None:
     device = torch.device("cuda")
 
     targets, input_audit, manifest = p3e29._load_micro160()
+    selected_keys = {str(record["sample_key"]) for record in targets}
+    full_manifest, _ = load_g3_sample_manifest(
+        p3e21_cache.MANIFEST_ROOT / "train.jsonl",
+        expected_sha256=p3e21_cache.MANIFESTS["train"][0],
+        expected_samples=p3e21_cache.MANIFESTS["train"][1],
+        expected_molecules=p3e21_cache.MANIFESTS["train"][2],
+        expected_variants=p3e29.cycle.VARIANTS,
+    )
     selected_manifest = [
-        manifest["records"][str(record["sample_key"])] for record in targets
+        record for record in full_manifest if record.sample_key in selected_keys
     ]
+    if len(selected_manifest) != len(selected_keys):
+        raise RuntimeError("P3-E32 ordered Micro160 manifest is incomplete")
     collator = p1a.G3AtomCollator(maximum_atoms=128, image_size=768)
     started = time.perf_counter()
     collected, lineage = p1x._collect_scale(
