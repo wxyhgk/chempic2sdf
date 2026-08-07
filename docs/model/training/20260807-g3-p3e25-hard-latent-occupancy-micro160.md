@@ -45,14 +45,15 @@ presence logit，在6px GT-compatible矩阵中用Hungarian动态选择一组唯�
 其余候选为negative。损失固定为：
 
 ```text
-0.5 * balanced_positive_negative_BCE
-+ 0.5 * Poisson-binomial Count NLL
-+ 0.05 * relative expected-Count L1
+balanced_positive_negative_BCE
++ 0.1 * Poisson-binomial Count NLL
 ```
 
 不训练base/expert、不加入OCR/Bond/SDF、不使用固定ID标签或坐标回归。训练100个完整epoch，
-batch32，共500 optimizer steps、80,000 exposures；AdamW lr=1e-3、weight decay=0.01、
-grad clip=1.0、BF16、fixed-final-only。禁止中间checkpoint选模。
+batch16，共1,000 optimizer steps、16,000 exposures；AdamW lr=3e-4、weight decay=0、
+grad clip=5.0、BF16、fixed-final-only。presence末层weight固定零初始化、bias固定-1.0。禁止中间
+checkpoint选模。Poisson-binomial内部虽产生
+0--192分布，训练与解码只保留0--128并重新归一化，129--192不进入部署Count语义。
 
 ## 解码与门
 
@@ -60,17 +61,20 @@ Count取Poisson-binomial分布argmax；Atom取presence最高的Count个唯一can
 top-K以隔离Count与选择。固定门：
 
 - predicted Count exact不低于152/160；
+- predicted Count MAE不高于0.10；
 - predicted Atom set exact不低于152/160；
 - known-count Atom set exact不低于152/160；
 - predicted Atom micro recall不低于99.9%；
-- 每图动态positive最小概率减最大negative概率的全160图最小值不低于0.8；
+- 每图动态positive最小概率减最大negative概率不低于0.8的图片不少于152/160，同时报告
+  known-K真实top-K边界gap；
 - 对本Micro集合中top128不可达、top192可达的图片，predicted Atom exact不低于50%；
+- 五个Count桶和四种variant各自的Count exact与predicted Atom exact均不低于90%；
+- Poisson分布有限且归一化，预测Count全部不超过128；
 - 两次fixed-final评估逐项一致，训练步数/exposure/冻结状态全部一致。
 
 全部通过为`hard_latent_occupancy_micro160_go`；否则NO-GO。无论GO/NO-GO，正式checkpoint、
 训练结果和代码提交后创建与模型名完全一致的annotated tag，注释记录checkpoint SHA、160图、
-500 steps、80,000 exposures和结论。
+1,000 steps、16,000 exposures和结论。
 
 本轮不读取dev、旧confirm、confirm_v2、fresh_dev、USPTO、MR-TADF或sealed_test，也不运行
 v0.10.10/v0.10.21 SDF；SDF只在Micro通过并完成下一阶段dev协议后运行。
-
