@@ -26,6 +26,10 @@
 
 ## 训练时间线
 
+当前预注册审计：[G3 P3-E33 Candidate Source Union](20260807-g3-p3e33-candidate-source-union.md)：
+按共享stride-1 `source_id`合并train5k/train25k top256，不使用像素聚类；192容量必须保持160/160
+可达、top128至少145/160、保留13张tail恢复且最多回退1张，才作为下一selector输入。
+
 当前已完成审计：[G3 P3-E32 Train25k Candidate Source A/B](20260807-g3-p3e32-train25k-candidate-source-ab.md)：
 train25k恢复13/27旧tail图，top128 exact由133增至145、stress由21/40增至29/40，只回退1张；
 但自身top192只有155/160，不能直接替换。下一步按共同source_id审计train5k/train25k候选并集。

@@ -55,6 +55,10 @@ train25k stride-1 center field，验证更多唯一stress训练图是否改善�
 恢复13/27旧tail图，使top128 exact从133增至145、stress从21/40增至29/40；但其自身top192
 只有155/160，直接替换正式NO-GO。两个中心场错误互补，下一步按共同source_id审计候选并集。
 
+[P3-E33 Candidate Source Union](training/20260807-g3-p3e33-candidate-source-union.md)已预注册：按
+共享stride-1网格source_id合并两个top256，禁用像素聚类；192容量需同时满足160/160可达、
+top128至少145/160、保留13张tail恢复且最多回退1张。
+
 ## 当前版本
 
 - 当前完成的研究 tag：`v0.10.21`。
