@@ -26,6 +26,11 @@
 
 ## 训练时间线
 
+当前预注册审计：[G3 P3-E23 Top192 周期恢复审计](20260807-g3-p3e23-top192-cycle-recovery.md)：
+固定query=128/candidates=192，以`strict=True`加载原base/expert，重建P3-E16 evidence并复现
+三split Candidate Oracle。除shape/确定性门外，dev/confirm Count exact各自最多回退2pp、MAE
+最多增加0.10；通过后才恢复五路线Micro Capacity。本轮零训练，不读取fresh/sealed。
+
 当前已完成审计：[G3 P3-E22 Candidate Budget 审计](20260807-g3-p3e22-candidate-budget-audit.md)：
 在冻结中心场、manifest和排序下，train/dev/confirm的top192 candidate recall分别为
 99.2409%/99.3549%/99.4125%，是128/192/256中首个三组均通过99%门的最小预算；top256仅再增
