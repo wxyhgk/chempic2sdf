@@ -26,9 +26,9 @@
 
 ## 训练时间线
 
-当前预注册训练：[G3 P4-E2 Center Field Pilot20k](20260807-g3-p4e2-center-field-pilot20k.md)：
-P4-E1因pilot/dev GT不可达暂停selector；从train25k field在无泄漏pilot20k继续1 epoch/5,000步，
-dev top128 recall至少+0.1pp且exact至少+5才允许重建union。fixed-final-only，confirm_v2未读。
+当前已完成训练：[G3 P4-E2 Center Field Pilot20k](20260807-g3-p4e2-center-field-pilot20k.md)：
+同目标训练20k后known-Count多71个Atom，但dev top128只多4个Atom、exact只+1，正式NO-GO；协议
+检查全过。停止同损失扩量与P4-E3，下一路线必须直接改变整图regional-maxima排序目标。
 
 当前已完成审计：[G3 P4-E1 Pilot Union Cache](20260807-g3-p4e1-pilot-union-cache.md)：
 Micro为160/160，但pilot/dev recall仅99.883%/99.423%，stress更低；256×72 cache协议完整，
