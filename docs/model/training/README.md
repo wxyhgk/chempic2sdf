@@ -26,9 +26,9 @@
 
 ## 训练时间线
 
-当前预注册审计：[G3 P4-E6 Missing Peak Sources](20260808-g3-p4e6-missing-peak-sources.md)：
-固定P4-E3/dev640，以最大基数匹配逐个解释top1024仍缺的58个Atom，并检查全部峰、GT cell局部
-状态和相邻GT；生成失败叠图。只决定下一实验方向，不读pilot/confirm_v2或外部/封存集。
+当前已完成审计：[G3 P4-E6 Missing Peak Sources](20260808-g3-p4e6-missing-peak-sources.md)：
+58个漏点分为matching conflict 28、低于top1024 15、6px内无峰15；52个GT cell本身不是峰，
+但相邻GT仅11。结论为混合来源，下一步拆分offset半径曲线与局部multiplicity分量，不训练selector。
 
 当前已完成审计：[G3 P4-E5 Peak Budget Dev1024](20260807-g3-p4e5-peak-budget-dev1024.md)：
 top256/512/768/1024 recall为99.7377%/99.8117%/99.8210%/99.8210%，768后完全饱和且仍缺
