@@ -26,9 +26,9 @@
 
 ## 训练时间线
 
-当前预注册审计：[G3 P4-E4 Peak Rank Union](20260807-g3-p4e4-peak-rank-union-audit.md)：
-冻结P4-E3和旧train5k场，比较new-first 128/160/192及top128/192/256；以pilot/dev同时99.9%
-选择最小预算，并量化5.68万峰/图的提取成本。只保存胜者cache，confirm_v2与外部/封存集不读。
+当前已完成审计：[G3 P4-E4 Peak Rank Union](20260807-g3-p4e4-peak-rank-union-audit.md)：
+P4-E3单源top256 dev为99.7377%；三个旧/新并集最好为99.7222%，均未过99.9%，正式NO-GO。
+新场20,640图提取673秒、峰p90 8.53万。下一步仅审计dev top1024，区分排序尾部与表示缺失。
 
 当前已完成训练：[G3 P4-E3 Global Peak Rank Pilot20k](20260807-g3-p4e3-global-peak-rank-pilot20k.md)：
 top128 matched/exact相对step0增加97/+33，相对P4-E2增加93/+32，三项能力门全过，正式GO；

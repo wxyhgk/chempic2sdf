@@ -2,7 +2,7 @@
 
 > 日期：2026-08-07
 >
-> 状态：预注册，待运行
+> 状态：已完成，Candidate Oracle NO-GO
 >
 > 审计：`chemvector-g3-p4e4-peak-rank-union-audit`
 
@@ -40,3 +40,40 @@ USPTO、MR-TADF和sealed_test均不得读取。
 - `outputs/audits/chemvector-g3-p4e4-peak-rank-union-audit/dev.pt`
 
 本轮零训练，不创建模型tag。
+
+## 实际结果
+
+P4-E3的dev top128严格重放为32,195 matched、550 exact，checkpoint和提取协议一致。两个source
+完整收集后，三个预注册并集顺序在三个预算下均未同时通过pilot/dev 99.9%门：
+
+| 输入 | pilot top256 recall / exact | dev top256 recall / exact |
+|---|---:|---:|
+| train5k单源 | 99.8778% / 19,394 | 99.4383% / 546 |
+| P4-E3单源 | 99.9326% / 19,650 | **99.7377% / 584** |
+| new-first128并集 | 99.9376% / 19,689 | 99.5370% / 570 |
+| new-first160并集 | 99.9467% / 19,729 | 99.6543% / 584 |
+| new-first192并集 | **99.9525% / 19,759** | 99.7222% / **592** |
+
+pilot在P4-E3单源top256已过99.9%，dev仍差85个Atom；最佳并集能增加8张dev exact，但recall
+反而比P4-E3单源低0.0154个百分点。旧场与新场的漏点高度相关，在256容量下没有形成有效补集。
+因此不保存无效的source-aware cache，也不启动selector。
+
+完整plateau提取成本：
+
+| source | 20,640图耗时 | pilot峰均值 / p90 | dev峰均值 / p90 |
+|---|---:|---:|---:|
+| train5k | 538.07秒 | 33,100 / 34,281 | 32,477 / 34,326 |
+| P4-E3 | 673.17秒 | 59,263 / 88,593 | 56,763 / 85,310 |
+
+总审计耗时1,298.68秒。P4-E3比train5k提取慢25.1%，并且p90峰数约为2.6倍；当前SciPy
+plateau实现只能用于离线cache，不能作为CPU在线推理方案。
+
+最终决策`peak_rank_union_audit_no_go`。下一步只在已暴露dev上将P4-E3单源预算扩大到1024，
+区分256之后的排序尾部与regional-maxima表示缺失；不重跑pilot、不读confirm_v2。
+
+## 产物
+
+- audit SHA256：
+  `9746bc2c49a0822a7c735b2cf4351b4439ad85528f9b50d45e0b0eab4005df51`；
+- 无winner，未生成pilot/dev cache；
+- confirm_v2、fresh、USPTO、MR-TADF和sealed_test均未读取。
