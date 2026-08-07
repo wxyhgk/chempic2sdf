@@ -26,10 +26,11 @@
 
 ## 训练时间线
 
-当前预注册审计：[G3 P3-E23 Top192 周期恢复审计](20260807-g3-p3e23-top192-cycle-recovery.md)：
-固定query=128/candidates=192，以`strict=True`加载原base/expert，重建P3-E16 evidence并复现
-三split Candidate Oracle。除shape/确定性门外，dev/confirm Count exact各自最多回退2pp、MAE
-最多增加0.10；通过后才恢复五路线Micro Capacity。本轮零训练，不读取fresh/sealed。
+当前已完成审计：[G3 P3-E23 Top192 周期恢复审计](20260807-g3-p3e23-top192-cycle-recovery.md)：
+动态checkpoint加载、`[128,192]` pointer、确定性与三split 99% Candidate门全部通过；但旧
+P3-E16在top192 evidence上dev exact从28.59%崩到2.50%、MAE从3.51升到17.70，正式NO-GO。
+五路线与SDF未启动；下一步先拆分pointer/known-count与Count feature漂移，再决定只适配Count
+还是先冻结统一候选归一化协议。本轮零训练，fresh/sealed均未读取。
 
 当前已完成审计：[G3 P3-E22 Candidate Budget 审计](20260807-g3-p3e22-candidate-budget-audit.md)：
 在冻结中心场、manifest和排序下，train/dev/confirm的top192 candidate recall分别为

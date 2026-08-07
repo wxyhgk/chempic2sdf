@@ -2,7 +2,7 @@
 
 > 日期：2026-08-07
 >
-> 状态：预注册，待运行
+> 状态：已完成，Count Compatibility NO-GO
 >
 > 审计：`chemvector-g3-p3e23-top192-cycle-recovery`
 >
@@ -77,3 +77,43 @@ top128 posterior。
 
 本轮是零训练兼容/分布审计，不产生 checkpoint，不创建模型 tag。只有后续实际训练出的每条
 route 才按模型名 commit 并创建完全同名 annotated tag，包括 NO-GO route。
+
+## 实际结果
+
+动态长度与 Candidate Oracle 全部通过：
+
+- base/expert 原权重均以 `strict=True` 加载；
+- existence/pointer/count shape 为 `[B,128]`、`[B,128,192]`、`[B,129]`；
+- P3-E16 接收 `[B,192,41]` candidate evidence 并输出 `[B,129]`；
+- 重复运行 digest 完全一致，所有 tensor 有限；
+- train/dev/原 confirm recall 为99.2409%/99.3549%/99.4125%，逐项复现 P3-E22。
+
+但是 P3-E16 Count 的 192-candidate 分布兼容门全部失败：
+
+| split | top128 exact | top192 exact | top128 MAE | top192 MAE |
+|---|---:|---:|---:|---:|
+| train | 30.6250% | 2.9688% | 3.4244 | 17.7794 |
+| dev | 28.5938% | 2.5000% | 3.5078 | 17.7016 |
+| 原 confirm 诊断 | 32.5000% | 2.0312% | 3.3578 | 17.7812 |
+
+dev+原 confirm 合并 exact 从30.5469%降到2.2656%，MAE从3.4328升到17.7414。
+因此正式判定 `top192_cycle_recovery_no_go`。这证明旧 checkpoint 的权重形状可以动态读取
+192候选，但 P3-E16 的集合统计分布不能直接外推；不得据此启动五路线、运行完整SDF或接触
+外部/封存测试。
+
+## 产物
+
+- 审计：`outputs/audits/chemvector-g3-p3e23-top192-cycle-recovery/audit.json`；
+- 审计 SHA256：`c562d6082775dd0c55d963ca24c6f56bee904aae1bf7a0d5271dda0653741b08`；
+- train shard SHA256：
+  `e8dd632c747a1f0fbd68f8cfefc5ff78f22e203dd91de56114fed02f9c2f6e5c`；
+- dev shard SHA256：
+  `031877a230e7f3bbce860b4ce1afea4065f01fd97dd681993a776ee5cd175ecb`；
+- 原 confirm 诊断 shard SHA256：
+  `6db899bd2ecba1ac01fafad7bac78e0b178dd76a1889d4f528c53453a740511f`；
+- 审计耗时：8.49秒；
+- `fresh_dev` 与 `sealed_test` 均未读取。
+
+下一步先做固定 top128/top192 的 base/expert pointer、known-count Atom set 与 Count feature
+漂移审计。若结构选择仍稳定，只在 top192 evidence 上适配 Count；若 pointer 也明显退化，
+则必须先统一候选归一化协议，不能把所有问题错误归因给 DeepSets。

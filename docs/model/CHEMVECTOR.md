@@ -12,6 +12,11 @@ train/dev/confirm recall为99.2409%/99.3549%/99.4125%，三组均通过预注册
 top256不采用，`sealed_test`仍保持封存。详见
 [P3-E22 训练档案](training/20260807-g3-p3e22-candidate-budget-audit.md)。
 
+随后的 [P3-E23 恢复审计](training/20260807-g3-p3e23-top192-cycle-recovery.md) 证明旧
+base/expert权重可严格加载并输出128×192 pointer，但P3-E16 Count在新evidence上dev exact
+从28.59%降到2.50%、MAE从3.51升到17.70，正式NO-GO。五路线尚未训练；当前先审计
+pointer/known-count是否稳定，再决定top192 Count适配范围。
+
 ## 当前版本
 
 - 当前完成的研究 tag：`v0.10.21`。
