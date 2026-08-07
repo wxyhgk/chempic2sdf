@@ -26,6 +26,11 @@
 
 ## 训练时间线
 
+当前预注册审计：[G3 P3-E24 Top192 输入协议 A/B](20260807-g3-p3e24-top192-input-protocol-ab.md)：
+零训练比较global192与保留前128输入契约的prefix192，使用known-count base/expert/冻结router
+隔离Count错误。dev router exact最多回退2pp、matched recall最多回退0.2pp；结构通过而P3-E16
+仍退化时只授权top192 Count适配，不直接恢复五路线。旧confirm仅诊断，fresh/sealed不读取。
+
 当前已完成审计：[G3 P3-E23 Top192 周期恢复审计](20260807-g3-p3e23-top192-cycle-recovery.md)：
 动态checkpoint加载、`[128,192]` pointer、确定性与三split 99% Candidate门全部通过；但旧
 P3-E16在top192 evidence上dev exact从28.59%崩到2.50%、MAE从3.51升到17.70，正式NO-GO。
