@@ -756,11 +756,22 @@ def atom_center_field_loss(
     adaptive_gaussian: bool = False,
     peak_margin_weight: float = 0.0,
     peak_margin: float = 1.0,
+    global_peak_rank_weight: float = 0.0,
+    global_peak_candidate_budget: int = 128,
+    global_peak_boundary_window: int = 16,
+    global_peak_margin: float = 1.0,
 ) -> dict[str, torch.Tensor]:
     """Apply center focal loss and positive-cell sub-pixel offset loss."""
 
     if not math.isfinite(float(peak_margin_weight)) or peak_margin_weight < 0.0:
         raise ValueError("G3 AtomCenterField peak margin weight must be non-negative")
+    if (
+        not math.isfinite(float(global_peak_rank_weight))
+        or global_peak_rank_weight < 0.0
+    ):
+        raise ValueError(
+            "G3 AtomCenterField global peak rank weight must be non-negative"
+        )
 
     center_logits = output.get("center_logits")
     offset_logits = output.get("offset_logits")
@@ -799,15 +810,28 @@ def atom_center_field_loss(
         if peak_margin_weight
         else heatmap_loss * 0.0
     )
+    global_peak_rank_loss = (
+        atom_center_global_peak_rank_loss(
+            center_logits,
+            targets["positive"],
+            candidate_budget=global_peak_candidate_budget,
+            boundary_window=global_peak_boundary_window,
+            margin=global_peak_margin,
+        )
+        if global_peak_rank_weight
+        else heatmap_loss * 0.0
+    )
     return {
         "loss": (
             heatmap_loss
             + 8.0 * offset_loss
             + float(peak_margin_weight) * peak_margin_loss
+            + float(global_peak_rank_weight) * global_peak_rank_loss
         ),
         "heatmap_loss": heatmap_loss,
         "offset_loss": offset_loss,
         "peak_margin_loss": peak_margin_loss,
+        "global_peak_rank_loss": global_peak_rank_loss,
         "sigma_cells_mean": targets["sigma_cells"].mean(),
     }
 

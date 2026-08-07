@@ -26,6 +26,10 @@
 
 ## 训练时间线
 
+当前预注册训练：[G3 P4-E3 Global Peak Rank Pilot20k](20260807-g3-p4e3-global-peak-rank-pilot20k.md)：
+从P4-E2之前的同一train25k初始化，在相同pilot20k受控A/B中加入权重10的全图top128边界
+排序损失；固定5,000步和原能力门，confirm_v2及所有外部/封存集保持未读。
+
 当前已完成审计：[G3 P4-E3 全图峰排序损失](20260807-g3-p4e3-global-peak-rank-loss-audit.md)：
 top128必要条件被写成整图假regional-maxima边界排序损失；索引detach但正负logit保留梯度，
 相邻GT排除。batch4、768² BF16前后向1.42ms、约99MiB，全部机制检查通过，允许预注册pilot20k。

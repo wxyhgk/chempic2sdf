@@ -607,6 +607,35 @@ class G3AtomCenterFieldTests(unittest.TestCase):
         self.assertEqual(float(loss.detach()), 0.0)
         torch.testing.assert_close(logits.grad, torch.zeros_like(logits))
 
+    def test_center_field_loss_can_add_weighted_global_peak_rank(self) -> None:
+        logits = torch.full((1, 1, 5, 7), -10.0)
+        logits[0, 0, 2, 1] = 0.0
+        logits[0, 0, 1, 3] = 5.0
+        logits[0, 0, 3, 3] = 4.0
+        logits[0, 0, 2, 5] = 3.0
+        output = {
+            "center_logits": logits,
+            "offset_logits": torch.zeros(1, 2, 5, 7),
+        }
+        anchors = torch.tensor([[[1.5 / 7.0, 2.5 / 5.0]]])
+        mask = torch.ones(1, 1, dtype=torch.bool)
+
+        base = atom_center_field_loss(output, anchors, mask)
+        ranked = atom_center_field_loss(
+            output,
+            anchors,
+            mask,
+            global_peak_rank_weight=10.0,
+            global_peak_candidate_budget=2,
+            global_peak_boundary_window=1,
+        )
+
+        expected_rank = torch.nn.functional.softplus(torch.tensor(5.0))
+        torch.testing.assert_close(ranked["global_peak_rank_loss"], expected_rank)
+        torch.testing.assert_close(
+            ranked["loss"], base["loss"] + 10.0 * expected_rank
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
