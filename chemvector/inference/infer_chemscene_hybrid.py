@@ -171,6 +171,53 @@ def attach_text_to_bond_junctions(
     return roles, labels
 
 
+def components_from_external_junctions(
+    points: torch.Tensor,
+    bond_objects: list[dict],
+    *,
+    include_ocr: bool,
+    detected_points: torch.Tensor | None = None,
+    detected_roles: torch.Tensor | None = None,
+    detected_labels: list[str] | None = None,
+    image_size: int = 768,
+    text_attach_radius_pixels: float = 24.0,
+) -> tuple[torch.Tensor, torch.Tensor, list[str], list[dict]]:
+    """Attach frozen OCR results to an externally selected Junction set."""
+
+    if points.ndim != 2 or points.size(1) != 2 or not len(points):
+        raise ValueError("External Junctions must have non-empty shape [N,2]")
+    if not bool(torch.isfinite(points).all()) or not bool(
+        ((points >= 0.0) & (points <= 1.0)).all()
+    ):
+        raise ValueError("External Junction is outside the normalized image")
+    if image_size < 1 or text_attach_radius_pixels <= 0:
+        raise ValueError("External Junction attachment dimensions are invalid")
+    if include_ocr:
+        if (
+            detected_points is None
+            or detected_roles is None
+            or detected_labels is None
+        ):
+            raise ValueError("External Junction OCR requires detected text objects")
+        roles, labels = attach_text_to_bond_junctions(
+            points,
+            detected_points,
+            detected_roles,
+            detected_labels,
+            image_size=image_size,
+            maximum_distance_pixels=text_attach_radius_pixels,
+        )
+    else:
+        roles = torch.full(
+            (len(points),),
+            IMPLICIT_ROLE,
+            device=points.device,
+            dtype=torch.long,
+        )
+        labels = ["C"] * len(points)
+    return points, roles, labels, list(bond_objects)
+
+
 def _atom_from_label(
     label: str,
     role: int,
@@ -1666,7 +1713,12 @@ class ChemSceneHybridPipeline:
         junction_source: str = "vertex",
         endpoint_cluster_radius_pixels: float = 12.0,
         text_attach_radius_pixels: float = 24.0,
+        external_junctions: torch.Tensor | None = None,
     ) -> tuple[torch.Tensor, torch.Tensor, list[str], list[dict]]:
+        if (junction_source == "external") != (external_junctions is not None):
+            raise ValueError(
+                "External Junction source and external_junctions must be provided together"
+            )
         self.component_diagnostics = {}
         with torch.autocast(device_type=self.device.type, dtype=torch.bfloat16):
             features = self.base.vision_encoder.forward_stroke_resolution(pixels)
@@ -1759,6 +1811,27 @@ class ChemSceneHybridPipeline:
                 labels = ["C"] * len(points)
             if junction_source == "junction_semantic_relations":
                 bond_objects = self._semantic_relation_bonds(pixels, points)
+        elif junction_source == "external":
+            points = external_junctions.to(self.device)
+            if include_ocr:
+                detected_points, detected_roles, detected_labels = self._junctions(
+                    pixels,
+                    features,
+                    real_threshold=real_threshold,
+                    bbox_expansion_pixels=bbox_expansion_pixels,
+                )
+            else:
+                detected_points = detected_roles = detected_labels = None
+            points, roles, labels, bond_objects = components_from_external_junctions(
+                points,
+                bond_objects,
+                include_ocr=include_ocr,
+                detected_points=detected_points,
+                detected_roles=detected_roles,
+                detected_labels=detected_labels,
+                image_size=pixels.size(-1),
+                text_attach_radius_pixels=text_attach_radius_pixels,
+            )
         elif junction_source in {"vertex", "semantic_relations"}:
             if include_ocr:
                 points, roles, labels = self._junctions(
@@ -1879,6 +1952,7 @@ class ChemSceneHybridPipeline:
         endpoint_cluster_radius_pixels: float = 12.0,
         text_attach_radius_pixels: float = 24.0,
         atom_decode_mode: str = "greedy",
+        external_junctions: torch.Tensor | None = None,
     ) -> tuple[dict, dict]:
         if atom_decode_mode not in {"greedy", "structured_invalid_only"}:
             raise ValueError(f"Unknown atom decode mode: {atom_decode_mode}")
@@ -1890,6 +1964,7 @@ class ChemSceneHybridPipeline:
             junction_source=junction_source,
             endpoint_cluster_radius_pixels=endpoint_cluster_radius_pixels,
             text_attach_radius_pixels=text_attach_radius_pixels,
+            external_junctions=external_junctions,
         )
         graph_diagnostics = {}
         if graph_correction_mode in {"type_only", "full"}:

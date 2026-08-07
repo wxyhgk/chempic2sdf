@@ -26,6 +26,11 @@
 
 ## 训练时间线
 
+当前运行中：[G3 P3-E21 五路线完整 SDF 验证周期](20260807-g3-p3e21-five-route-sdf-cycle.md)：
+已冻结五条Atom/Count路线、双ChemScene profile和完整阶段门。style90k新划分train/dev/confirm为
+3200/640/640图，五个Count区间等量，molecule/InChIKey/scaffold跨split重叠为0；下一步先生成
+共享geometry/query/count缓存并通过Oracle/adapter门，再启动同预算五路训练。
+
 当前已完成实验：[G3 P3-E20 Poisson-binomial Count Pilot](20260806-g3-p3e20-poisson-binomial-count-pilot.md)：
 128个候选occupancy经Poisson-binomial得到Count，平衡的2560/1280图上dev MAE从P3-E16的
 3.42降到2.76，但exact只从28.36%提高到29.22%，训练集自身也仅29.34%，严格NO-GO。
