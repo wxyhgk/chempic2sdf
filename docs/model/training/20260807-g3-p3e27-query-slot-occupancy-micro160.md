@@ -2,7 +2,7 @@
 
 > 日期：2026-08-07
 >
-> 状态：预注册，待训练
+> 状态：已完成，Micro Capacity NO-GO
 >
 > 模型：`chemvector-g3-p3e27-query-slot-occupancy-micro160`
 
@@ -60,3 +60,36 @@ existing joint fixed-cardinality Hungarian：Count head给K，同时选择K个qu
 全部通过为`query_slot_occupancy_micro160_go`，否则NO-GO。无论结果如何都提交checkpoint和结果，
 并创建与模型名完全一致的annotated tag。至少两条路线过Micro前，不解除P3-E21完整SDF门。
 
+## 实际结果
+
+固定4,000步完整运行。Count容量完全通过，但Atom集合显著失败：
+
+| 指标 | 结果 | 门 |
+|---|---:|---:|
+| Count exact / MAE | 160/160 / 0 | ≥152 / ≤0.10 |
+| predicted Atom exact | 11/160 | ≥152 |
+| known-count Atom exact | 11/160 | ≥152 |
+| predicted/known recall | 92.21% | ≥99.9% |
+| existence boundary exact | 0/160 | ≥152 |
+| 新增可达 exact | 0/27 | ≥50% |
+
+Count loss降到累计均值0.417并最终全对，证明模型容量、数据读取和optimizer能记住Micro全局数量；
+pointer loss和coordinate loss也持续下降，但动态pointer-compatible query身份没有形成全图稳定存在性，
+最终最弱正query未在任何图片上超过最强负query。相对两个candidate occupancy头，query-slot甚至将
+known-count F1从约95.8%降到92.2%。
+
+正式判定`query_slot_occupancy_micro160_no_go`，不扩量、不运行dev/SDF。下一步只允许评估
+`bond_conditioned_occupancy`是否有冻结、纯图像衍生的incident Bond evidence可合法接入；不得用
+GT bond/render layer冒充forward特征。`hybrid_structured_count`不能修复known-count Atom exact，
+因此在selector不变时受本轮结果支配。
+
+## 产物
+
+- checkpoint SHA256：`3aa13908f5682b7fc3a21c6eb677c24a32c4c5012166a2aa7c2de5e6462ef6bd`；
+- audit SHA256：`156aeecb69fa1df6c48983dc6709804941b9b508a2060fe56a5495c810916f18`；
+- final metrics SHA256：`760414e2dbf4711bccf5cf818ecad63de1633ef4d6a0045076d72f4e6199c623`；
+- 训练耗时：246.56秒；
+- dev、旧confirm、fresh和sealed均未读取。
+
+结果提交后创建同名annotated tag：
+`chemvector-g3-p3e27-query-slot-occupancy-micro160`。

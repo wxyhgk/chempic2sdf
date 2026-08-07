@@ -31,6 +31,10 @@ identity-invariant soft coverage与兼容分量质量约束。
 known-count exact从47提高到49，Count从76降到69，新增可达仍0/27，正式NO-GO。两个冻结
 evidence candidate occupancy头都未利用tail；下一路线解冻128-query×192-candidate pointer本体。
 
+[P3-E27 Query-slot](training/20260807-g3-p3e27-query-slot-occupancy-micro160.md)将Count做到
+160/160，但Atom exact仅11/160、existence boundary 0/160、新增可达0/27，证明断点是稳定
+query/pointer集合而非Count容量。下一步先审计是否存在可合法冻结的incident Bond视觉证据。
+
 ## 当前版本
 
 - 当前完成的研究 tag：`v0.10.21`。

@@ -26,10 +26,11 @@
 
 ## 训练时间线
 
-当前预注册训练：[G3 P3-E27 Query-slot Occupancy Micro160](20260807-g3-p3e27-query-slot-occupancy-micro160.md)：
+当前已完成训练：[G3 P3-E27 Query-slot Occupancy Micro160](20260807-g3-p3e27-query-slot-occupancy-micro160.md)：
 从冻结expert严格扩展为128 query×192 candidate并全量训练query-set，使用pointer-compatible
-query↔GT Hungarian、兼容集合pointer loss、坐标/Count/existence boundary联合目标。与P3-E25
-相同Micro160，固定4000步；Count/Atom exact门仍为152/160，不读取dev/fresh/sealed/SDF。
+query↔GT Hungarian联合目标。固定4000步后Count达到160/160，但Atom exact仅11/160、boundary
+0/160、新增可达0/27，正式NO-GO。问题明确在稳定query/pointer集合，不是Count容量；不读取
+dev/fresh/sealed/SDF。
 
 当前已完成训练：[G3 P3-E26 Soft Coverage Occupancy Micro160](20260807-g3-p3e26-soft-coverage-occupancy-micro160.md)：
 与P3-E25保持相同true-global192 evidence、Micro160、h64和1000步，只把hard identity改为
