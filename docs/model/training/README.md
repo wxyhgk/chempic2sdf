@@ -26,6 +26,10 @@
 
 ## 训练时间线
 
+当前预注册审计：[G3 P4-E8 Local Multiplicity Components](20260808-g3-p4e8-local-multiplicity-components.md)：
+只重放43张失败图，在6/10px构造GT/top1024二部分量；若shared缺口全部可由最多4 GT、deficiency
+最多2的局部decoder覆盖，则bounded GO。no-candidate分量单独保留给峰生成/坐标细化。
+
 当前已完成审计：[G3 P4-E7 Offset Radius A/B](20260808-g3-p4e7-offset-radius-ab.md)：cell center
 与预测offset同为32,342 matched，且exact少1、paired break1，offset头非主因；预测anchor在10px
 可达99.9290%/621 exact。10px只证明定位近失，不修改6px指标；下一步审计局部multiplicity分量。
