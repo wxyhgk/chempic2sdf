@@ -17,6 +17,11 @@ base/expert权重可严格加载并输出128×192 pointer，但P3-E16 Count在�
 从28.59%降到2.50%、MAE从3.51升到17.70，正式NO-GO。五路线尚未训练；当前先审计
 pointer/known-count是否稳定，再决定top192 Count适配范围。
 
+[P3-E24 输入协议 A/B](training/20260807-g3-p3e24-top192-input-protocol-ab.md) 进一步证明
+global/prefix top192虽使dev router matched净增203/248，但在30张新增可达图中均0 rescue，并
+破坏19/18张旧正确图；所以旧query没有真正利用新增容量。当前不做Count-only修补，转为训练
+直接读取192候选的动态一一匹配occupancy/query。
+
 ## 当前版本
 
 - 当前完成的研究 tag：`v0.10.21`。

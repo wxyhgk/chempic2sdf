@@ -2,7 +2,7 @@
 
 > 日期：2026-08-07
 >
-> 状态：预注册，待运行
+> 状态：已完成，Shape Compatible but Not Useful
 >
 > 审计：`chemvector-g3-p3e24-top192-input-protocol-ab`
 
@@ -80,3 +80,37 @@ Count仍固定0--128共129类。未来与192 candidate统一接口连接时，�
 
 本轮不读取 fresh_dev、USPTO、MR-TADF、封存 confirm_v2 或 sealed_test，不产生 checkpoint，
 因此不创建模型 tag。
+
+## 实际结果
+
+两臂均复现top192 Candidate Oracle，但都未把新增候选转化为新增整图能力：
+
+| dev known-count | top128 | global192 | prefix192 |
+|---|---:|---:|---:|
+| base exact | 25/640 | 3/640 | 10/640 |
+| expert exact | 201/640 | 210/640 | 204/640 |
+| router exact | 151/640 | 187/640 | 178/640 |
+| router matched | 30160/32400 | 30363/32400 | 30408/32400 |
+
+global/prefix的router matched分别净增203/248，且正确选中过38/42个tail候选；但 paired
+break为19/18张，超过保护门6张。最关键的是top128不可达、top192可达的30张dev图片中，
+两臂新增 exact rescue均为0。aggregate提高来自旧可达图片内重新洗牌，以及冻结router路由率
+变化，不是新增64候选带来的能力。
+
+因此没有选定输入臂，Count阶段按协议完全未计算，最终判定
+`top192_shape_compatible_but_not_useful`。不能授权Count-only适配，也不能恢复五路线完整SDF；
+下一步必须让occupancy/query训练真实看到192候选和动态一一匹配目标。
+
+## 产物
+
+- 审计 SHA256：`f738cb949b78da99b49dc9791cdf5adbe538aaae967f78e61504ce8473c45e19`；
+- query commitment SHA256：
+  `2ea014f795d30b19bfc5135c58651ed878500f1931377ff924af0d9f083fbcee`；
+- prefix train/dev shard SHA256：
+  `c255210511951bb7216b1c4c74a2099b08de9ea130f5e28c548f123d92fee492` /
+  `982913b76403bd31001401641f09680380356fe039b19fa2487154424e7513fa`；
+- 审计耗时：66.15秒；
+- 旧confirm、fresh_dev、confirm_v2与sealed_test均未读取。
+
+本轮零训练，不创建模型tag。旧confirm诊断不再有必要：dev上的新增可达效用门已因0/30明确
+失败，读取已消费confirm不会改变结论，只会增加无效的数据接触。
