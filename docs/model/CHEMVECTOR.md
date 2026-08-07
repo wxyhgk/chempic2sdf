@@ -67,6 +67,10 @@ tar顺序与四variant完整；下一步构建pilot20k的256双源cache。
 pilot/dev candidate recall仅99.883%/99.423%，虽Micro仍160/160，Candidate Oracle正式NO-GO。
 暂停selector训练，先从train25k checkpoint继续训练center field并重建union。
 
+[P4-E2 Center Field Pilot20k](training/20260807-g3-p4e2-center-field-pilot20k.md)已预注册：从train25k
+field在无泄漏pilot20k固定训练1 epoch/5,000步；dev top128 recall至少+0.1pp、exact至少+5且
+known-Count不明显回退，才允许P4-E3重建union。实际模型必须提交并创建同名annotated tag。
+
 ## 当前版本
 
 - 当前完成的研究 tag：`v0.10.21`。
