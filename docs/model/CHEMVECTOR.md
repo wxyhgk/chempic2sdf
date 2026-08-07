@@ -80,6 +80,10 @@ top128 matched/exact相对step0增加97/+33，相对P4-E2增加93/+32，三项�
 候选边界目标有效。regional maxima均值同时从3.03万升至5.68万，下一步先审计候选并集可达性
 和提取成本；confirm_v2及外部/封存集仍未读。
 
+[P4-E4 Peak Rank Union](training/20260807-g3-p4e4-peak-rank-union-audit.md)已预注册：冻结新旧
+两个stride-1场，比较三个source-id顺序与128/192/256预算，以pilot/dev同时99.9%选择最小可行
+输入，并记录完整plateau提取成本；本轮不训练、不读取confirm_v2。
+
 ## 当前版本
 
 - 当前完成的研究 tag：`v0.10.21`。
