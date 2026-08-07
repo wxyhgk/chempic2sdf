@@ -26,9 +26,9 @@
 
 ## 训练时间线
 
-当前预注册审计：[G3 P4-E7 Offset Radius A/B](20260808-g3-p4e7-offset-radius-ab.md)：固定峰身份
-与顺序，对预测offset/cell-center做top128/1024和6/8/10/12px A/B；cell center需matched +15、
-exact不退且paired零break才GO。10px只诊断，不改变正式6px指标。
+当前已完成审计：[G3 P4-E7 Offset Radius A/B](20260808-g3-p4e7-offset-radius-ab.md)：cell center
+与预测offset同为32,342 matched，且exact少1、paired break1，offset头非主因；预测anchor在10px
+可达99.9290%/621 exact。10px只证明定位近失，不修改6px指标；下一步审计局部multiplicity分量。
 
 当前已完成审计：[G3 P4-E6 Missing Peak Sources](20260808-g3-p4e6-missing-peak-sources.md)：
 58个漏点分为matching conflict 28、低于top1024 15、6px内无峰15；52个GT cell本身不是峰，

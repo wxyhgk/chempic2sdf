@@ -95,9 +95,10 @@ matching conflict 28、低于top1024 15、6px内无峰15；52个GT cell本身不
 结论是局部多对象覆盖、深尾排名和约6–10px坐标越界的混合，不再加候选/训练selector。下一步
 拆分offset半径曲线与局部multiplicity分量；confirm_v2及外部/封存集仍未读。
 
-[P4-E7 Offset Radius A/B](training/20260808-g3-p4e7-offset-radius-ab.md)已预注册：固定候选身份
-和顺序，比较预测offset/cell-center及6/8/10/12px曲线；cell center只有在6px matched至少+15、
-exact不退且paired零break时才GO。10px只定位误差来源，不修改正式指标。
+[P4-E7 Offset Radius A/B](training/20260808-g3-p4e7-offset-radius-ab.md)完成：cell center与预测offset
+同为32,342 matched，但exact少1且paired break1，offset头非主因。预测anchor在top1024/10px达到
+99.9290%、621 exact，相对6px恢复35个Atom/24张图；这只证明定位近失，不修改正式6px指标。
+下一步审计28个matching conflict的局部multiplicity分量，再设计结构化anchor细化。
 
 ## 当前版本
 
