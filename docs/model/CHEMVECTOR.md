@@ -90,6 +90,10 @@ top256 dev为99.7377%，三个旧/新并集最好仅99.7222%，没有过99.9%，
 当前实用regional-maxima表示NO-GO，停止加预算、source union和selector；下一步定位58个GT是
 相邻互相支配、未形成峰还是低于top1024。pilot、confirm_v2和外部/封存集未读。
 
+[P4-E6 Missing Peak Sources](training/20260808-g3-p4e6-missing-peak-sources.md)已预注册：固定
+P4-E3/dev640，以生产一致的最大基数匹配逐个分析58个漏GT，并检查全部plateau峰、GT cell局部
+状态与相邻GT；生成失败叠图，不训练、不读取pilot/confirm_v2或外部/封存集。
+
 ## 当前版本
 
 - 当前完成的研究 tag：`v0.10.21`。
