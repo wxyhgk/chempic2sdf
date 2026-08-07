@@ -26,6 +26,11 @@
 
 ## 训练时间线
 
+当前已完成审计：[G3 P3-E29 Bond Incident Signal Micro160](20260807-g3-p3e29-bond-incident-signal-micro160.md)：
+冻结Bond endpoint局部证据的candidate AUC为0.9608，普通exact由53/160增至55/160；但真正新增
+可达的27张tail图片始终0/27，因此局部bond-conditioned occupancy正式NO-GO。下一步只审计
+一根键两端必须被两个节点共同解释的全局pair consistency，不追加局部距离核训练。
+
 当前已完成审计：[G3 P3-E28 五路线周期闭环](20260807-g3-p3e28-five-route-cycle-closure.md)：
 前三路Micro全部NO-GO；hybrid只改Count，predicted exact受known-count最高49/160解析上界限制，
 无需训练即可剪枝。bond路线虽有合法冻结端点证据，但即使通过也最多1/5路，低于至少2路门。

@@ -39,6 +39,10 @@ query/pointer集合而非Count容量。下一步先审计是否存在可合法�
 hybrid受known-count最高49/160上界限制；bond即使通过也只能使maximum possible passes=1，低于
 至少2路Micro门。原周期正式NO-GO，未进入dev、双profile SDF、confirm、外部或sealed阶段。
 
+[P3-E29 Bond Incident Signal](training/20260807-g3-p3e29-bond-incident-signal-micro160.md)进一步
+确认冻结键端点局部证据虽有0.9608 candidate AUC，却无法救回任何tail-required图片（0/27）；
+停止独立候选局部融合，下一步转向同时解释一根键两个端点的全局pair consistency审计。
+
 ## 当前版本
 
 - 当前完成的研究 tag：`v0.10.21`。
