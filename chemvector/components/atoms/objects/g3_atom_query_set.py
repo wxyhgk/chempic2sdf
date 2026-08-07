@@ -56,7 +56,10 @@ def _validate_candidates(candidates: dict[str, torch.Tensor], config) -> int:
         raise ValueError(f"G3 Atom query candidates are missing: {sorted(missing)}")
     anchors = candidates["candidate_anchors"]
     if anchors.ndim != 3 or anchors.shape[1:] != (config.candidates, 2):
-        raise ValueError("G3 Atom candidate anchors must have shape [batch,128,2]")
+        raise ValueError(
+            "G3 Atom candidate anchors must have shape "
+            f"[batch,{config.candidates},2]"
+        )
     batch = anchors.size(0)
     expected = {
         "candidate_features": (batch, config.candidates, config.feature_dim),

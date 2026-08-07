@@ -63,12 +63,17 @@ P3-E16 的 128-candidate 原基线为：
 门通过但 Count 门失败，下一周期必须预注册 top192 Count 适配；不得在同一次运行中改回
 top128 posterior。
 
+这里的原 `confirm640` 已参与 P3-E22 的候选预算选择，因此在本轮只记作
+`budget_consumed_diagnostic`。它不得用于五路线 Top-2、winner、阈值或 checkpoint 选择。
+五路线恢复前必须另建与 train/dev/原 confirm 在 molecule、InChIKey、scaffold 和图片哈希上
+零重叠的封存 `confirm_v2`；只有 Top-2 身份、checkpoint SHA、阈值、排序器和评测代码全部
+提交后，才允许一次解封并同时评测已锁定 Top-2。
+
 ## 决策与后续
 
 - 全部门通过：`top192_cycle_recovery_go`，冻结共享 cache，恢复 P3-E21 的五路线 Micro
-  Capacity，五路协议与双下游完整 SDF 门不变；
+  Capacity；Dev 后改用预先封存的 `confirm_v2` 承担确认门，五路协议与双下游完整 SDF 门不变；
 - 任一门失败：`top192_cycle_recovery_no_go`，停止五路训练并记录具体失败层。
 
 本轮是零训练兼容/分布审计，不产生 checkpoint，不创建模型 tag。只有后续实际训练出的每条
 route 才按模型名 commit 并创建完全同名 annotated tag，包括 NO-GO route。
-
