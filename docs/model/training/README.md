@@ -26,6 +26,10 @@
 
 ## 训练时间线
 
+当前预注册审计：[G3 P4-E1 Pilot Union Cache](20260807-g3-p4e1-pilot-union-cache.md)：
+对pilot20k、Micro160和dev640运行train5k/train25k双中心场，按source-id生成256×72候选特征；
+pilot/dev recall≥99.9%且Micro 160/160才允许训练，confirm_v2保持未读。
+
 当前已完成审计：[G3 P4-E0 Source Union Cycle Manifests](20260807-g3-p4e0-source-union-cycle-manifests.md)：
 pilot20k、full80k、confirm_v2 700图全部生成；与旧周期全部split及train/confirm间的molecule/scaffold
 重叠均为0，物理tar顺序和四variant完整。允许进入P4-E1 pilot双源cache。
