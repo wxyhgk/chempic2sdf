@@ -26,6 +26,10 @@
 
 ## 训练时间线
 
+当前预注册审计：[G3 P3-E32 Train25k Candidate Source A/B](20260807-g3-p3e32-train25k-candidate-source-ab.md)：
+固定比较train5k与已有train25k stride-1 center field，在同一Micro160重建top256；旧27张tail图
+至少5张回到top128且旧可达图最多回退3张，才允许替换candidate source。本轮不训练。
+
 当前已完成审计：[G3 P3-E31 Tail Failure Sources](20260807-g3-p3e31-tail-failure-sources.md)：
 33个tail-only Atom中stress占23（69.7%），角色则分散在chain/text/junction/endpoint；正确candidate
 平均排151名。断点是压缩、交叉、近邻风格下center-field排名，而非单一OCR或junction问题。下一步
