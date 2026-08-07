@@ -26,6 +26,11 @@
 
 ## 训练时间线
 
+当前已完成审计：[G3 P3-E31 Tail Failure Sources](20260807-g3-p3e31-tail-failure-sources.md)：
+33个tail-only Atom中stress占23（69.7%），角色则分散在chain/text/junction/endpoint；正确candidate
+平均排151名。断点是压缩、交叉、近邻风格下center-field排名，而非单一OCR或junction问题。下一步
+冻结A/B已有train25k center field，不直接重训。
+
 当前已完成审计：[G3 P3-E30 Bond Pair Consistency Micro160](20260807-g3-p3e30-bond-pair-consistency-micro160.md)：
 双端点candidate-pair affinity将整体recall从95.92%增至96.18%，但tail仍为0/27；提高关系权重
 后性能快速下降，正式NO-GO。不再构造第三种selector，下一步审计33个tail-only Atom的来源。

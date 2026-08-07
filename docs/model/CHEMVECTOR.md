@@ -47,6 +47,10 @@ hybrid受known-count最高49/160上界限制；bond即使通过也只能使maxim
 双端点关系也只能把整体recall从95.92%增至96.18%，tail exact仍为0/27；停止当前冻结BondObject
 驱动的selector路线，转而审计33个tail-only Atom的角色与视觉来源。
 
+[P3-E31 Tail Failure Sources](training/20260807-g3-p3e31-tail-failure-sources.md)定位到23/33漏点来自
+stress，角色分布混合、文字仅8/33；正确candidate仍存在但平均落到第151名。下一步冻结A/B已有
+train25k stride-1 center field，验证更多唯一stress训练图是否改善当前Micro tail排名。
+
 ## 当前版本
 
 - 当前完成的研究 tag：`v0.10.21`。
