@@ -117,3 +117,10 @@ dev+原 confirm 合并 exact 从30.5469%降到2.2656%，MAE从3.4328升到17.741
 下一步先做固定 top128/top192 的 base/expert pointer、known-count Atom set 与 Count feature
 漂移审计。若结构选择仍稳定，只在 top192 evidence 上适配 Count；若 pointer 也明显退化，
 则必须先统一候选归一化协议，不能把所有问题错误归因给 DeepSets。
+
+## 复核：normalized score 定义
+
+P3-E22 一次提取top256时已对256个peak logit做逐图均值/标准差变换；本轮随后截取前192，
+没有重新按192项计算统计量。因此本文结果准确描述的是
+`top256-normalized prefix192`，不是严格的`true-global192`。这不改变NO-GO：旧P3-E16在该输入
+下确实崩溃；但后续新训练若采用global192，必须从raw score前192重新计算标准化并另绑SHA。

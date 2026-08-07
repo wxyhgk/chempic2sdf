@@ -114,3 +114,10 @@ break为19/18张，超过保护门6张。最关键的是top128不可达、top192
 
 本轮零训练，不创建模型tag。旧confirm诊断不再有必要：dev上的新增可达效用门已因0/30明确
 失败，读取已消费confirm不会改变结论，只会增加无效的数据接触。
+
+## 复核：`global192` 历史臂名
+
+审计代码中的`global192`实际复用了P3-E23 shard，而该shard是
+`top256-normalized prefix192`；它并非从raw score前192重新计算的严格global192。`prefix192`
+定义不受影响。两臂新增可达rescue均为0，所以此命名修正不改变选择结论。后续训练统一使用
+`true_global192 = normalize(raw_scores[:192])`，不复用本轮`global192`标签。
