@@ -26,7 +26,8 @@ Oracle仅用于生成训练标签：
    最大基数匹配后唯一未匹配GT，标签为`ADD_SPLIT`。
 2. 在6px图中找严格`1 GT / 0 candidate`缺口分量；若一个top128 candidate与该GT距离
    位于`(6,12]px`，按`(距离, source_id)`选择规范来源，标签为`ADD_REFINE`。
-3. 两路标签互斥。每路至少需要256个动作、100个分子并覆盖四种variant，才允许训练。
+3. 每个base source最多一个动作；冲突时split优先，refine GT与剩余source按最大基数、最小距离
+   做整图一一匹配。每路至少需要256个动作、100个分子并覆盖四种variant，才允许训练。
 4. 冻结Bond endpoint证据只有在训练域三折probe中AUC至少提高0.02，且动作目标endpoint
    coverage至少90%时才能加入。否则恢复头保持纯图像输入。
 

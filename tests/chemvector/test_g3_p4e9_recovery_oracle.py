@@ -53,3 +53,14 @@ def test_refine_requires_strictly_unreachable_gt_within_twelve_pixels() -> None:
     assert recovery_actions(too_far, source_ids, expected) == []
     already_reachable = torch.tensor([[95.0, 100.0], [500.0, 500.0]]) / 768.0
     assert recovery_actions(already_reachable, source_ids, expected) == []
+
+
+def test_split_source_is_not_reused_by_refine_route() -> None:
+    predicted = torch.tensor([[100.0, 100.0], [500.0, 500.0]]) / 768.0
+    expected = torch.tensor(
+        [[96.0, 100.0], [104.0, 100.0], [100.0, 111.0]]
+    ) / 768.0
+    actions = recovery_actions(predicted, torch.tensor([7, 9]), expected)
+    assert len(actions) == 1
+    assert actions[0]["route"] == "ADD_SPLIT"
+    assert actions[0]["base_source_id"] == 7

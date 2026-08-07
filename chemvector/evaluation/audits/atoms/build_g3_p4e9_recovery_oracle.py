@@ -176,6 +176,7 @@ def recovery_actions(
     )
     actions: list[dict] = []
     split_gt: set[int] = set()
+    split_sources: set[int] = set()
     for component in components:
         if not (
             component["kind"] == "shared_deficient"
@@ -191,6 +192,7 @@ def recovery_actions(
         candidate_index = component["candidate_indices"][0]
         target_index = unmatched[0]
         split_gt.update(component["gt_indices"])
+        split_sources.add(candidate_index)
         actions.append(
             {
                 "route": "ADD_SPLIT",
@@ -206,6 +208,7 @@ def recovery_actions(
 
     # Refinement owns only strict no-candidate 6px components. This keeps route
     # labels disjoint and prevents the 2GT/1candidate case from being relabelled.
+    refine_targets = []
     for component in components:
         if not (
             component["kind"] == "no_candidate"
@@ -216,19 +219,31 @@ def recovery_actions(
         target_index = component["gt_indices"][0]
         if target_index in split_gt:
             continue
-        distances = torch.linalg.vector_norm(
-            (predicted.double() - expected[target_index].double()) * IMAGE_SIZE,
-            dim=1,
+        refine_targets.append(target_index)
+    refine_candidates = [
+        index for index in range(len(predicted)) if index not in split_sources
+    ]
+    refine_assignments = (
+        p4e6.maximum_cardinality_assignments(
+            predicted[refine_candidates],
+            expected[refine_targets],
+            radius_pixels=REFINE_RADIUS,
         )
-        eligible = torch.where(
-            (distances > MATCH_RADIUS) & (distances <= REFINE_RADIUS)
-        )[0].tolist()
-        if not eligible:
+        if refine_targets and refine_candidates
+        else []
+    )
+    for target_index, local_candidate in zip(refine_targets, refine_assignments):
+        if local_candidate is None:
             continue
-        candidate_index = min(
-            eligible,
-            key=lambda index: (float(distances[index]), int(source_ids[index])),
+        candidate_index = refine_candidates[local_candidate]
+        distance = float(
+            torch.linalg.vector_norm(
+                (predicted[candidate_index].double() - expected[target_index].double())
+                * IMAGE_SIZE
+            )
         )
+        if not MATCH_RADIUS < distance <= REFINE_RADIUS:
+            raise RuntimeError("P4-E9 refine assignment violates the annulus protocol")
         actions.append(
             {
                 "route": "ADD_REFINE",
@@ -239,7 +254,7 @@ def recovery_actions(
                 "target_anchor": expected[target_index].tolist(),
                 "target_index": target_index,
                 "component_gt_indices": component["gt_indices"],
-                "source_distance_pixels": float(distances[candidate_index]),
+                "source_distance_pixels": distance,
             }
         )
     baseline_matched = sum(
@@ -261,9 +276,9 @@ def recovery_actions(
         if augmented_matched != baseline_matched + 1:
             raise RuntimeError("P4-E9 Oracle action does not recover exactly one GT")
         action["oracle_matched_gain"] = 1
-    identities = [(item["route"], item["base_source_id"]) for item in actions]
+    identities = [item["base_source_id"] for item in actions]
     if len(identities) != len(set(identities)):
-        raise RuntimeError("P4-E9 produced duplicate route/source actions")
+        raise RuntimeError("P4-E9 assigned more than one action to a base source")
     return sorted(actions, key=lambda item: (item["route"], item["base_source_id"]))
 
 
@@ -389,7 +404,7 @@ def main() -> None:
             allocation["cross_split_scaffold_overlap"].values()
         ),
         "route_labels_mutually_exclusive": len(
-            {(row["sample_key"], row["route"], row["base_source_id"]) for row in action_rows}
+            {(row["sample_key"], row["base_source_id"]) for row in action_rows}
         )
         == len(action_rows),
         "base_candidates_unchanged": True,
