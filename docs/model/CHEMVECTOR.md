@@ -95,6 +95,10 @@ matching conflict 28、低于top1024 15、6px内无峰15；52个GT cell本身不
 结论是局部多对象覆盖、深尾排名和约6–10px坐标越界的混合，不再加候选/训练selector。下一步
 拆分offset半径曲线与局部multiplicity分量；confirm_v2及外部/封存集仍未读。
 
+[P4-E7 Offset Radius A/B](training/20260808-g3-p4e7-offset-radius-ab.md)已预注册：固定候选身份
+和顺序，比较预测offset/cell-center及6/8/10/12px曲线；cell center只有在6px matched至少+15、
+exact不退且paired零break时才GO。10px只定位误差来源，不修改正式指标。
+
 ## 当前版本
 
 - 当前完成的研究 tag：`v0.10.21`。
