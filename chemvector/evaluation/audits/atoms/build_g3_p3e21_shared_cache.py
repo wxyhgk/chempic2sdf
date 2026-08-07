@@ -53,6 +53,35 @@ CANDIDATE_BATCH_SIZE = 24
 MODEL_BATCH_SIZE = 16
 
 
+def stratified_reachability(records: list[dict]) -> dict:
+    groups = {}
+
+    def add(name: str, record: dict) -> None:
+        value = groups.setdefault(
+            name,
+            {"images": 0, "matched_atoms": 0, "target_atoms": 0, "exact_images": 0},
+        )
+        matched = int(record["atom_mask"].sum())
+        target = int(record["full_atom_mask"].sum())
+        value["images"] += 1
+        value["matched_atoms"] += matched
+        value["target_atoms"] += target
+        value["exact_images"] += int(matched == target)
+
+    for record in records:
+        count = int(record["full_atom_mask"].sum())
+        add(f"count:{protocol.count_bucket(count)}", record)
+        add(f"variant:{str(record['sample_key']).rsplit('_', 1)[-1]}", record)
+    return {
+        name: {
+            **value,
+            "atom_recall": value["matched_atoms"] / value["target_atoms"],
+            "exact_rate": value["exact_images"] / value["images"],
+        }
+        for name, value in sorted(groups.items())
+    }
+
+
 def load_manifests():
     records = {}
     audits = {}
@@ -200,6 +229,7 @@ def main() -> None:
             "bytes": path.stat().st_size,
             "records": len(merged),
             "candidate_reachability": reachability,
+            "candidate_reachability_stratified": stratified_reachability(merged),
         }
     status = "passed" if all(checks.values()) else "failed"
     audit = {

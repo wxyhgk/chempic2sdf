@@ -2,7 +2,7 @@
 
 > 日期：2026-08-07
 >
-> 状态：运行中，协议已冻结
+> 状态：Oracle Gate NO-GO，周期停止
 >
 > 周期：`chemvector-g3-p3e21-five-route-sdf-cycle`
 >
@@ -95,5 +95,22 @@ checkpoint SHA和同名tag，再临时解封sealed_test4k单次运行；失败�
 
 - 周期接口与scaffold隔离manifest：完成；
 - external junction adapter及协议测试：完成；
-- 共享geometry/query/count缓存：待生成；
-- Oracle、五路训练和完整SDF：待执行。
+- 共享geometry/query/count缓存：完成，约477MB；
+- Candidate Oracle Gate：失败；
+- 五路训练和完整SDF：按预注册停止规则未执行。
+
+## Oracle Gate 结果
+
+| split | Atom recall | 整图可达 | 99%门 |
+|---|---:|---:|---:|
+| train | 98.8009% | 79.13% | 失败 |
+| dev | 98.9290% | 79.84% | 失败 |
+| confirm | 99.1065% | 83.75% | 通过 |
+
+失败集中在大分子而非普通区间。train/dev/confirm的81–100原子 recall分别为97.47%、97.87%、
+98.11%；1–60原子各桶则约为99.5%–99.9%。stress在train/dev分别为98.13%、98.25%。top128
+候选池在高Count和stress图中已被重复峰占满，后续selector无法恢复池中不存在的GT。
+
+因此本周期判定 `candidate_oracle_no_go`。不修改99%门，不训练五个route，不运行SDF来掩盖
+上游不可达。下一周期必须先验证top192/256或新的高Count候选表示，在train/dev/confirm三组
+同时达到99%后，才可原样恢复本周期的五路线部分。

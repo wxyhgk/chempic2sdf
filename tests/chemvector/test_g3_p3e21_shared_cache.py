@@ -6,6 +6,7 @@ import torch
 
 from chemvector.evaluation.audits.atoms.build_g3_p3e21_shared_cache import (
     merge_shared_record,
+    stratified_reachability,
 )
 
 
@@ -55,6 +56,18 @@ class G3P3E21SharedCacheTests(unittest.TestCase):
                 {"existence_logits": torch.zeros(128), "pointer_logits": torch.zeros(128, 128)},
                 torch.zeros(129),
             )
+
+    def test_reachability_is_stratified_by_count_and_variant(self) -> None:
+        records = [
+            {
+                "sample_key": "x_stress",
+                "atom_mask": torch.tensor([True, False]),
+                "full_atom_mask": torch.tensor([True, True]),
+            }
+        ]
+        metrics = stratified_reachability(records)
+        self.assertEqual(metrics["count:1-20"]["atom_recall"], 0.5)
+        self.assertEqual(metrics["variant:stress"]["exact_rate"], 0.0)
 
 
 if __name__ == "__main__":
