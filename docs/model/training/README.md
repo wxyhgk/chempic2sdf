@@ -26,10 +26,11 @@
 
 ## 训练时间线
 
-当前预注册训练：[G3 P3-E26 Soft Coverage Occupancy Micro160](20260807-g3-p3e26-soft-coverage-occupancy-micro160.md)：
+当前已完成训练：[G3 P3-E26 Soft Coverage Occupancy Micro160](20260807-g3-p3e26-soft-coverage-occupancy-micro160.md)：
 与P3-E25保持相同true-global192 evidence、Micro160、h64和1000步，只把hard identity改为
-GT coverage NLL+兼容分量质量+分量外negative+Poisson Count。目标是消除等价候选矛盾监督；
-Micro Count/Atom exact仍需152/160。dev/fresh/sealed与SDF均不读取。
+GT coverage+兼容分量质量。known-count exact仅47→49、Count76→69，新增可达仍0/27，正式
+NO-GO。冻结evidence上的candidate occupancy头容量不足，下一路解冻训练query/pointer本体。
+dev/fresh/sealed与SDF均未读取。
 
 当前已完成训练：[G3 P3-E25 Hard Latent Occupancy Micro160](20260807-g3-p3e25-hard-latent-occupancy-micro160.md)：
 在true-global192冻结evidence上，candidate presence用6px动态一一匹配监督，并由同一presence导出

@@ -27,6 +27,10 @@ global/prefix top192虽使dev router matched净增203/248，但在30张新增可
 新增可达0/27，正式NO-GO。hard单一identity会对兼容替代峰产生矛盾正负监督；下一路改为
 identity-invariant soft coverage与兼容分量质量约束。
 
+[P3-E26 Soft Coverage](training/20260807-g3-p3e26-soft-coverage-occupancy-micro160.md)只把
+known-count exact从47提高到49，Count从76降到69，新增可达仍0/27，正式NO-GO。两个冻结
+evidence candidate occupancy头都未利用tail；下一路线解冻128-query×192-candidate pointer本体。
+
 ## 当前版本
 
 - 当前完成的研究 tag：`v0.10.21`。

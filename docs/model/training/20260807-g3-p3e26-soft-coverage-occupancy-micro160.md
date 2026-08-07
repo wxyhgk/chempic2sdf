@@ -2,7 +2,7 @@
 
 > 日期：2026-08-07
 >
-> 状态：预注册，待训练
+> 状态：已完成，Micro Capacity NO-GO
 >
 > 模型：`chemvector-g3-p3e26-soft-coverage-occupancy-micro160`
 
@@ -69,3 +69,37 @@ checkpoint。失败目录保留为
 `outputs/checkpoints/chemvector-g3-p3e26-soft-coverage-occupancy-micro160-failed-prestep-addmm-short`。
 修复仅将无梯度compatibility邻接乘法从int16改为FP32，并新增CUDA回归测试；数据、随机种子、
 损失、超参、步数和门槛均未改变，因此按同一预注册协议从step0重启。
+
+## 实际结果
+
+修复后固定1,000步完整运行。相对P3-E25 hard路线，known-count Atom exact从47提高到49、F1
+从95.67%提高到95.86%，但未形成整图容量：
+
+| 指标 | P3-E25 hard | P3-E26 soft | 门 |
+|---|---:|---:|---:|
+| Count exact | 76/160 | 69/160 | ≥152 |
+| Count MAE | 0.8188 | 0.8375 | ≤0.10 |
+| predicted Atom exact | 36/160 | 38/160 | ≥152 |
+| known-count Atom exact | 47/160 | 49/160 | ≥152 |
+| predicted recall | 95.07% | 95.37% | ≥99.9% |
+| 新增可达 exact | 0/27 | 0/27 | ≥50% |
+
+coverage≥0.95且分量质量误差≤0.10只有28/160；最弱GT coverage均值0.328，最大分量相对质量
+误差均值0.766。soft目标只带来2张known-count exact，仍没有正确tail hit。说明当前冻结
+base/expert evidence上的独立candidate occupancy头不是足够的Micro表示，不能靠继续调整同一头的
+identity loss解决。
+
+正式判定`soft_coverage_occupancy_micro160_no_go`，不扩量、不运行dev/SDF。下一路线进入
+`query_slot_occupancy`：解冻并训练128 query到192 candidate的pointer/存在性本体，使tail进入
+可学习memory和唯一query分配，而不是继续在冻结evidence上叠presence头。
+
+## 产物
+
+- checkpoint SHA256：`8c2520a09fd432b97fa39051c73352e920eda8d2bb13c5a3a99f70c36da4cbb4`；
+- audit SHA256：`4668453ca81a5c9e4f75ef0ad44d8bcb0d8e58ccccfe7194e43b92d017e5dad8`；
+- final metrics SHA256：`b5fd8110ce4c0ac3d70d8dce5fc20c8bb9dd7a162c53800f123f19c863a04425`；
+- 训练耗时：357.18秒；
+- dev、旧confirm、fresh和sealed均未读取。
+
+结果提交后创建同名annotated tag：
+`chemvector-g3-p3e26-soft-coverage-occupancy-micro160`。
