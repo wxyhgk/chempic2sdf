@@ -100,9 +100,10 @@ matching conflict 28、低于top1024 15、6px内无峰15；52个GT cell本身不
 99.9290%、621 exact，相对6px恢复35个Atom/24张图；这只证明定位近失，不修改正式6px指标。
 下一步审计28个matching conflict的局部multiplicity分量，再设计结构化anchor细化。
 
-[P4-E8 Local Multiplicity Components](training/20260808-g3-p4e8-local-multiplicity-components.md)已
-预注册：只重放43张失败图，在6/10px构造GT/top1024二部分量并计算局部最大匹配缺口；shared
-缺口若能由最多4 GT、deficiency最多2覆盖则bounded GO，no-candidate分量另归坐标/峰生成。
+[P4-E8 Local Multiplicity Components](training/20260808-g3-p4e8-local-multiplicity-components.md)完成：
+6px的58缺口严格为30个`1 GT/0 candidate`和28个`2 GT/1 candidate`，10px为10个1/0和13个2/1，
+所有deficiency均为1。bounded GO，实际只需要对共享峰做保守binary split，不需要通用3/4槽
+decoder；no-candidate仍归峰生成/结构化anchor refinement。
 
 ## 当前版本
 
