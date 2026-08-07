@@ -26,9 +26,9 @@
 
 ## 训练时间线
 
-当前预注册审计：[G3 P4-E1 Pilot Union Cache](20260807-g3-p4e1-pilot-union-cache.md)：
-对pilot20k、Micro160和dev640运行train5k/train25k双中心场，按source-id生成256×72候选特征；
-pilot/dev recall≥99.9%且Micro 160/160才允许训练，confirm_v2保持未读。
+当前已完成审计：[G3 P4-E1 Pilot Union Cache](20260807-g3-p4e1-pilot-union-cache.md)：
+Micro为160/160，但pilot/dev recall仅99.883%/99.423%，stress更低；256×72 cache协议完整，
+Candidate Oracle正式NO-GO。暂停selector，先在无泄漏pilot20k继续训练center field。
 
 当前已完成审计：[G3 P4-E0 Source Union Cycle Manifests](20260807-g3-p4e0-source-union-cycle-manifests.md)：
 pilot20k、full80k、confirm_v2 700图全部生成；与旧周期全部split及train/confirm间的molecule/scaffold

@@ -63,9 +63,9 @@ train25k stride-1 center field，验证更多唯一stress训练图是否改善�
 通过：pilot20k、full80k、confirm_v2 700图与旧周期及彼此的molecule/scaffold边界全部满足，物理
 tar顺序与四variant完整；下一步构建pilot20k的256双源cache。
 
-[P4-E1 Pilot Union Cache](training/20260807-g3-p4e1-pilot-union-cache.md)已预注册：为pilot20k、
-Micro160和dev640生成256×72 source-aware候选；pilot/dev recall≥99.9%、Micro 160/160且confirm_v2
-未读，才允许启动首条selector训练。
+[P4-E1 Pilot Union Cache](training/20260807-g3-p4e1-pilot-union-cache.md)完成256×72 cache，但
+pilot/dev candidate recall仅99.883%/99.423%，虽Micro仍160/160，Candidate Oracle正式NO-GO。
+暂停selector训练，先从train25k checkpoint继续训练center field并重建union。
 
 ## 当前版本
 
