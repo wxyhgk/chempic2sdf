@@ -62,3 +62,10 @@ coverage_nll
 全部通过为`soft_coverage_occupancy_micro160_go`，否则NO-GO。失败不追加epoch，不改权重，不扩量；
 无论结果如何都提交checkpoint与结果，并创建与模型名完全一致的annotated tag。
 
+## Pre-step 实现事故
+
+首次启动在任何optimizer step之前因CUDA不支持`int16 addmm`停止，只写出初始audit，无训练日志或
+checkpoint。失败目录保留为
+`outputs/checkpoints/chemvector-g3-p3e26-soft-coverage-occupancy-micro160-failed-prestep-addmm-short`。
+修复仅将无梯度compatibility邻接乘法从int16改为FP32，并新增CUDA回归测试；数据、随机种子、
+损失、超参、步数和门槛均未改变，因此按同一预注册协议从step0重启。

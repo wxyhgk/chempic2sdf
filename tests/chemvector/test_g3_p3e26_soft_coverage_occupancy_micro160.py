@@ -20,6 +20,17 @@ def test_compatibility_components_merge_shared_candidate() -> None:
     assert components[1]["candidate_mask"].tolist() == [False, False, False, True]
 
 
+def test_compatibility_components_support_cuda() -> None:
+    if not torch.cuda.is_available():
+        return
+    compatibility = torch.tensor(
+        [[True, True, False], [False, True, True]], device="cuda"
+    )
+    components = compatibility_components(compatibility)
+    assert len(components) == 1
+    assert components[0]["candidate_mask"].device.type == "cuda"
+
+
 def test_soft_loss_is_finite_and_identity_invariant() -> None:
     record = {
         "candidate_anchors": torch.tensor(

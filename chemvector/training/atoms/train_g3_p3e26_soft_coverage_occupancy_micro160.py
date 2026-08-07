@@ -56,7 +56,7 @@ def compatibility_components(compatibility: torch.Tensor) -> list[dict]:
     if gt_count < 1 or candidate_count < 1 or not bool(compatibility.any(dim=1).all()):
         raise ValueError("P3-E26 every GT requires a compatible candidate")
     adjacency = (
-        compatibility.to(torch.int16) @ compatibility.to(torch.int16).T
+        compatibility.float() @ compatibility.float().T
     ) > 0
     remaining = set(range(gt_count))
     output = []
