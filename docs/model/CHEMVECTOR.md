@@ -85,9 +85,10 @@ top256 dev为99.7377%，三个旧/新并集最好仅99.7222%，没有过99.9%，
 新场20,640图提取673秒、dev峰p90 8.53万；下一步只在已暴露dev审计top1024，区分排序尾部
 与regional-maxima表示缺失，confirm_v2继续不读。
 
-[P4-E5 Peak Budget Dev1024](training/20260807-g3-p4e5-peak-budget-dev1024.md)已预注册：固定
-P4-E3在已暴露dev一次提取top1024，报告七档预算；1024达到99.9%才允许继续尾部排序路线，
-否则停止加候选并转向恢复缺失真峰。pilot、confirm_v2和外部/封存集不读。
+[P4-E5 Peak Budget Dev1024](training/20260807-g3-p4e5-peak-budget-dev1024.md)完成：top256/512/
+768/1024 recall为99.7377%/99.8117%/99.8210%/99.8210%，768后完全饱和，仍缺58个Atom。
+当前实用regional-maxima表示NO-GO，停止加预算、source union和selector；下一步定位58个GT是
+相邻互相支配、未形成峰还是低于top1024。pilot、confirm_v2和外部/封存集未读。
 
 ## 当前版本
 

@@ -26,9 +26,9 @@
 
 ## 训练时间线
 
-当前预注册审计：[G3 P4-E5 Peak Budget Dev1024](20260807-g3-p4e5-peak-budget-dev1024.md)：
-固定P4-E3，仅在已暴露dev一次提取top1024并报告7档预算；1024达到99.9%才说明是尾部排序问题，
-否则停止继续加候选。pilot/confirm_v2和外部/封存集均不读。
+当前已完成审计：[G3 P4-E5 Peak Budget Dev1024](20260807-g3-p4e5-peak-budget-dev1024.md)：
+top256/512/768/1024 recall为99.7377%/99.8117%/99.8210%/99.8210%，768后完全饱和且仍缺
+58个Atom，实用regional-maxima表示NO-GO。停止加预算/union/selector，下一步定位58个GT局部状态。
 
 当前已完成审计：[G3 P4-E4 Peak Rank Union](20260807-g3-p4e4-peak-rank-union-audit.md)：
 P4-E3单源top256 dev为99.7377%；三个旧/新并集最好为99.7222%，均未过99.9%，正式NO-GO。
