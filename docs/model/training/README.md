@@ -26,9 +26,9 @@
 
 ## 训练时间线
 
-当前预注册审计：[G3 P4-E0 Source Union Cycle Manifests](20260807-g3-p4e0-source-union-cycle-manifests.md)：
-新周期固定256 union；从style100k排除旧train/dev/confirm全部molecule/scaffold，建立pilot20k、
-full80k和新confirm_v2 700图。manifest身份门通过后才生成双源cache和训练。
+当前已完成审计：[G3 P4-E0 Source Union Cycle Manifests](20260807-g3-p4e0-source-union-cycle-manifests.md)：
+pilot20k、full80k、confirm_v2 700图全部生成；与旧周期全部split及train/confirm间的molecule/scaffold
+重叠均为0，物理tar顺序和四variant完整。允许进入P4-E1 pilot双源cache。
 
 当前已完成审计：[G3 P3-E33 Candidate Source Union](20260807-g3-p3e33-candidate-source-union.md)：
 按共享source-id合并后，top128保持145/160和13张tail恢复；top192仅154/160，正式NO-GO；

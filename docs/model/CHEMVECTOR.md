@@ -60,8 +60,8 @@ train25k stride-1 center field，验证更多唯一stress训练图是否改善�
 下一周期固定256 winner，并从排除本周期train/dev/confirm的style数据训练可泛化selector/center field。
 
 [P4-E0 Source Union Cycle Manifests](training/20260807-g3-p4e0-source-union-cycle-manifests.md)已
-预注册：排除旧周期全部molecule/scaffold后建立pilot20k、full80k和confirm_v2 700图，身份审计通过
-后才允许构建256双源cache并训练两条泛化路线。
+通过：pilot20k、full80k、confirm_v2 700图与旧周期及彼此的molecule/scaffold边界全部满足，物理
+tar顺序与四variant完整；下一步构建pilot20k的256双源cache。
 
 ## 当前版本
 

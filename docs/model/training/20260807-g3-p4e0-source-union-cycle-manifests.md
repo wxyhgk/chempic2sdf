@@ -2,7 +2,7 @@
 
 > 日期：2026-08-07
 >
-> 状态：预注册，待执行manifest审计
+> 状态：已完成，manifest身份门通过
 >
 > 审计：`chemvector-g3-p4e0-source-union-cycle-manifests`
 
@@ -38,3 +38,27 @@ confirm_v2优先分配且内部scaffold唯一；full_train与confirm_v2 molecule
 - 不读取fresh_dev、USPTO、MR-TADF或sealed_test。
 
 本轮只建立manifest，不训练、不创建tag。通过后才允许构建pilot20k双源cache。
+
+## 实际结果
+
+全部门禁通过：
+
+| split | 分子 | 图片 | scaffold | stress图片 |
+|---|---:|---:|---:|---:|
+| pilot_train | 5,000 | 20,000 | 4,737 | 5,000 |
+| full_train | 20,000 | 80,000 | 17,472 | 20,000 |
+| confirm_v2 | 175 | 700 | 175 | 175 |
+
+pilot严格为full molecule子集；full与confirm_v2 molecule/scaffold均0重叠；三个split与旧P3-E21
+train/dev/confirm的1120个molecule、1101个scaffold均0重叠。confirm_v2 Count桶严格为
+50/50/50/20/5。pilot的四种stress operation为1237/1231/1254/1278，没有单一增强主导。
+
+产物SHA256：
+
+- audit：`50d46024cd07d8313590de85903c5795e9919a7f7dfa5cbbdc7beeb5e4f565e3`；
+- pilot_train：`22a03e2b2e37b41b7b298a1fec324fbe383e0f09c49e173a39c8d90347636daa`；
+- full_train：`c1c787a646b5827ae72accd62dbe791ba2beb0a866d88741be3d79d26d114795`；
+- confirm_v2：`8a832a483b7e52f224ecc21eef82cbb4b7b4a62907cb471e5de9083764f90600`。
+
+正式状态`passed`，允许进入P4-E1 pilot20k双源cache。未读取fresh、外部或sealed_test；零训练，
+不创建tag。
