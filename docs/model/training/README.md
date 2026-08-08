@@ -26,6 +26,10 @@
 
 ## 训练时间线
 
+当前预注册训练：[G3 P5-E10 Real Calibration](20260808-g3-p5e10-real-calibration.md)：从P5-E9继续，
+只用1,378真实动作以`5e-5`训练到2k步；固定检查0/250/500/1000/2000，按冻结calibration规则
+选择一个最终状态后重放holdout。只保存最终checkpoint并打同名tag。
+
 当前已完成训练：[G3 P5-E9 Generic Direction Mixed](20260808-g3-p5e9-generic-direction-mixed.md)：
 纯generic迁移仅16.13%/25.37%；1:1混合后calibration/holdout为64.52%/65.67%。相对P5-E5，
 calibration下降但holdout提高约12pp，说明通用监督缓解过拟合、同时真实分布适配不足。正式
