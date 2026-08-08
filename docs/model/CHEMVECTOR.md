@@ -145,6 +145,11 @@ source相对坐标和完整crop上下文后，fit达到264/264、MAE 0.54px，�
 422,364个普通原子得到421,122个无歧义方向对，固定选50k，其中degree2 24,753、TEXT 13,218、
 四variant均衡，容量GO。下一步构建P4-E3 crop cache并做通用方向预训练+真实残差混合微调。
 
+[P5-E9 Generic Direction Mixed](training/20260808-g3-p5e9-generic-direction-mixed.md)完成：纯generic
+迁移仅16.13%/25.37%；1:1混合后calibration/holdout为64.52%/65.67%。相对P5-E5，holdout
+提高约12pp但calibration下降，证明generic可减轻过拟合却适配不足。正式NO-GO；下一步只做短程
+低学习率真实残差校准。
+
 ## 当前版本
 
 - 当前完成的研究 tag：`v0.10.21`。

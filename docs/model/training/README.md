@@ -26,9 +26,10 @@
 
 ## 训练时间线
 
-当前预注册训练：[G3 P5-E9 Generic Direction Mixed](20260808-g3-p5e9-generic-direction-mixed.md)：
-固定45,353参数头，50k一般方向对预训练10k步，再以32 generic+32真实残差混合微调5k步；最终
-仍须两域80%/3px才GO，只保存最终checkpoint并打同名tag。
+当前已完成训练：[G3 P5-E9 Generic Direction Mixed](20260808-g3-p5e9-generic-direction-mixed.md)：
+纯generic迁移仅16.13%/25.37%；1:1混合后calibration/holdout为64.52%/65.67%。相对P5-E5，
+calibration下降但holdout提高约12pp，说明通用监督缓解过拟合、同时真实分布适配不足。正式
+NO-GO；下一步只做短程低学习率真实残差校准。
 
 当前已完成审计：[G3 P5-E8 Generic Direction Capacity](20260808-g3-p5e8-generic-direction-capacity.md)：
 422,364原子得到421,122个无歧义方向对，固定选50k；degree2 24,753、TEXT 13,218、四variant
