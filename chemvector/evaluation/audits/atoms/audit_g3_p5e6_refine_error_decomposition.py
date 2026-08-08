@@ -258,8 +258,12 @@ def main() -> None:
                         local_peaks = (score == F.max_pool2d(score[None, None], 3, 1, 1)[0, 0]) & support
                         peak_distances = torch.linalg.vector_norm(grid - target_pixels, dim=-1).masked_fill(~local_peaks, torch.inf)
                         peak_within = bool(peak_distances.min() <= PEAK_REACH_RADIUS_PIXELS)
-                        probabilities = torch.softmax(logits[0].float().masked_fill(~support, -torch.inf).flatten(), dim=0)
-                        top2 = logits[0].float().masked_fill(~support, -torch.inf).flatten().topk(2).values
+                        support_device = support.to(logits.device)
+                        masked_logits = logits[0].float().masked_fill(
+                            ~support_device, -torch.inf
+                        ).flatten()
+                        probabilities = torch.softmax(masked_logits, dim=0)
+                        top2 = masked_logits.topk(2).values
                         entropy = float(-(probabilities * probabilities.clamp_min(1e-12).log()).sum())
                         margin = float(top2[0] - top2[1])
 
