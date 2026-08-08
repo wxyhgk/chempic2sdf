@@ -28,8 +28,8 @@
 
 当前执行周期：[G3 P4-E9/P4-E11 局部候选恢复周期](20260808-g3-p4e9-local-recovery-cycle.md)：
 pilot20k Oracle得到split 144动作/72分子，未过256/100容量门，严格停止；refine为362动作/
-294分子、fit 264动作，允许进入训练域Bond evidence probe。`confirm_v2`保持`000`，只允许在
-最终winner与阈值冻结后读取一次。
+294分子、fit 264动作。Bond evidence虽带来AUC +0.1023，但目标endpoint coverage仅70.45%，
+低于90%门，正式排除；refine将以纯图像恢复头训练。`confirm_v2`保持`000`。
 
 当前已完成审计：[G3 P4-E8 Local Multiplicity Components](20260808-g3-p4e8-local-multiplicity-components.md)：
 6px的58缺口严格为30个`1 GT/0 candidate`和28个`2 GT/1 candidate`；10px为10个1/0和13个2/1，

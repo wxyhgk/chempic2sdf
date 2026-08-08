@@ -60,6 +60,17 @@ P4-E8的58个缺口来自top1024，用来确定残差分量的容量上界；P4-
 另一个边界必须明确：P4-E3曾用完整pilot20k训练，所以本轮calibration/holdout只衡量新增恢复头，
 不作为冻结骨干的无偏泛化证据。旧dev仍是未见分布硬门，最终结论只由未读的confirm_v2确认。
 
+### Bond endpoint evidence probe
+
+309张fit动作图按scaffold做三折OOF，严格使用每折1:3的`NONE`负例并屏蔽另一动作与
+`UNSUPPORTED`。34D P4-E3基线AUC为0.64070，增加18D冻结Bond endpoint evidence后为
+0.74305，提升0.10234；但264个refine目标中只有186个在6px内有预测endpoint，coverage仅
+70.45%，未达到90%硬门。联合门失败，正式`bond_endpoint_evidence_exclude`，P4-E9B使用纯
+图像/center-score/candidate feature输入。
+
+probe audit SHA256：
+`dd51c52b669cd0d11fd9b8b1a8271584145b5a9c1f8336e77356f362f1a4186c`；耗时31.90秒。
+
 ## 公开推理协议
 
 - 原top128 candidate绝不删除、移动或改ID；
