@@ -266,16 +266,18 @@ def main() -> None:
                         margin = float(top2[0] - top2[1])
 
                         target_index_value = int(action["target_index"])
-                        atoms_by_id = {
-                            int(atom["atom_id"]): atom for atom in labels["atoms"]
-                        }
-                        target_atom = atoms_by_id[target_index_value]
+                        ordered_atoms = sorted(
+                            labels["atoms"], key=lambda atom: int(atom["atom_id"])
+                        )
+                        target_atom = ordered_atoms[target_index_value]
+                        target_atom_id = int(target_atom["atom_id"])
                         target_center = torch.tensor(
                             target_atom["center"], dtype=torch.float32
                         ) / IMAGE_SIZE
                         if float(torch.linalg.vector_norm((target_center - target) * IMAGE_SIZE)) > 1.0:
                             raise RuntimeError(
-                                "P5-E6 target does not map to structure labels"
+                                "P5-E6 target does not map to structure labels: "
+                                f"key={key} target_index={target_index_value}"
                             )
                         text_boxes = [
                             atom["bbox"]
@@ -284,8 +286,8 @@ def main() -> None:
                         ]
                         crop_has_text = any(_bbox_intersects_crop(box, source) for box in text_boxes)
                         target_degree = sum(
-                            int(bond["begin_atom"]) == target_index_value
-                            or int(bond["end_atom"]) == target_index_value
+                            int(bond["begin_atom"]) == target_atom_id
+                            or int(bond["end_atom"]) == target_atom_id
                             for bond in labels["bonds"]
                         )
                         target_distances = torch.linalg.vector_norm((gt_anchors - target) * IMAGE_SIZE, dim=1)
