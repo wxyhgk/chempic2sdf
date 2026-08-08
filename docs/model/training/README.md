@@ -26,9 +26,9 @@
 
 ## 训练时间线
 
-当前预注册审计：[G3 P6-E4 Selector Shortcut](20260808-g3-p6e4-selector-shortcut.md)：冻结P6-E3，
-比较第一峰、完整selector、清零视觉和抹平峰强度四臂；以选择一致率、rescue/harmful确认模型是否
-只复制原峰排序。若确认，下一容量实验删除峰强度并平衡294个hard-reachable动作。
+当前已完成审计：[G3 P6-E4 Selector Shortcut](20260808-g3-p6e4-selector-shortcut.md)：完整selector
+96.77%/98.51%复制第一峰；清零视觉后仍与完整选择93.55%/98.51%一致，0 rescue、1 harmful，
+正式确认peak-rank shortcut。下一容量实验从零训练，永久移除峰强度并平衡294 hard与294 easy。
 
 当前已完成训练：[G3 P6-E3 Structural Peak Selector](20260808-g3-p6e3-structural-peak-selector.md)：
 fit为99.56%/90.49%，但calibration/holdout仅54.84%/56.72%，几乎复制P6-E1第一峰，四门

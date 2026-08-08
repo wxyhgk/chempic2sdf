@@ -177,6 +177,11 @@ generic与1,378真实动作的fit恢复率为99.59%/90.06%，但calibration/hold
 P6-E1第一峰，正式NO-GO。50k generic中第一峰已有99.59%正确率，峰强度成为结构学习的捷径；
 下一步先消融峰强度并审计实际选择变化，不继续同配比扩量。
 
+[P6-E4 Selector Shortcut](training/20260808-g3-p6e4-selector-shortcut.md)确认：完整selector在两域
+96.77%/98.51%复制第一峰，清零全部视觉后仍有93.55%/98.51%选择一致，合计0 rescue、1 harmful。
+peak-rank shortcut得到直接证据；下一模型从零初始化、永久删除峰强度，并用294 hard-reachable
+与294 easy动作做平衡容量实验。
+
 ## 当前版本
 
 - 当前完成的研究 tag：`v0.10.21`。
