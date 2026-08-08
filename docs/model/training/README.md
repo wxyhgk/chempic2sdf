@@ -26,9 +26,9 @@
 
 ## 训练时间线
 
-当前预注册审计：[G3 P5-E8 Generic Direction Capacity](20260808-g3-p5e8-generic-direction-capacity.md)：
-从scaffold隔离的fit 14k普通原子生成连续`(6,12]px` source→anchor监督；精确选50k、四variant
-均衡、degree=2至少15k且TEXT至少5k才允许构建方向预训练cache。本轮不训练。
+当前已完成审计：[G3 P5-E8 Generic Direction Capacity](20260808-g3-p5e8-generic-direction-capacity.md)：
+422,364原子得到421,122个无歧义方向对，固定选50k；degree2 24,753、TEXT 13,218、四variant
+各12,500，全部门GO。允许构建冻结P4-E3 crop cache并运行通用预训练+真实残差混合微调。
 
 当前已完成审计：[G3 P5-E7 Wrong Destination](20260808-g3-p5e7-wrong-destination.md)：失败预测更
 接近另一GT的比例仅14.29%/41.94%，38个失败中真正命中另一GT仅2个、24个仍以目标为最近，
