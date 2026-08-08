@@ -26,6 +26,10 @@
 
 ## 训练时间线
 
+当前执行审计：[G3 P5-E0 动作分解审计](20260808-g3-p5e0-action-decomposition.md)：冻结P4-E9B，
+分别测整图NO_ACTION trigger、Oracle source pointer rank和强制source offset质量；不训练，结果决定
+是否进入set-conditioned refine capacity。
+
 当前已完成周期：[G3 P4-E9/P4-E11 局部候选恢复周期](20260808-g3-p4e9-local-recovery-cycle.md)：
 split仅144动作/72分子，容量NO-GO；refine排除低覆盖Bond evidence后完成pilot。calibration唯一
 zero-useless阈值为0动作，固定后holdout执行3次且全部无用，dev 0动作/0增益，正式NO-GO。
