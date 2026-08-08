@@ -150,6 +150,10 @@ source相对坐标和完整crop上下文后，fit达到264/264、MAE 0.54px，�
 提高约12pp但calibration下降，证明generic可减轻过拟合却适配不足。正式NO-GO；下一步只做短程
 低学习率真实残差校准。
 
+[P5-E10 Real Calibration](training/20260808-g3-p5e10-real-calibration.md)完成：冻结规则选择追加1,000步，
+calibration提高到70.97%，但holdout降到62.69%，正式NO-GO。停止扫描训练配比；下一步仅审计
+P5-E5真实专家与P5-E9通用专家的固定heatmap融合是否互补。
+
 ## 当前版本
 
 - 当前完成的研究 tag：`v0.10.21`。
