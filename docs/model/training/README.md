@@ -26,9 +26,9 @@
 
 ## 训练时间线
 
-当前预注册审计：[G3 P6-E0 Context Capacity](20260808-g3-p6e0-context-capacity.md)：比较真实source
-中心32/64/96px视野；更大视野必须在两域至少40%的P5失败上新增目标incident neighbor，选择满足
-门槛的最小尺寸后才允许训练P6。本轮零训练。
+当前已完成审计：[G3 P6-E0 Context Capacity](20260808-g3-p6e0-context-capacity.md)：64px只为
+0%/29.03%的两域失败新增目标邻居，NO-GO；96px达到42.86%/61.29%，正式GO并被选中。下一模型
+必须使用覆盖完整96px的结构上下文编码路径，不能只放大P5输入。
 
 当前已完成审计：[G3 P5-E11 Expert Fusion](20260808-g3-p5e11-expert-fusion.md)：calibration选择0.5
 真实权重得到83.87%/4.17px，但holdout仅55.22%/6.24px。两专家Oracle union虽为83.87%/
