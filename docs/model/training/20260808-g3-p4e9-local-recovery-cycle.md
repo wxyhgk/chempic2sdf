@@ -2,7 +2,7 @@
 
 > 日期：2026-08-08
 >
-> 状态：执行中，P4-E9-0 Oracle 已完成；仅 ADD_REFINE 进入证据门
+> 状态：已完成，双路线均 NO-GO；P4-E10/P4-E11 未启动
 
 ## 目标
 
@@ -96,6 +96,35 @@ negative、2000步；pilot固定5000步、batch128、AdamW、学习率`3e-4`、w
 阈值只在calibration选择，顺序固定为：零无用追加、恢复GT最多、动作数最少、阈值最高。
 pilot必须在calibration、holdout和旧dev全部零无用追加，恢复至少50%本路Oracle；split还必须
 恢复P4-E8的28个共享缺口中至少14个，并使top128 matched/exact净增。重复dev必须完全确定。
+
+## P4-E9B 实际训练与评测
+
+正式模型：`chemvector-g3-p4e9b-structural-anchor-refine-pilot20k`。纯图像恢复头共有少于10万
+参数；训练cache为264正例+792个确定性`NONE`负例，覆盖236张fit图并屏蔽290个
+`UNSUPPORTED` source。capacity和pilot严格独立初始化。
+
+capacity 2000步后，128正/384负上的正例召回仅17.19%、假阳性10个，offset MAE 1.25px；
+pilot 5000步后fit正例召回35.61%、假阳性42个，offset MAE 0.72px。模型学会了“往哪里加”，
+但没有学会足够可靠的“何时加”。
+
+calibration扫描2,268个可实现阈值状态，唯一满足zero-useless的是0动作状态，固定阈值
+`3.09375`。该阈值冻结后的结果：
+
+| split | Oracle动作 | 执行动作 | matched gain | useless | exact gain | Oracle恢复 |
+|---|---:|---:|---:|---:|---:|---:|
+| calibration 3k | 31 | 0 | 0 | 0 | 0 | 0 |
+| holdout 3k | 67 | 3 | 0 | 3 | 0 | 0 |
+| dev 640 | 66 | 0 | 0 | 0 | 0 | 0 |
+
+dev重复前向和指标完全一致，但holdout zero-useless失败，三组50% Oracle恢复门全部失败，最终
+`refine_local_recovery_pilot_no_go`。checkpoint：
+`outputs/checkpoints/chemvector-g3-p4e9b-structural-anchor-refine-pilot20k/step-005000.pt`，
+SHA256 `a564510ff69eed1da4dc2077ef68617be935881406fd15e20d84b95b400cf500`；benchmark SHA256
+`191b7840a6ace2238d1f36ebc5a04e2de1f4834433273b98991a37e92743a2fe`。
+
+由于split在训练前容量NO-GO、refine正式pilot NO-GO，没有任何通过路线可进入full80k。按冻结
+协议，P4-E10和P4-E11停止，`confirm_v2`保持`000`且未读。该NO-GO模型仍创建同名annotated
+tag，保留可复现失败证据。
 
 通过路线才允许从冻结P4-E3重新训练full80k，模型名固定为
 `chemvector-g3-p4e10-local-recovery-full80k`。full80k按scaffold做90/10 fit/calibration，训练

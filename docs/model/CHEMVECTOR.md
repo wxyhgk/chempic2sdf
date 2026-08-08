@@ -105,6 +105,11 @@ matching conflict 28、低于top1024 15、6px内无峰15；52个GT cell本身不
 所有deficiency均为1。bounded GO，实际只需要对共享峰做保守binary split，不需要通用3/4槽
 decoder；no-candidate仍归峰生成/结构化anchor refinement。
 
+[P4-E9 局部候选恢复周期](training/20260808-g3-p4e9-local-recovery-cycle.md)完成：split只有144动作/
+72分子，容量NO-GO；refine pilot虽然offset MAE达到0.72px，但calibration只能以0动作满足
+zero-useless，固定阈值在holdout触发3个无用动作、dev无增益，正式NO-GO。停止full80k与
+confirm_v2；确认瓶颈是安全动作判别，不是追加坐标回归。
+
 ## 当前版本
 
 - 当前完成的研究 tag：`v0.10.21`。
