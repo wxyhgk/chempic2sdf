@@ -26,6 +26,10 @@
 
 ## 训练时间线
 
+当前预注册训练：[G3 P5-E1 Spatial Secondary Peak](20260808-g3-p5e1-spatial-secondary-peak.md)：
+去掉破坏方向信息的全局空间池化，直接预测32x32 secondary-peak；只评估强制Oracle source后的
+定位泛化，两域6px恢复率至少80%才恢复集合动作建模。
+
 当前已完成审计：[G3 P5-E0 动作分解审计](20260808-g3-p5e0-action-decomposition.md)：holdout
 Oracle source仅10/67进入top4，强制正确source后也仅18/67在6px内、MAE 8.85px，三个门全失败。
 不能直接上set-conditioned head；下一步先去掉空间全局池化，验证dense secondary-peak定位。
