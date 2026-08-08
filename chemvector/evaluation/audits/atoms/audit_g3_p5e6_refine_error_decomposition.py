@@ -15,7 +15,6 @@ import numpy as np
 import torch
 from torch.nn import functional as F
 
-from Data.sdf.chemscene_v0_2 import build_chemscene_v0_2
 from chemvector.components.atoms.objects.g3_atom_center_field import (
     decode_atom_center_field,
 )
@@ -55,6 +54,7 @@ from chemvector.training.graph.scenes.train_g3_hierarchical_graph import (
     _autocast_context,
 )
 from chemvector.g3_structural_data import file_sha256
+from chemvector.data import structure_labels
 
 
 AUDIT_NAME = "chemvector-g3-p5e6-refine-error-decomposition"
@@ -76,12 +76,7 @@ SEED = 20260856
 class DiagnosticCollator(p1a.G3AtomCollator):
     def __call__(self, samples: list[dict]) -> dict:
         batch = super().__call__(samples)
-        batch["scenes"] = [
-            build_chemscene_v0_2(
-                sample["chemmol"], sample["render"], sample.get("layers")
-            )
-            for sample in samples
-        ]
+        batch["structure_labels"] = [structure_labels(sample) for sample in samples]
         return batch
 
 
@@ -111,22 +106,9 @@ def rank_bucket(rank: int) -> str:
     return "gt64"
 
 
-def _scene_atom(scene: dict, target: torch.Tensor) -> dict:
-    atoms = scene["atom_objects"]
-    distances = [
-        math.hypot(atom["anchor"][0] / 1023.0 - float(target[0]), atom["anchor"][1] / 1023.0 - float(target[1]))
-        * IMAGE_SIZE
-        for atom in atoms
-    ]
-    index = int(np.argmin(distances))
-    if distances[index] > 1.0:
-        raise RuntimeError("P5-E6 target does not map to a ChemScene AtomObject")
-    return atoms[index]
-
-
-def _bbox_intersects_crop(bbox: list[int], source: torch.Tensor) -> bool:
+def _bbox_intersects_crop(bbox: list[float], source: torch.Tensor) -> bool:
     source_pixels = source.float() * IMAGE_SIZE
-    x0, y0, x1, y1 = (float(value) / 1023.0 * IMAGE_SIZE for value in bbox)
+    x0, y0, x1, y1 = (float(value) for value in bbox)
     left = float(source_pixels[0]) - CROP_RADIUS_PIXELS
     right = float(source_pixels[0]) + CROP_RADIUS_PIXELS
     top = float(source_pixels[1]) - CROP_RADIUS_PIXELS
@@ -237,7 +219,7 @@ def main() -> None:
                 for batch_index, key_value in enumerate(batch["keys"]):
                     key = str(key_value)
                     gt_anchors = batch["atom_anchors"][batch_index][batch["atom_mask"][batch_index]].float()
-                    scene = batch["scenes"][batch_index]
+                    labels = batch["structure_labels"][batch_index]
                     for action in by_key[key]:
                         matches = torch.where(
                             observations["candidate_source_ids"][batch_index]
@@ -283,9 +265,29 @@ def main() -> None:
                         entropy = float(-(probabilities * probabilities.clamp_min(1e-12).log()).sum())
                         margin = float(top2[0] - top2[1])
 
-                        target_atom = _scene_atom(scene, target)
-                        text_boxes = [atom["text"]["bbox"] for atom in scene["atom_objects"] if atom["text"] is not None]
+                        target_index_value = int(action["target_index"])
+                        atoms_by_id = {
+                            int(atom["atom_id"]): atom for atom in labels["atoms"]
+                        }
+                        target_atom = atoms_by_id[target_index_value]
+                        target_center = torch.tensor(
+                            target_atom["center"], dtype=torch.float32
+                        ) / IMAGE_SIZE
+                        if float(torch.linalg.vector_norm((target_center - target) * IMAGE_SIZE)) > 1.0:
+                            raise RuntimeError(
+                                "P5-E6 target does not map to structure labels"
+                            )
+                        text_boxes = [
+                            atom["bbox"]
+                            for atom in labels["atoms"]
+                            if atom["visible_text"] and atom["bbox"] is not None
+                        ]
                         crop_has_text = any(_bbox_intersects_crop(box, source) for box in text_boxes)
+                        target_degree = sum(
+                            int(bond["begin_atom"]) == target_index_value
+                            or int(bond["end_atom"]) == target_index_value
+                            for bond in labels["bonds"]
+                        )
                         target_distances = torch.linalg.vector_norm((gt_anchors - target) * IMAGE_SIZE, dim=1)
                         nonzero = target_distances[target_distances > 1.0]
                         nearest = float(nonzero.min()) if len(nonzero) else math.inf
@@ -313,9 +315,9 @@ def main() -> None:
                                 "base_source_id": action["base_source_id"],
                                 "source_distance_pixels": source_distance,
                                 "source_distance_bucket": distance_bucket(source_distance),
-                                "target_role": target_atom["role"],
-                                "target_element": target_atom["chemical"]["element"],
-                                "target_degree": len(target_atom["incident_ports"]),
+                                "target_role": "TEXT" if target_atom["visible_text"] else "IMPLICIT",
+                                "target_element": target_atom["element"],
+                                "target_degree": target_degree,
                                 "crop_has_text": crop_has_text,
                                 "source_gt_count_16px": min(source_gt_count, 3),
                                 "nearest_neighbor_pixels": nearest,
