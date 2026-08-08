@@ -2,7 +2,7 @@
 
 > 日期：2026-08-08
 >
-> 状态：执行中，P4-E9-0 已预注册
+> 状态：执行中，P4-E9-0 Oracle 已完成；仅 ADD_REFINE 进入证据门
 
 ## 目标
 
@@ -34,6 +34,31 @@ Oracle仅用于生成训练标签：
    `UNSUPPORTED`，训练loss必须屏蔽；只有明确的普通candidate可以作为`NONE`负例。
 
 Oracle不会进入推理组件，也不会读取`confirm_v2`、外部集或封存集。
+
+## P4-E9-0 实际结果
+
+pilot20k严格得到3,500/750/750个fit/calibration/holdout分子，对应14,000/3,000/3,000
+张图；三个split的scaffold重叠均为0。506个动作全部逐个重放为6px matched `+1`，同source
+互斥且`UNSUPPORTED`已显式写入。
+
+| 路线 | 总动作 | 分子 | fit动作 | calibration | holdout | 容量门 |
+|---|---:|---:|---:|---:|---:|---|
+| ADD_SPLIT | 144 | 72 | 112 | 7 | 25 | NO-GO |
+| ADD_REFINE | 362 | 294 | 264 | 31 | 67 | GO |
+
+`ADD_SPLIT`同时未达到256动作和100分子，fit正例也不足固定capacity所需的128，因此本周期不
+训练P4-E9A，不创建伪checkpoint或tag。`ADD_REFINE`三项容量门全部通过，进入训练域三折Bond
+endpoint evidence probe；只有该probe完成后才决定P4-E9B的最终输入通道。
+
+Oracle audit SHA256：
+`5dc3189f7901a42edcc0d97b27cd43c8e8bb47b33573db4605d560cce0179698`；运行655.35秒。
+
+P4-E8的58个缺口来自top1024，用来确定残差分量的容量上界；P4-E9部署预算仍固定top128。
+其中P4-E8的28个shared source最高rank为117，全部确实位于top128，因此split专项门仍可重放，
+但训练数据容量门已经先失败。
+
+另一个边界必须明确：P4-E3曾用完整pilot20k训练，所以本轮calibration/holdout只衡量新增恢复头，
+不作为冻结骨干的无偏泛化证据。旧dev仍是未见分布硬门，最终结论只由未读的confirm_v2确认。
 
 ## 公开推理协议
 
