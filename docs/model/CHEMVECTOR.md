@@ -187,6 +187,10 @@ hard/easy fit达到96.94%/98.98%，证明结构头有拟合容量；但calibrati
 47.76%，MAE 8.76/7.14px，正式NO-GO。294个hard动作无法形成跨scaffold规则；下一步只扩充
 第一峰错误、top-8可达的hard-choice监督，不再增加普通easy样本或重复训练step。
 
+[P6-E6 Unselected Hard Pool](training/20260808-g3-p6e6-unselected-hard-pool.md)完成：从371,122个
+未选合法方向中找到1,339个hard-choice，覆盖833分子、813 scaffold；stress 831条，常规三
+variant仍有508条，全部容量门GO。现有数据足以做约500→1,300 hard规模曲线，暂不新增图片。
+
 ## 当前版本
 
 - 当前完成的研究 tag：`v0.10.21`。

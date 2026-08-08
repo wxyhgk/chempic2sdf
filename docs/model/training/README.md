@@ -26,9 +26,9 @@
 
 ## 训练时间线
 
-当前预注册审计：[G3 P6-E6 Unselected Hard Pool](20260808-g3-p6e6-unselected-hard-pool.md)：从P5-E8
-剩余约371k合法方向对中扫描第一峰错误但top-8可达的hard-choice；至少1,000动作、500分子和
-500 scaffold才允许进入新规模曲线，不读取任何冻结评测域。
+当前已完成审计：[G3 P6-E6 Unselected Hard Pool](20260808-g3-p6e6-unselected-hard-pool.md)：371,122
+个未选合法方向中得到1,339 hard-choice，覆盖833分子、813 scaffold，四门全部GO；其中常规
+三variant合计508条。下一周期直接做约500→1,300 hard规模曲线，暂不请求新数据。
 
 当前已完成训练：[G3 P6-E5 Peak-Blind Balanced](20260808-g3-p6e5-peak-blind-balanced.md)：hard/easy
 fit达到96.94%/98.98%，但calibration/holdout降到38.71%/47.76%，MAE 8.76/7.14px，正式
