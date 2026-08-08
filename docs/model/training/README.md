@@ -26,6 +26,10 @@
 
 ## 训练时间线
 
+当前预注册审计：[G3 P6-E2 Candidate Peak Reachability](20260808-g3-p6e2-candidate-peak-reachability.md)：
+冻结P6-E1，从其32x32热图提取target-free区域极大值，审计top-1/2/4/8 Oracle可达性。若top-8
+在calibration/holdout都达到80%/3px，下一步训练结构化选择器；否则先更换输出表示。
+
 当前已完成训练：[G3 P6-E1 Structural Context96 Mixed](20260808-g3-p6e1-structural-context96-mixed.md)：
 generic/real fit达到99.59%/90.06%，但calibration/holdout仅58.06%/56.72%，MAE为
 6.48/5.78px，四门全部失败。96px容量有效但逐点heatmap仍明显记忆训练动作；停止追加相同
