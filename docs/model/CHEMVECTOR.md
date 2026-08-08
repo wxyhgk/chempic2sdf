@@ -182,6 +182,11 @@ P6-E1第一峰，正式NO-GO。50k generic中第一峰已有99.59%正确率，�
 peak-rank shortcut得到直接证据；下一模型从零初始化、永久删除峰强度，并用294 hard-reachable
 与294 easy动作做平衡容量实验。
 
+[P6-E5 Peak-Blind Balanced](training/20260808-g3-p6e5-peak-blind-balanced.md)完成：删除峰强度后
+hard/easy fit达到96.94%/98.98%，证明结构头有拟合容量；但calibration/holdout仅38.71%/
+47.76%，MAE 8.76/7.14px，正式NO-GO。294个hard动作无法形成跨scaffold规则；下一步只扩充
+第一峰错误、top-8可达的hard-choice监督，不再增加普通easy样本或重复训练step。
+
 ## 当前版本
 
 - 当前完成的研究 tag：`v0.10.21`。
