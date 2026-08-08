@@ -154,6 +154,10 @@ source相对坐标和完整crop上下文后，fit达到264/264、MAE 0.54px，�
 calibration提高到70.97%，但holdout降到62.69%，正式NO-GO。停止扫描训练配比；下一步仅审计
 P5-E5真实专家与P5-E9通用专家的固定heatmap融合是否互补。
 
+[P5-E11 Expert Fusion](training/20260808-g3-p5e11-expert-fusion.md)完成：固定融合在holdout只有
+55.22%；两专家Oracle union恢复率虽为83.87%/82.09%，MAE仍为3.61/3.41px，理论上也未过门。
+P5局部方向头正式停止；下一路线必须扩大上下文并显式利用键/邻接几何。
+
 ## 当前版本
 
 - 当前完成的研究 tag：`v0.10.21`。

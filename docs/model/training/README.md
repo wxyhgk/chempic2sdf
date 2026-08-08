@@ -26,9 +26,10 @@
 
 ## 训练时间线
 
-当前预注册审计：[G3 P5-E11 Expert Fusion](20260808-g3-p5e11-expert-fusion.md)：将P5-E5真实专家与
-P5-E9通用专家的环带概率按固定权重融合，只在calibration选择后重放holdout，并报告Oracle union。
-本轮零训练；失败则停止当前局部方向头调节。
+当前已完成审计：[G3 P5-E11 Expert Fusion](20260808-g3-p5e11-expert-fusion.md)：calibration选择0.5
+真实权重得到83.87%/4.17px，但holdout仅55.22%/6.24px。两专家Oracle union虽为83.87%/
+82.09%，MAE仍3.61/3.41px，理论上也未过门。停止P5局部方向头；下一路线扩大上下文并显式读取
+键/邻接几何。
 
 当前已完成训练：[G3 P5-E10 Real Calibration](20260808-g3-p5e10-real-calibration.md)：冻结规则选择
 追加1,000步，calibration从64.52%升至70.97%，但holdout从65.67%降至62.69%，四门NO-GO。
