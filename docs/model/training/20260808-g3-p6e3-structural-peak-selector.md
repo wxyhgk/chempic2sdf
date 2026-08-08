@@ -2,7 +2,7 @@
 
 > 日期：2026-08-08
 >
-> 状态：已预注册，等待训练
+> 状态：已完成，NO-GO
 
 ## 模型
 
@@ -22,3 +22,30 @@ cross-attention与8候选间self-attention，最后只输出候选分数，不�
 - 不读dev、`confirm_v2`、MR-TADF、USPTO或封存集。
 
 无论GO/NO-GO，保存最终checkpoint、提交结果并创建与模型名一致的annotated tag。
+
+## 结果
+
+- 候选容量：generic 49,965/50,000、real 1,365/1,378至少存在一个6px兼容峰；
+- generic fit：99.56%、0.68px；real fit：90.49%、2.60px；
+- calibration：54.84%、6.78px；holdout：56.72%、5.78px；
+- 四个能力门全部失败，决策为`structural_peak_selector_no_go`。
+
+最终checkpoint：
+
+```text
+outputs/checkpoints/chemvector-g3-p6e3-structural-peak-selector50k-fit1378/step-015000.pt
+SHA256 f022ad9db63dd9e8b9ef13c3c8bf28ca800d379b7f7ede706d613629f35513e7
+```
+
+P6-E2已证明top-4 Oracle达到100%/89.55%，但列表头结果几乎等于P6-E1 top-1，说明训练学会
+沿用原峰排序，没有把结构token转化为跨scaffold选择能力。50k generic中原top-1本来就有
+99.59%正确率，峰强度是压倒性的shortcut；继续相同配比和输入扩量没有意义。
+
+下一步先冻结checkpoint做选择变化与候选峰强度消融，量化模型是否只复制第一峰。只有去除
+峰强度后结构证据仍有可分信号，才训练hard-choice版本；否则重新设计候选级结构特征。
+
+audit SHA256：`63cab029cb19c6dddb77667af2ad4907899db19dd0fae7b44c926df80541018f`；
+generic/real候选cache SHA256分别为
+`ca85d778e51b03d6379e2f95456d9d2c882254afdc479320c28db7039b484028`与
+`a15ae2e1d2d26da86b61fd726adba6a89cf165fa483134be630a41dbaf621a5f`。
+`confirm_v2_read=false`，`dev_and_external_read=false`。

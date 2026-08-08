@@ -26,9 +26,10 @@
 
 ## 训练时间线
 
-当前预注册训练：[G3 P6-E3 Structural Peak Selector](20260808-g3-p6e3-structural-peak-selector.md)：
-冻结P6-E1最多8个区域极大值，用115,581参数的96px cross-attention+set-attention列表头选择峰；
-50k generic预训练10k步后以1:1 real混合5k步，两个冻结域仍须80%/3px才GO。
+当前已完成训练：[G3 P6-E3 Structural Peak Selector](20260808-g3-p6e3-structural-peak-selector.md)：
+fit为99.56%/90.49%，但calibration/holdout仅54.84%/56.72%，几乎复制P6-E1第一峰，四门
+NO-GO。50k generic的top-1本来就有99.59%，峰强度形成shortcut；下一步先做选择变化和峰强度
+消融，不追加相同列表头训练量。
 
 当前已完成审计：[G3 P6-E2 Candidate Peak Reachability](20260808-g3-p6e2-candidate-peak-reachability.md)：
 top-1为58.06%/56.72%，top-4已达100%/89.55%，top-8为100%/92.54%，Oracle MAE仅
