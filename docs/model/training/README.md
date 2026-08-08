@@ -26,6 +26,10 @@
 
 ## 训练时间线
 
+当前预注册训练：[G3 P6-E1 Structural Context96 Mixed](20260808-g3-p6e1-structural-context96-mixed.md)：
+150,365参数双分辨率头完整编码96px、中心32px精细输出；沿用50k generic预训练10k步+
+1:1真实混合5k步，两域仍须80%/3px才GO，只保存最终checkpoint并打同名tag。
+
 当前已完成审计：[G3 P6-E0 Context Capacity](20260808-g3-p6e0-context-capacity.md)：64px只为
 0%/29.03%的两域失败新增目标邻居，NO-GO；96px达到42.86%/61.29%，正式GO并被选中。下一模型
 必须使用覆盖完整96px的结构上下文编码路径，不能只放大P5输入。
