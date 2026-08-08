@@ -6,7 +6,9 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 import json
 import math
+import os
 from pathlib import Path
+import random
 import time
 
 import numpy as np
@@ -68,6 +70,7 @@ CROP_RADIUS_PIXELS = 16.0
 SUCCESS_RADIUS_PIXELS = 6.0
 PEAK_REACH_RADIUS_PIXELS = 3.0
 MIN_INTERPRETABLE_BUCKET = 5
+SEED = 20260856
 
 
 class DiagnosticCollator(p1a.G3AtomCollator):
@@ -178,6 +181,15 @@ def main() -> None:
             raise ValueError(f"P5-E6 input SHA256 differs: {path}")
     if not torch.cuda.is_available():
         raise RuntimeError("P5-E6 requires CUDA BF16")
+    os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+    random.seed(SEED)
+    np.random.seed(SEED)
+    torch.manual_seed(SEED)
+    torch.cuda.manual_seed_all(SEED)
+    torch.use_deterministic_algorithms(True)
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cuda.matmul.allow_tf32 = False
+    torch.backends.cudnn.allow_tf32 = False
     device = torch.device("cuda")
     payload = torch.load(CHECKPOINT, map_location="cpu", weights_only=False)
     model = ContextualSecondaryPeakHead().to(device)
@@ -232,7 +244,11 @@ def main() -> None:
                             == int(action["base_source_id"])
                         )[0]
                         if len(matches) != 1:
-                            raise RuntimeError("P5-E6 Oracle source is absent")
+                            raise RuntimeError(
+                                "P5-E6 Oracle source replay differs: "
+                                f"key={key} source={action['base_source_id']} "
+                                f"matches={len(matches)}"
+                            )
                         index = int(matches[0])
                         image_crop = observations["image_crops"][batch_index, index : index + 1]
                         score_crop = observations["score_crops"][batch_index, index : index + 1]
