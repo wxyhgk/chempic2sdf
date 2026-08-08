@@ -26,9 +26,9 @@
 
 ## 训练时间线
 
-当前执行审计：[G3 P5-E0 动作分解审计](20260808-g3-p5e0-action-decomposition.md)：冻结P4-E9B，
-分别测整图NO_ACTION trigger、Oracle source pointer rank和强制source offset质量；不训练，结果决定
-是否进入set-conditioned refine capacity。
+当前已完成审计：[G3 P5-E0 动作分解审计](20260808-g3-p5e0-action-decomposition.md)：holdout
+Oracle source仅10/67进入top4，强制正确source后也仅18/67在6px内、MAE 8.85px，三个门全失败。
+不能直接上set-conditioned head；下一步先去掉空间全局池化，验证dense secondary-peak定位。
 
 当前已完成周期：[G3 P4-E9/P4-E11 局部候选恢复周期](20260808-g3-p4e9-local-recovery-cycle.md)：
 split仅144动作/72分子，容量NO-GO；refine排除低覆盖Bond evidence后完成pilot。calibration唯一

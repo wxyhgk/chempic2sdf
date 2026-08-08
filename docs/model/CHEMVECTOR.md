@@ -110,6 +110,10 @@ decoder；no-candidate仍归峰生成/结构化anchor refinement。
 zero-useless，固定阈值在holdout触发3个无用动作、dev无增益，正式NO-GO。停止full80k与
 confirm_v2；确认瓶颈是安全动作判别，不是追加坐标回归。
 
+[P5-E0 动作分解审计](training/20260808-g3-p5e0-action-decomposition.md)完成：holdout trigger AUC
+0.789，但Oracle source仅10/67进入top4；即使强制正确source，offset也只有18/67落在6px，MAE
+8.85px。P4-E9B的全局空间池化导致方向信息泛化失败；先验证dense secondary-peak，再考虑集合头。
+
 ## 当前版本
 
 - 当前完成的研究 tag：`v0.10.21`。
