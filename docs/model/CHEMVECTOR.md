@@ -167,6 +167,11 @@ generic与1,378真实动作的fit恢复率为99.59%/90.06%，但calibration/hold
 56.72%，MAE为6.48/5.78px，四门全部失败。更大上下文缓解了误差却没有形成跨scaffold的
 结构选择能力；停止逐点heatmap扩量，下一步显式联合source、候选目标与邻接键证据。
 
+[P6-E2 Candidate Peak Reachability](training/20260808-g3-p6e2-candidate-peak-reachability.md)完成：
+冻结P6-E1的target-free区域极大值top-4已达calibration 100%、holdout 89.55%，top-8为
+100%/92.54%，Oracle MAE仅1.78/2.24px，正式GO。正确位置通常已经生成，当前断点从坐标
+回归收缩为最多8个峰的结构排序；下一模型固定候选集合并使用列表级选择目标。
+
 ## 当前版本
 
 - 当前完成的研究 tag：`v0.10.21`。
