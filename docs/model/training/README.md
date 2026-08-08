@@ -26,9 +26,9 @@
 
 ## 训练时间线
 
-当前预注册审计：[G3 P5-E3 Refine Capacity](20260808-g3-p5e3-refine-capacity-audit.md)：从full80k
-删除pilot分子和calibration/holdout全部scaffold后，只统计冻结Oracle refine动作；至少800动作、
-500分子并覆盖四variant才允许做一次规模曲线。本轮不训练、不读confirm或外部集。
+当前已完成审计：[G3 P5-E3 Refine Capacity](20260808-g3-p5e3-refine-capacity-audit.md)：泄漏隔离后的
+58,376图得到1,114个refine动作、883分子、875 scaffold，四variant完整且全部容量门通过。
+与原fit合并可从264扩到1,378动作，允许做固定每动作曝光量的528/1,378规模曲线。
 
 当前已完成训练：[G3 P5-E2 Contextual Secondary Peak](20260808-g3-p5e2-contextual-secondary-peak.md)：
 完整crop上下文把fit做到264/264、MAE 0.54px，但calibration/holdout仅45.16%/32.84%，MAE
