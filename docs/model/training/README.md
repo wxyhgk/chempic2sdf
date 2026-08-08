@@ -26,9 +26,10 @@
 
 ## 训练时间线
 
-当前预注册训练：[G3 P6-E7 Peak-Blind Hard Scale](20260808-g3-p6e7-peak-blind-hard-scale.md)：比较
-500与1,339 hard，两臂相同初始化、每hard约192次曝光、32:32 easy稳定器。大臂须两冻结域
-同时较小臂和第一峰提高至少5pp且MAE不回退；两个实际模型均保存并打同名tag。
+当前已完成训练：[G3 P6-E7 Peak-Blind Hard Scale](20260808-g3-p6e7-peak-blind-hard-scale.md)：
+500→1,339使hard fit 85.80%→90.29%、calibration 19.35%→29.03%，但holdout仅
+25.37%→26.87%，且远低于第一峰56.72%，正式NO-GO。下一模型保留冻结峰prior，只学习
+零初始化视觉residual，并用easy保持约束防止破坏第一峰。
 
 当前已完成审计：[G3 P6-E6 Unselected Hard Pool](20260808-g3-p6e6-unselected-hard-pool.md)：371,122
 个未选合法方向中得到1,339 hard-choice，覆盖833分子、813 scaffold，四门全部GO；其中常规

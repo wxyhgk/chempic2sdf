@@ -191,6 +191,11 @@ hard/easy fit达到96.94%/98.98%，证明结构头有拟合容量；但calibrati
 未选合法方向中找到1,339个hard-choice，覆盖833分子、813 scaffold；stress 831条，常规三
 variant仍有508条，全部容量门GO。现有数据足以做约500→1,300 hard规模曲线，暂不新增图片。
 
+[P6-E7 Peak-Blind Hard Scale](training/20260808-g3-p6e7-peak-blind-hard-scale.md)完成：500→1,339
+使hard fit从85.80%升到90.29%、calibration从19.35%升到29.03%，但holdout只从25.37%升到
+26.87%，且两臂远低于原第一峰56.72%，正式NO-GO。完全删除峰强度丢失泛化先验；下一路线
+固定峰logit为base，只训练零初始化视觉residual，并以easy保持约束保护原排序。
+
 ## 当前版本
 
 - 当前完成的研究 tag：`v0.10.21`。
