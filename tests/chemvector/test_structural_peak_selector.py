@@ -41,3 +41,16 @@ def test_structural_peak_selector_loss_accepts_equivalent_candidates() -> None:
     fixed_identity_loss = -torch.log(scores[0, 0].exp() / scores[0].exp().sum())
     assert loss.item() < fixed_identity_loss.item()
     assert scores.grad is not None
+
+
+def test_peak_blind_selector_is_invariant_to_peak_logits() -> None:
+    model = StructuralPeakSelector(use_peak_logits=False).eval()
+    images = torch.rand(1, 1, 96, 96)
+    fields = torch.rand(1, 1, 96, 96)
+    offsets = (torch.rand(1, 8, 2) - 0.5) * (24.0 / 768.0)
+    mask = torch.ones(1, 8, dtype=torch.bool)
+    source_score = torch.rand(1)
+    source_rank = torch.rand(1)
+    first = model(images, fields, offsets, torch.rand(1, 8), mask, source_score, source_rank)
+    second = model(images, fields, offsets, torch.rand(1, 8) * 100, mask, source_score, source_rank)
+    torch.testing.assert_close(first, second)

@@ -26,6 +26,10 @@
 
 ## 训练时间线
 
+当前预注册训练：[G3 P6-E5 Peak-Blind Balanced](20260808-g3-p6e5-peak-blind-balanced.md)：随机初始化
+且永久忽略峰强度，以169 generic+125 real hard和各域等量easy做32:32平衡训练5k步。hard fit
+须90%，两个冻结域须各提高5pp且MAE不回退，才证明结构视觉具备最小泛化容量。
+
 当前已完成审计：[G3 P6-E4 Selector Shortcut](20260808-g3-p6e4-selector-shortcut.md)：完整selector
 96.77%/98.51%复制第一峰；清零视觉后仍与完整选择93.55%/98.51%一致，0 rescue、1 harmful，
 正式确认peak-rank shortcut。下一容量实验从零训练，永久移除峰强度并平衡294 hard与294 easy。

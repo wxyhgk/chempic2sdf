@@ -29,8 +29,9 @@ class _Block(nn.Module):
 class StructuralPeakSelector(nn.Module):
     """Score peak candidates jointly from source-centered structural context."""
 
-    def __init__(self) -> None:
+    def __init__(self, *, use_peak_logits: bool = True) -> None:
         super().__init__()
+        self.use_peak_logits = bool(use_peak_logits)
         axis = torch.arange(CONTEXT_SIZE, dtype=torch.float32)
         axis = axis - (CONTEXT_SIZE - 1) * 0.5
         y, x = torch.meshgrid(axis, axis, indexing="ij")
@@ -119,6 +120,8 @@ class StructuralPeakSelector(nn.Module):
             / count
         )
         normalized_logits = (valid_logits - mean) / variance.sqrt().clamp_min(1e-4)
+        if not self.use_peak_logits:
+            normalized_logits = torch.zeros_like(normalized_logits)
         offsets_pixels = candidate_offsets.float() * IMAGE_SIZE
         radius = torch.linalg.vector_norm(offsets_pixels, dim=-1, keepdim=True)
         scalars = torch.cat(
