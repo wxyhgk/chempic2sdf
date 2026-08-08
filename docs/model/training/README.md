@@ -26,6 +26,10 @@
 
 ## 训练时间线
 
+当前预注册审计：[G3 P5-E7 Wrong Destination](20260808-g3-p5e7-wrong-destination.md)：判断P5-E5
+失败预测是否落到或更接近同图另一GT；calibration/holdout失败中占比都至少40%才支持显式集合
+条件化。本轮不训练、不读dev、confirm或外部集。
+
 当前已完成审计：[G3 P5-E6 Refine Error Decomposition](20260808-g3-p5e6-refine-error-decomposition.md)：
 文字与source距离均非主因；source 16px内1→2个GT时calibration/holdout从79.17%/62.16%降至
 60.0%/42.31%，degree=2仅66.67%/33.33%。方向误差`<=30°`为100%/97.22%，`>90°`的20个
