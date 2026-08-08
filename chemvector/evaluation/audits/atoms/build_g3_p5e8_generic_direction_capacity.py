@@ -171,7 +171,7 @@ def main() -> None:
             for row in selected
         ),
         "fit_manifest_scaffold_isolated_by_p4e9": True,
-        "dev_confirm_external_sealed_read": False,
+        "dev_confirm_external_sealed_not_read": True,
     }
     decision = "generic_direction_capacity_go" if all(checks.values()) else "generic_direction_capacity_no_go"
     OUTPUT.mkdir(parents=True)
