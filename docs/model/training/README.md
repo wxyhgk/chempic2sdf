@@ -26,6 +26,10 @@
 
 ## 训练时间线
 
+当前预注册审计：[G3 P5-E6 Refine Error Decomposition](20260808-g3-p5e6-refine-error-decomposition.md)：
+冻结P5-E5，在98个calibration/holdout Oracle动作上按距离、文字、拥挤、center-field证据和方向
+误差拆桶；单桶至少5个才解释。本轮不训练、不读dev、confirm或外部集。
+
 当前已完成训练：[G3 P5-E4 Contextual Refine Scale Curve](20260808-g3-p5e4-contextual-refine-scale-curve.md)：
 264→528→1,378动作时，calibration恢复率45.16%→51.61%→77.42%，holdout
 32.84%→38.81%→53.73%，MAE同步下降，证明数据不足是实际瓶颈；但两个新模型仍四门NO-GO。
