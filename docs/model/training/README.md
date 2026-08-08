@@ -26,6 +26,10 @@
 
 ## 训练时间线
 
+当前预注册训练：[G3 P6-E7 Peak-Blind Hard Scale](20260808-g3-p6e7-peak-blind-hard-scale.md)：比较
+500与1,339 hard，两臂相同初始化、每hard约192次曝光、32:32 easy稳定器。大臂须两冻结域
+同时较小臂和第一峰提高至少5pp且MAE不回退；两个实际模型均保存并打同名tag。
+
 当前已完成审计：[G3 P6-E6 Unselected Hard Pool](20260808-g3-p6e6-unselected-hard-pool.md)：371,122
 个未选合法方向中得到1,339 hard-choice，覆盖833分子、813 scaffold，四门全部GO；其中常规
 三variant合计508条。下一周期直接做约500→1,300 hard规模曲线，暂不请求新数据。
