@@ -273,7 +273,10 @@ def main() -> None:
                         target_atom_id = int(target_atom["atom_id"])
                         target_center = torch.tensor(
                             target_atom["center"], dtype=torch.float32
-                        ) / IMAGE_SIZE
+                        ) / torch.tensor(
+                            [max(int(labels["width"]) - 1, 1), max(int(labels["height"]) - 1, 1)],
+                            dtype=torch.float32,
+                        )
                         if float(torch.linalg.vector_norm((target_center - target) * IMAGE_SIZE)) > 1.0:
                             raise RuntimeError(
                                 "P5-E6 target does not map to structure labels: "
