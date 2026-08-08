@@ -60,24 +60,69 @@ def _build_hard_cache(peak_model: StructuralContextPeakHead, device: torch.devic
     by_key: dict[str, list[dict]] = defaultdict(list)
     for row in actions: by_key[str(row["sample_key"])].append(row)
     manifest,_=load_g3_sample_manifest(p6e6.p5e8.FIT_MANIFEST,expected_sha256=p6e6.p5e8.FIT_MANIFEST_SHA256,expected_samples=14_000,expected_molecules=3_500,expected_variants=p6e6.p5e8.cycle.VARIANTS)
-    selected=[row for row in manifest if row.sample_key in by_key]
+    selected_pairs = {
+        (str(row["sample_key"]), int(row["target_index"]))
+        for row in _jsonl(p6e6.SELECTED_PAIRS)
+    }
     field,atom_head,vision,frozen_block,vision_sha=p4e6._load_model(device); collator=p1a.G3AtomCollator(maximum_atoms=128,image_size=768)
     values: dict[str,list]=defaultdict(list); started=time.perf_counter(); processed=0
-    for batch in p1a.iter_manifest_batches(selected,collator,batch_size=8,accepted_split="train"):
+    # Preserve the exact P6-E6 image order, upstream batch shape, and per-image
+    # source batch. BF16 near-tied peak ordering is not invariant to batch shape.
+    for batch in p1a.iter_manifest_batches(manifest,collator,batch_size=8,accepted_split="train"):
         objects,stroke=p1t.model_inputs(atom_head,vision,frozen_block,batch["pixel_values"],device=device,training=False)
         with _autocast_context(device,"bf16"): field_output=field(objects,stroke)
         darkness=recovery_data._grayscale_darkness(batch["pixel_values"].to(device)); center=field_output["center_logits"].detach().float()
         for batch_index,key_value in enumerate(batch["keys"]):
-            key=str(key_value); current=by_key[key]
-            sources=torch.tensor([row["source_anchor"] for row in current],device=device,dtype=torch.float32)
-            images=anchor_centered_context_crops(darkness[batch_index:batch_index+1],sources[None])[0]
-            scores=anchor_centered_context_crops(center[batch_index:batch_index+1],sources[None])[0]
-            zeros=torch.zeros(len(current),device=device)
-            with torch.autocast(device_type="cuda",dtype=torch.bfloat16): logits=peak_model(images,scores,zeros,zeros)
+            key=str(key_value)
+            current=by_key.get(key)
+            if not current:
+                continue
+            anchors=batch["atom_anchors"][batch_index][batch["atom_mask"][batch_index]].float().to(device)
+            all_sources=[]; all_target_indices=[]
+            for target_index,target in enumerate(anchors):
+                if (key,target_index) in selected_pairs:
+                    continue
+                offset=p6e6.p5e8.deterministic_offset(key,target_index).to(device)
+                source=target-offset; pixels=source*768
+                if bool((pixels<16).any() or (pixels>752).any()):
+                    continue
+                distances_to_atoms=torch.linalg.vector_norm((anchors-source)*768,dim=1)
+                order=distances_to_atoms.argsort(stable=True)
+                if int(order[0])!=target_index:
+                    continue
+                if len(order)>1 and float(distances_to_atoms[order[1]]-distances_to_atoms[order[0]])<1.0:
+                    continue
+                all_sources.append(source); all_target_indices.append(target_index)
+            sources=torch.stack(all_sources)
+            all_images=anchor_centered_context_crops(darkness[batch_index:batch_index+1],sources[None])[0]
+            all_scores=anchor_centered_context_crops(center[batch_index:batch_index+1],sources[None])[0]
+            zeros=torch.zeros(len(sources),device=device)
+            with torch.autocast(device_type="cuda",dtype=torch.bfloat16): logits=peak_model(all_images,all_scores,zeros,zeros)
             offsets,peak_logits,mask=p6e3.candidate_tensors(logits)
+            target_to_row={target_index:row for row,target_index in enumerate(all_target_indices)}
+            selected_rows=torch.tensor([target_to_row[int(row["target_index"])] for row in current],device=device)
+            images=all_images[selected_rows]; scores=all_scores[selected_rows]
+            offsets=offsets[selected_rows]; peak_logits=peak_logits[selected_rows]; mask=mask[selected_rows]
             targets=torch.tensor([row["offset_target"] for row in current],dtype=torch.float32)
             distances=torch.linalg.vector_norm((offsets.cpu()-targets[:,None])*768,dim=-1).masked_fill(~mask.cpu(),torch.inf)
-            if bool((distances[:,0]<=6).any() or (distances.min(dim=1).values>6).any()): raise RuntimeError("P6-E7 hard cache no longer matches P6-E6")
+            base_bad = distances[:, 0] <= 6
+            reach_bad = distances.min(dim=1).values > 6
+            if bool(base_bad.any() or reach_bad.any()):
+                bad = torch.where(base_bad | reach_bad)[0].tolist()
+                details = [
+                    {
+                        "sample_key": key,
+                        "target_index": int(current[row]["target_index"]),
+                        "old_base": float(current[row]["base_distance_pixels"]),
+                        "new_base": float(distances[row, 0]),
+                        "old_oracle": float(current[row]["oracle_top8_distance_pixels"]),
+                        "new_oracle": float(distances[row].min()),
+                    }
+                    for row in bad
+                ]
+                raise RuntimeError(
+                    f"P6-E7 hard cache no longer matches P6-E6: {details}"
+                )
             values["image_crops"].append(images.cpu().half()); values["score_crops"].append(scores.cpu().half())
             values["candidate_offsets"].append(offsets.cpu().half()); values["candidate_peak_logits"].append(torch.zeros_like(peak_logits.cpu()).half())
             values["candidate_mask"].append(mask.cpu()); values["candidate_scores"].append(torch.zeros(len(current)))
