@@ -4,7 +4,11 @@ import torch
 from chemvector.evaluation.audits.atoms.build_g3_p4e9_recovery_oracle import (
     ACTION_ID_STRIDE,
     allocate_scaffold_splits,
+    deficient_components,
     recovery_actions,
+)
+from chemvector.evaluation.audits.atoms.audit_g3_p4e8_local_multiplicity_components import (
+    deficient_bipartite_components,
 )
 
 
@@ -79,3 +83,24 @@ def test_ambiguous_shared_component_is_explicitly_unsupported() -> None:
     )
     assert actions == []
     assert unsupported == [7, 9]
+
+
+def test_fast_component_matcher_replays_p4e8_cardinality() -> None:
+    generator = torch.Generator().manual_seed(8)
+    for _ in range(20):
+        predicted = torch.rand(16, 2, generator=generator)
+        expected = torch.rand(12, 2, generator=generator)
+        fast = deficient_components(predicted, expected)
+        reference = deficient_bipartite_components(
+            predicted, expected, radius_pixels=6.0
+        )
+        project = lambda rows: [
+            (
+                row["gt_indices"],
+                row["candidate_indices"],
+                row["matched_count"],
+                row["deficiency"],
+            )
+            for row in rows
+        ]
+        assert project(fast) == project(reference)

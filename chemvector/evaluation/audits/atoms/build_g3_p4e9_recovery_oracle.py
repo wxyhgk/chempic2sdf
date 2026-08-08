@@ -164,6 +164,90 @@ def _component_assignment(
     }
 
 
+def deficient_components(
+    predicted: torch.Tensor, expected: torch.Tensor
+) -> list[dict]:
+    """Build 6px components with a deterministic cardinality-only matcher."""
+
+    if predicted.ndim != 2 or predicted.shape[-1] != 2:
+        raise ValueError("P4-E9 predicted anchors must have shape [P,2]")
+    if expected.ndim != 2 or expected.shape[-1] != 2:
+        raise ValueError("P4-E9 expected anchors must have shape [G,2]")
+    distances = torch.cdist(expected.float(), predicted.float()) * IMAGE_SIZE
+    eligible = distances <= MATCH_RADIUS
+    gt_to_candidates = [torch.where(row)[0].tolist() for row in eligible]
+    candidate_to_gt = {
+        candidate: torch.where(eligible[:, candidate])[0].tolist()
+        for candidate in torch.where(eligible.any(dim=0))[0].tolist()
+    }
+    visited_gt: set[int] = set()
+    components = []
+    for seed_gt in range(len(expected)):
+        if seed_gt in visited_gt:
+            continue
+        current_gt = {seed_gt}
+        current_candidates: set[int] = set()
+        pending_gt = [seed_gt]
+        pending_candidates: list[int] = []
+        visited_gt.add(seed_gt)
+        while pending_gt or pending_candidates:
+            while pending_gt:
+                gt_index = pending_gt.pop()
+                for candidate in gt_to_candidates[gt_index]:
+                    if candidate not in current_candidates:
+                        current_candidates.add(candidate)
+                        pending_candidates.append(candidate)
+            while pending_candidates:
+                candidate = pending_candidates.pop()
+                for gt_index in candidate_to_gt[candidate]:
+                    if gt_index not in current_gt:
+                        current_gt.add(gt_index)
+                        visited_gt.add(gt_index)
+                        pending_gt.append(gt_index)
+        gt_indices = sorted(current_gt)
+        candidate_indices = sorted(current_candidates)
+        candidate_set = set(candidate_indices)
+        adjacency = {
+            gt_index: sorted(
+                (
+                    candidate
+                    for candidate in gt_to_candidates[gt_index]
+                    if candidate in candidate_set
+                ),
+                key=lambda candidate: (float(distances[gt_index, candidate]), candidate),
+            )
+            for gt_index in gt_indices
+        }
+        owner: dict[int, int] = {}
+
+        def augment(gt_index: int, seen: set[int]) -> bool:
+            for candidate in adjacency[gt_index]:
+                if candidate in seen:
+                    continue
+                seen.add(candidate)
+                previous = owner.get(candidate)
+                if previous is None or augment(previous, seen):
+                    owner[candidate] = gt_index
+                    return True
+            return False
+
+        matched = sum(augment(gt_index, set()) for gt_index in gt_indices)
+        deficiency = len(gt_indices) - matched
+        if deficiency:
+            components.append(
+                {
+                    "gt_indices": gt_indices,
+                    "candidate_indices": candidate_indices,
+                    "gt_count": len(gt_indices),
+                    "candidate_count": len(candidate_indices),
+                    "matched_count": matched,
+                    "deficiency": deficiency,
+                    "kind": "no_candidate" if not candidate_indices else "shared_deficient",
+                }
+            )
+    return components
+
+
 def recovery_actions(
     predicted: torch.Tensor,
     source_ids: torch.Tensor,
@@ -173,9 +257,7 @@ def recovery_actions(
 ) -> list[dict] | tuple[list[dict], list[int]]:
     """Return mutually exclusive split/refine positives for one training image."""
 
-    components = p4e8.deficient_bipartite_components(
-        predicted, expected, radius_pixels=MATCH_RADIUS
-    )
+    components = deficient_components(predicted, expected)
     actions: list[dict] = []
     split_gt: set[int] = set()
     split_sources: set[int] = set()
@@ -281,11 +363,8 @@ def recovery_actions(
     unsupported_candidates.difference_update(
         item["candidate_index"] for item in actions
     )
-    baseline_matched = sum(
-        value is not None
-        for value in p4e6.maximum_cardinality_assignments(
-            predicted, expected, radius_pixels=MATCH_RADIUS
-        )
+    baseline_matched = len(expected) - sum(
+        component["deficiency"] for component in components
     )
     for action in actions:
         augmented = torch.cat(
