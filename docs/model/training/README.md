@@ -26,9 +26,9 @@
 
 ## 训练时间线
 
-当前预注册审计：[G3 P5-E7 Wrong Destination](20260808-g3-p5e7-wrong-destination.md)：判断P5-E5
-失败预测是否落到或更接近同图另一GT；calibration/holdout失败中占比都至少40%才支持显式集合
-条件化。本轮不训练、不读dev、confirm或外部集。
+当前已完成审计：[G3 P5-E7 Wrong Destination](20260808-g3-p5e7-wrong-destination.md)：失败预测更
+接近另一GT的比例仅14.29%/41.94%，38个失败中真正命中另一GT仅2个、24个仍以目标为最近，
+对象竞争解释NO-GO。下一步不再只收稀有失败动作，改为审计用普通原子建立通用方向场的容量。
 
 当前已完成审计：[G3 P5-E6 Refine Error Decomposition](20260808-g3-p5e6-refine-error-decomposition.md)：
 文字与source距离均非主因；source 16px内1→2个GT时calibration/holdout从79.17%/62.16%降至
