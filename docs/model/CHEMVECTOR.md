@@ -114,6 +114,11 @@ confirm_v2；确认瓶颈是安全动作判别，不是追加坐标回归。
 0.789，但Oracle source仅10/67进入top4；即使强制正确source，offset也只有18/67落在6px，MAE
 8.85px。P4-E9B的全局空间池化导致方向信息泛化失败；先验证dense secondary-peak，再考虑集合头。
 
+[P5-E1 Spatial Secondary Peak](training/20260808-g3-p5e1-spatial-secondary-peak.md)完成：移除全局
+池化并预测32x32次峰热图后，强制Oracle source的fit/calibration/holdout 6px恢复率仍仅为
+54.55%/54.84%/53.73%，四门全失败。当前局部栅格证据不足，停止扩量和集合动作建模，先做
+失败位置视觉证据审计。
+
 ## 当前版本
 
 - 当前完成的研究 tag：`v0.10.21`。

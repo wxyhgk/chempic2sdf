@@ -2,7 +2,7 @@
 
 > 日期：2026-08-08
 >
-> 状态：已预注册，等待训练
+> 状态：已完成，NO-GO
 
 ## 目标
 
@@ -30,3 +30,32 @@ P5-E0证明P4-E9B即使强制选择正确source，holdout offset也只有18/67�
 
 模型名固定为`chemvector-g3-p5e1-spatial-secondary-peak-fit264`。无论GO/NO-GO，实际训练后提交
 结果并创建同名annotated tag。GO后才恢复set-conditioned NO_ACTION/pointer；NO-GO则停止。
+
+## 实际结果
+
+模型共16,597个参数，训练3,000步、累计暴露192,000个动作样本。训练loss均值为5.5648，最终
+loss为5.4305。给定正确Oracle source后得到：
+
+| 域 | 动作数 | 6px内 | 6px恢复率 | MAE | 中位误差 | P90误差 |
+|---|---:|---:|---:|---:|---:|---:|
+| fit | 264 | 144 | 54.55% | 7.31px | 5.28px | 16.40px |
+| calibration | 31 | 17 | 54.84% | 7.77px | 4.42px | 17.27px |
+| holdout | 67 | 36 | 53.73% | 7.12px | 5.56px | 15.27px |
+
+两域恢复率都未达到80%，MAE也都高于3px，四项门全部失败，最终决策为
+`spatial_secondary_peak_no_go`。fit与两个跨scaffold域都稳定在约54%，没有出现只在训练集
+拟合良好而跨域崩溃的现象；这个结果否定的是“仅靠source中心附近32x32灰度/center-field局部
+栅格即可稳定指出第二anchor”这一假设。它不否定ChemVector整体路线，但不允许继续在该输入上
+叠加`NO_ACTION + count + pointer`，也不允许扩到full80k。
+
+checkpoint：
+`outputs/checkpoints/chemvector-g3-p5e1-spatial-secondary-peak-fit264/step-003000.pt`，SHA256
+`aa790e5868e31c6e17920e45edfb616a98401441de8acbae5108f7ddd31f6fa2`。audit SHA256：
+`7427276b6334182b657dfd115d308a99e90195cfef5476ddfc98651d22a7a3fd`。`confirm_v2`、dev、外部集
+和封存集均未读取。
+
+## 后续边界
+
+下一步只做失败样本的只读证据审计：比较目标位置是否存在可辨别的局部峰、键端点或更大上下文
+支撑，区分“32px视野不足”和“当前冻结表示根本没有第二对象证据”。在该审计给出新的可检验
+输入假设前，不继续追加同构卷积层、训练步数或样本量。
