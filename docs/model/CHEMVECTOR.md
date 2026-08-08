@@ -128,6 +128,11 @@ source相对坐标和完整crop上下文后，fit达到264/264、MAE 0.54px，�
 58,376张full-train余量中得到1,114动作、883分子、875 scaffold，容量GO。与原fit合并可扩至
 1,378动作；下一步用不变P5-E2架构做528/1,378固定曝光规模曲线，直接检验数据不足假设。
 
+[P5-E4/E5 Contextual Refine Scale Curve](training/20260808-g3-p5e4-contextual-refine-scale-curve.md)
+完成：动作264→528→1,378时，calibration恢复率45.16%→51.61%→77.42%，holdout
+32.84%→38.81%→53.73%，MAE同步下降。数据不足得到实证支持，但两个新模型仍NO-GO；下一步
+先拆P5-E5剩余错误机制，不直接继续扩量。
+
 ## 当前版本
 
 - 当前完成的研究 tag：`v0.10.21`。

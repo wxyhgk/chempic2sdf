@@ -26,9 +26,10 @@
 
 ## 训练时间线
 
-当前预注册训练：[G3 P5-E4 Contextual Refine Scale Curve](20260808-g3-p5e4-contextual-refine-scale-curve.md)：
-固定P5-E2架构和每动作约727次曝光，比较528与1,378动作；calibration/holdout及80%/3px门不变，
-两个实际模型分别提交并打同名tag，不读dev、confirm或外部集。
+当前已完成训练：[G3 P5-E4 Contextual Refine Scale Curve](20260808-g3-p5e4-contextual-refine-scale-curve.md)：
+264→528→1,378动作时，calibration恢复率45.16%→51.61%→77.42%，holdout
+32.84%→38.81%→53.73%，MAE同步下降，证明数据不足是实际瓶颈；但两个新模型仍四门NO-GO。
+停止盲目扩量，下一步先拆解P5-E5剩余错误是否混合不同机制。
 
 当前已完成审计：[G3 P5-E3 Refine Capacity](20260808-g3-p5e3-refine-capacity-audit.md)：泄漏隔离后的
 58,376图得到1,114个refine动作、883分子、875 scaffold，四variant完整且全部容量门通过。
