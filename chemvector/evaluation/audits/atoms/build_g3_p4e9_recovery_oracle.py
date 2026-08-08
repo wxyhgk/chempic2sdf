@@ -168,7 +168,9 @@ def recovery_actions(
     predicted: torch.Tensor,
     source_ids: torch.Tensor,
     expected: torch.Tensor,
-) -> list[dict]:
+    *,
+    return_details: bool = False,
+) -> list[dict] | tuple[list[dict], list[int]]:
     """Return mutually exclusive split/refine positives for one training image."""
 
     components = p4e8.deficient_bipartite_components(
@@ -177,6 +179,7 @@ def recovery_actions(
     actions: list[dict] = []
     split_gt: set[int] = set()
     split_sources: set[int] = set()
+    unsupported_candidates: set[int] = set()
     for component in components:
         if not (
             component["kind"] == "shared_deficient"
@@ -184,6 +187,8 @@ def recovery_actions(
             and component["candidate_count"] == 1
             and component["deficiency"] == 1
         ):
+            if component["kind"] == "shared_deficient":
+                unsupported_candidates.update(component["candidate_indices"])
             continue
         assignment = _component_assignment(predicted, expected, component)
         unmatched = [index for index in component["gt_indices"] if index not in assignment]
@@ -223,6 +228,17 @@ def recovery_actions(
     refine_candidates = [
         index for index in range(len(predicted)) if index not in split_sources
     ]
+    refine_eligible: dict[int, set[int]] = {}
+    for target_index in refine_targets:
+        distances = torch.linalg.vector_norm(
+            (predicted.double() - expected[target_index].double()) * IMAGE_SIZE,
+            dim=1,
+        )
+        refine_eligible[target_index] = {
+            index
+            for index in refine_candidates
+            if MATCH_RADIUS < float(distances[index]) <= REFINE_RADIUS
+        }
     refine_assignments = (
         p4e6.maximum_cardinality_assignments(
             predicted[refine_candidates],
@@ -257,6 +273,14 @@ def recovery_actions(
                 "source_distance_pixels": distance,
             }
         )
+    assigned_refine_sources = {
+        item["candidate_index"] for item in actions if item["route"] == "ADD_REFINE"
+    }
+    for values in refine_eligible.values():
+        unsupported_candidates.update(values - assigned_refine_sources)
+    unsupported_candidates.difference_update(
+        item["candidate_index"] for item in actions
+    )
     baseline_matched = sum(
         value is not None
         for value in p4e6.maximum_cardinality_assignments(
@@ -279,7 +303,11 @@ def recovery_actions(
     identities = [item["base_source_id"] for item in actions]
     if len(identities) != len(set(identities)):
         raise RuntimeError("P4-E9 assigned more than one action to a base source")
-    return sorted(actions, key=lambda item: (item["route"], item["base_source_id"]))
+    actions = sorted(actions, key=lambda item: (item["route"], item["base_source_id"]))
+    unsupported_source_ids = sorted(
+        int(source_ids[index]) for index in unsupported_candidates
+    )
+    return (actions, unsupported_source_ids) if return_details else actions
 
 
 def _atomic_jsonl(path: Path, rows: list[dict]) -> None:
@@ -353,8 +381,11 @@ def main() -> None:
                 if len(peak["anchors"]) != TOP_K:
                     raise RuntimeError(f"P4-E9 {sample_key} has fewer than top128 peaks")
                 expected = batch["atom_anchors"][index][batch["atom_mask"][index]].cpu()
-                actions = recovery_actions(
-                    peak["anchors"].cpu(), peak["source_ids"].cpu(), expected
+                actions, unsupported_source_ids = recovery_actions(
+                    peak["anchors"].cpu(),
+                    peak["source_ids"].cpu(),
+                    expected,
+                    return_details=True,
                 )
                 meta = metadata_by_key[sample_key]
                 split = split_by_key[sample_key]
@@ -379,6 +410,8 @@ def main() -> None:
                         "atom_count": int(len(expected)),
                         "split_actions": sum(item["route"] == "ADD_SPLIT" for item in actions),
                         "refine_actions": sum(item["route"] == "ADD_REFINE" for item in actions),
+                        "unsupported_source_ids": unsupported_source_ids,
+                        "unsupported_sources": len(unsupported_source_ids),
                     }
                 )
 
@@ -408,6 +441,9 @@ def main() -> None:
         )
         == len(action_rows),
         "base_candidates_unchanged": True,
+        "unsupported_sources_explicit": all(
+            "unsupported_source_ids" in row for row in image_rows
+        ),
         "confirm_v2_not_read": True,
         "external_and_sealed_not_read": True,
     }
@@ -444,6 +480,7 @@ def main() -> None:
             "refine_radius_pixels": REFINE_RADIUS,
             "split_action": "strict_2gt_1candidate_6px_component",
             "refine_action": "strict_1gt_0candidate_6px_component_with_top128_source_within_12px",
+            "negative_label": "NONE only; UNSUPPORTED source IDs are loss-masked",
             "candidate_ids": {
                 "base_capacity": ACTION_ID_STRIDE,
                 "split": "589824 + base_source_id",

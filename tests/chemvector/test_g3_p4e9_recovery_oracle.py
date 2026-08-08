@@ -64,3 +64,18 @@ def test_split_source_is_not_reused_by_refine_route() -> None:
     assert len(actions) == 1
     assert actions[0]["route"] == "ADD_SPLIT"
     assert actions[0]["base_source_id"] == 7
+
+
+def test_ambiguous_shared_component_is_explicitly_unsupported() -> None:
+    predicted = torch.tensor([[100.0, 100.0], [112.0, 100.0]]) / 768.0
+    expected = torch.tensor(
+        [[96.0, 100.0], [106.0, 100.0], [116.0, 100.0]]
+    ) / 768.0
+    actions, unsupported = recovery_actions(
+        predicted,
+        torch.tensor([7, 9]),
+        expected,
+        return_details=True,
+    )
+    assert actions == []
+    assert unsupported == [7, 9]

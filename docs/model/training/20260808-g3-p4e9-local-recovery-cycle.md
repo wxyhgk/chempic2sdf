@@ -30,6 +30,8 @@ Oracle仅用于生成训练标签：
    做整图一一匹配。每路至少需要256个动作、100个分子并覆盖四种variant，才允许训练。
 4. 冻结Bond endpoint证据只有在训练域三折probe中AUC至少提高0.02，且动作目标endpoint
    coverage至少90%时才能加入。否则恢复头保持纯图像输入。
+5. 不满足两条严格Oracle定义、但处于缺口分量或竞争refine来源中的candidate显式标为
+   `UNSUPPORTED`，训练loss必须屏蔽；只有明确的普通candidate可以作为`NONE`负例。
 
 Oracle不会进入推理组件，也不会读取`confirm_v2`、外部集或封存集。
 
