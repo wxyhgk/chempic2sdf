@@ -26,6 +26,10 @@
 
 ## 训练时间线
 
+当前预注册训练：[G3 P5-E9 Generic Direction Mixed](20260808-g3-p5e9-generic-direction-mixed.md)：
+固定45,353参数头，50k一般方向对预训练10k步，再以32 generic+32真实残差混合微调5k步；最终
+仍须两域80%/3px才GO，只保存最终checkpoint并打同名tag。
+
 当前已完成审计：[G3 P5-E8 Generic Direction Capacity](20260808-g3-p5e8-generic-direction-capacity.md)：
 422,364原子得到421,122个无歧义方向对，固定选50k；degree2 24,753、TEXT 13,218、四variant
 各12,500，全部门GO。允许构建冻结P4-E3 crop cache并运行通用预训练+真实残差混合微调。
