@@ -26,9 +26,10 @@
 
 ## 训练时间线
 
-当前预注册训练：[G3 P5-E2 Contextual Secondary Peak](20260808-g3-p5e2-contextual-secondary-peak.md)：
-P5-E1的定向卷积感受野只有7x7，无法严格检验32px局部证据。本轮保持数据和门不变，只加入
-source相对坐标和完整crop上下文路径；两域80%/3px门仍冻结。
+当前已完成训练：[G3 P5-E2 Contextual Secondary Peak](20260808-g3-p5e2-contextual-secondary-peak.md)：
+完整crop上下文把fit做到264/264、MAE 0.54px，但calibration/holdout仅45.16%/32.84%，MAE
+7.61/9.10px，四门全失败。停止加step/参数；先审计独立训练域能否显著扩大残差动作覆盖，再
+区分小样本不足与局部输入不可辨别。
 
 当前已完成训练：[G3 P5-E1 Spatial Secondary Peak](20260808-g3-p5e1-spatial-secondary-peak.md)：
 去掉全局空间池化后直接预测32x32 secondary-peak，但强制Oracle source时fit/calibration/holdout

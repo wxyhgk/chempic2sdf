@@ -116,8 +116,13 @@ confirm_v2；确认瓶颈是安全动作判别，不是追加坐标回归。
 
 [P5-E1 Spatial Secondary Peak](training/20260808-g3-p5e1-spatial-secondary-peak.md)完成：移除全局
 池化并预测32x32次峰热图后，强制Oracle source的fit/calibration/holdout 6px恢复率仍仅为
-54.55%/54.84%/53.73%，四门全失败。当前局部栅格证据不足，停止扩量和集合动作建模，先做
-失败位置视觉证据审计。
+54.55%/54.84%/53.73%，四门全失败。复核发现定向卷积感受野仅7x7，因此该结果只否定P5-E1
+head，不能单独否定完整32px局部证据。
+
+[P5-E2 Contextual Secondary Peak](training/20260808-g3-p5e2-contextual-secondary-peak.md)完成：加入
+source相对坐标和完整crop上下文后，fit达到264/264、MAE 0.54px，但calibration/holdout只有
+45.16%/32.84%，正式NO-GO。当前断点是跨scaffold泛化；先审计可用独立动作容量，不继续增加
+同一小集合上的训练步数或参数。
 
 ## 当前版本
 
