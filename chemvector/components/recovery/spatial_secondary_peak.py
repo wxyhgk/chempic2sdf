@@ -213,7 +213,104 @@ class SpatialSecondaryPeakHead(nn.Module):
         return self.conditioned(spatial)[:, 0]
 
 
+class _ContextBlock(nn.Module):
+    def __init__(self, input_channels: int, output_channels: int, *, stride: int = 1) -> None:
+        super().__init__()
+        groups = 4 if output_channels % 4 == 0 else 1
+        self.layers = nn.Sequential(
+            nn.Conv2d(
+                input_channels,
+                output_channels,
+                kernel_size=3,
+                stride=stride,
+                padding=1,
+            ),
+            nn.GroupNorm(groups, output_channels),
+            nn.GELU(),
+        )
+
+    def forward(self, values: torch.Tensor) -> torch.Tensor:
+        return self.layers(values)
+
+
+class ContextualSecondaryPeakHead(nn.Module):
+    """Full-crop secondary-peak decoder with source-relative coordinates."""
+
+    def __init__(
+        self, config: SpatialSecondaryPeakConfig = SpatialSecondaryPeakConfig()
+    ) -> None:
+        super().__init__()
+        self.config = config
+        coordinates = spatial_offset_grid(config).permute(2, 0, 1)
+        coordinates = coordinates / ((config.crop_size - 1) * 0.5)
+        self.register_buffer("relative_coordinates", coordinates, persistent=False)
+        self.stem = _ContextBlock(4, 12)
+        self.down1 = _ContextBlock(12, 16, stride=2)
+        self.down2 = _ContextBlock(16, 24, stride=2)
+        self.down3 = _ContextBlock(24, 32, stride=2)
+        self.bottleneck = _ContextBlock(32, 32)
+        self.candidate = nn.Sequential(
+            nn.LayerNorm(2),
+            nn.Linear(2, 32),
+            nn.GELU(),
+            nn.Linear(32, 64),
+        )
+        self.up2 = _ContextBlock(32 + 24, 24)
+        self.up1 = _ContextBlock(24 + 16, 16)
+        self.up0 = _ContextBlock(16 + 12, 12)
+        self.output = nn.Conv2d(12, 1, kernel_size=1)
+
+    @property
+    def parameter_count(self) -> int:
+        return sum(value.numel() for value in self.parameters())
+
+    @staticmethod
+    def _upsample(values: torch.Tensor, skip: torch.Tensor) -> torch.Tensor:
+        return F.interpolate(values, size=skip.shape[-2:], mode="nearest")
+
+    def forward(
+        self,
+        image_crops: torch.Tensor,
+        score_crops: torch.Tensor,
+        candidate_scores: torch.Tensor,
+        candidate_ranks: torch.Tensor,
+    ) -> torch.Tensor:
+        batch = len(image_crops)
+        if image_crops.shape != (batch, 1, 32, 32) or score_crops.shape != image_crops.shape:
+            raise ValueError("P5-E2 crops must have shape [batch,1,32,32]")
+        if candidate_scores.shape != (batch,) or candidate_ranks.shape != (batch,):
+            raise ValueError("P5-E2 candidate scalars must be batch vectors")
+        values = image_crops, score_crops, candidate_scores, candidate_ranks
+        if any(not value.is_floating_point() for value in values) or any(
+            not bool(torch.isfinite(value).all()) for value in values
+        ):
+            raise ValueError("P5-E2 inputs must be finite floating point")
+        coordinates = self.relative_coordinates[None].expand(batch, -1, -1, -1)
+        level0 = self.stem(
+            torch.cat((image_crops.float(), score_crops.float(), coordinates), dim=1)
+        )
+        level1 = self.down1(level0)
+        level2 = self.down2(level1)
+        level3 = self.bottleneck(self.down3(level2))
+        scalar = torch.stack(
+            (candidate_scores.float(), candidate_ranks.float()), dim=1
+        )
+        scale, bias = self.candidate(scalar).chunk(2, dim=1)
+        level3 = level3 * (1.0 + scale[:, :, None, None]) + bias[:, :, None, None]
+        level2_out = self.up2(
+            torch.cat((self._upsample(level3, level2), level2), dim=1)
+        )
+        level1_out = self.up1(
+            torch.cat((self._upsample(level2_out, level1), level1), dim=1)
+        )
+        level0_out = self.up0(
+            torch.cat((self._upsample(level1_out, level0), level0), dim=1)
+        )
+        return self.output(level0_out)[:, 0]
+
+
 __all__ = [
+    "ContextualSecondaryPeakHead",
     "SpatialSecondaryPeakConfig",
     "SpatialSecondaryPeakHead",
     "decode_secondary_peak_offsets",

@@ -1,6 +1,7 @@
 import torch
 
 from chemvector.components.recovery.spatial_secondary_peak import (
+    ContextualSecondaryPeakHead,
     SpatialSecondaryPeakHead,
     decode_secondary_peak_offsets,
     dihedral_transform,
@@ -42,6 +43,25 @@ def test_spatial_head_retains_dense_output_and_backpropagates() -> None:
     )
     assert logits.shape == (2, 32, 32)
     assert model.parameter_count < 50_000
+    loss = secondary_peak_loss(
+        logits, torch.tensor([[7.0, 2.0], [-8.0, 3.0]]) / 768.0
+    )
+    loss.backward()
+    assert all(value.grad is not None for value in model.parameters())
+
+
+def test_contextual_head_has_full_crop_path_and_relative_coordinates() -> None:
+    model = ContextualSecondaryPeakHead()
+    logits = model(
+        torch.rand(2, 1, 32, 32),
+        torch.rand(2, 1, 32, 32),
+        torch.rand(2),
+        torch.rand(2),
+    )
+    assert logits.shape == (2, 32, 32)
+    assert model.bottleneck.layers[0].kernel_size == (3, 3)
+    assert model.relative_coordinates.shape == (2, 32, 32)
+    assert model.parameter_count < 100_000
     loss = secondary_peak_loss(
         logits, torch.tensor([[7.0, 2.0], [-8.0, 3.0]]) / 768.0
     )

@@ -44,9 +44,9 @@ loss为5.4305。给定正确Oracle source后得到：
 
 两域恢复率都未达到80%，MAE也都高于3px，四项门全部失败，最终决策为
 `spatial_secondary_peak_no_go`。fit与两个跨scaffold域都稳定在约54%，没有出现只在训练集
-拟合良好而跨域崩溃的现象；这个结果否定的是“仅靠source中心附近32x32灰度/center-field局部
-栅格即可稳定指出第二anchor”这一假设。它不否定ChemVector整体路线，但不允许继续在该输入上
-叠加`NO_ACTION + count + pointer`，也不允许扩到full80k。
+拟合良好而跨域崩溃的现象；这个结果直接否定P5-E1 head，但后续复核发现其每个输出位置的定向
+卷积感受野只有7x7，不能据此否定完整32x32局部证据。它不允许直接叠加
+`NO_ACTION + count + pointer`或扩到full80k；下一轮只修复该架构混杂因素。
 
 checkpoint：
 `outputs/checkpoints/chemvector-g3-p5e1-spatial-secondary-peak-fit264/step-003000.pt`，SHA256
@@ -56,6 +56,6 @@ checkpoint：
 
 ## 后续边界
 
-下一步只做失败样本的只读证据审计：比较目标位置是否存在可辨别的局部峰、键端点或更大上下文
-支撑，区分“32px视野不足”和“当前冻结表示根本没有第二对象证据”。在该审计给出新的可检验
-输入假设前，不继续追加同构卷积层、训练步数或样本量。
+只读复核已确认center-field环带argmax在fit仅23.11%命中6px，目标cell分数中位排名约100；
+P5-E1的D4全一致命中率为33.33%，简单TTA没有提高原始54.55%。下一步P5-E2保持数据、目标和门
+完全不变，只加入相对坐标与完整crop定向上下文；不追加同构卷积层、训练步数或样本量。
