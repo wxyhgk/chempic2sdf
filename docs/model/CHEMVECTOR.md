@@ -162,6 +162,11 @@ P5局部方向头正式停止；下一路线必须扩大上下文并显式利用
 比例仅0%/29.03%，NO-GO；96px达到42.86%/61.29%，正式GO。P6固定采用覆盖完整96px的结构
 上下文编码器，并保留中心目标环带的精细定位输出。
 
+[P6-E1 Structural Context96 Mixed](training/20260808-g3-p6e1-structural-context96-mixed.md)完成：50k
+generic与1,378真实动作的fit恢复率为99.59%/90.06%，但calibration/holdout只有58.06%/
+56.72%，MAE为6.48/5.78px，四门全部失败。更大上下文缓解了误差却没有形成跨scaffold的
+结构选择能力；停止逐点heatmap扩量，下一步显式联合source、候选目标与邻接键证据。
+
 ## 当前版本
 
 - 当前完成的研究 tag：`v0.10.21`。
