@@ -458,12 +458,15 @@ def build_capacity_cache(device: torch.device) -> tuple[list[dict], dict]:
 
 
 def _stack(records: list[dict], device: torch.device) -> dict:
+    # Cache storage is FP16, while the frozen source and training protocol use
+    # BF16 autocast. Restore floating inputs to FP32 before entering autocast;
+    # grid_sample cannot resolve a mixed FP16/FP32 autocast signature.
     feature_maps = torch.stack([record["feature_map"] for record in records]).to(
-        device
+        device=device, dtype=torch.float32
     )
     atom_features = torch.stack(
         [record["atom_features"] for record in records]
-    ).to(device)
+    ).to(device=device, dtype=torch.float32)
     atom_anchors = torch.stack([record["atom_anchors"] for record in records]).to(
         device
     )
