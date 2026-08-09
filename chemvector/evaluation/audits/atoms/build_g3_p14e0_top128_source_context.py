@@ -34,6 +34,7 @@ SOURCE_CACHE_SHA256 = (
     "b84e200c81c02e5f93b4a8c0e51f9d1eae5decae9b71c70742338a4437ea38ee"
 )
 TOP_K = 128
+SET_TOKENS = TOP_K + 1
 BATCH_SIZE = 8
 EXPECTED_ROWS = 2_152
 EXPECTED_IMAGES = 236
@@ -43,21 +44,20 @@ MAXIMUM_ALIGNMENT_ERROR_PIXELS = 1e-3
 def source_context(
     anchors: torch.Tensor,
     scores: torch.Tensor,
-    source_ids: torch.Tensor,
-    base_source_id: int,
-) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, int]:
+    source_anchor: torch.Tensor,
+    source_score: torch.Tensor,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     if anchors.shape != (TOP_K, 2) or scores.shape != (TOP_K,):
         raise ValueError("P14-E0 requires a complete top128 candidate set")
-    if source_ids.shape != (TOP_K,) or source_ids.dtype != torch.long:
-        raise ValueError("P14-E0 top128 source IDs differ")
-    positions = torch.where(source_ids == int(base_source_id))[0]
-    if len(positions) != 1:
-        raise ValueError("P14-E0 base source is not unique in top128")
-    source_index = int(positions[0])
-    source = anchors[source_index]
-    mask = torch.zeros(TOP_K, dtype=torch.bool, device=anchors.device)
-    mask[source_index] = True
-    return anchors - source, scores, mask, source_index
+    if source_anchor.shape != (2,) or source_score.numel() != 1:
+        raise ValueError("P14-E0 explicit source token differs")
+    output_offsets = torch.cat(
+        (anchors - source_anchor, torch.zeros_like(source_anchor)[None]), dim=0
+    )
+    output_scores = torch.cat((scores, source_score.reshape(1)), dim=0)
+    source_mask = torch.zeros(SET_TOKENS, dtype=torch.bool, device=anchors.device)
+    source_mask[-1] = True
+    return output_offsets, output_scores, source_mask
 
 
 def main() -> None:
@@ -95,10 +95,10 @@ def main() -> None:
     device = torch.device("cuda")
     field, atom_head, vision, frozen_block, vision_sha = p4e6._load_model(device)
     collator = p11e0.p6e8.ResidualCycleCollator(maximum_atoms=128, image_size=768)
-    offsets = torch.empty(EXPECTED_ROWS, TOP_K, 2, dtype=torch.float16)
-    scores = torch.empty(EXPECTED_ROWS, TOP_K, dtype=torch.float16)
-    source_mask = torch.zeros(EXPECTED_ROWS, TOP_K, dtype=torch.bool)
-    source_rank = torch.empty(EXPECTED_ROWS, dtype=torch.long)
+    offsets = torch.empty(EXPECTED_ROWS, SET_TOKENS, 2, dtype=torch.float16)
+    scores = torch.empty(EXPECTED_ROWS, SET_TOKENS, dtype=torch.float16)
+    source_mask = torch.zeros(EXPECTED_ROWS, SET_TOKENS, dtype=torch.bool)
+    source_in_top128 = torch.zeros(EXPECTED_ROWS, dtype=torch.bool)
     seen = torch.zeros(EXPECTED_ROWS, dtype=torch.bool)
     maximum_error = 0.0
     started = time.perf_counter()
@@ -120,22 +120,27 @@ def main() -> None:
             )
             with _autocast_context(device, "bf16"):
                 field_output = field(objects, stroke)
-            peaks = p1n.extract_regional_maximum_objects(
-                decode_atom_center_field(field_output), maximum_objects=TOP_K
-            )
+            decoded = decode_atom_center_field(field_output)
+            peaks = p1n.extract_regional_maximum_objects(decoded, maximum_objects=TOP_K)
             for batch_index, key_value in enumerate(batch["keys"]):
                 key = str(key_value)
                 peak = peaks[batch_index]
                 anchors = peak["anchors"].float()
                 peak_scores = peak["scores"].float()
                 source_ids = peak["source_ids"].long()
+                dense_anchors = decoded["anchors"][batch_index].permute(1, 2, 0).reshape(-1, 2).float().cpu()
+                dense_scores = decoded["scores"][batch_index].reshape(-1).float().cpu()
                 expected = batch["atom_anchors"][batch_index].float().cpu()
                 for row in rows_by_key[key]:
-                    current_offsets, current_scores, current_mask, rank = source_context(
+                    base_source_id = int(source_cache["base_source_id"][row])
+                    if not 0 <= base_source_id < len(dense_scores):
+                        raise ValueError(f"P14-E0 source ID is outside dense field: {base_source_id}")
+                    source_anchor = dense_anchors[base_source_id]
+                    current_offsets, current_scores, current_mask = source_context(
                         anchors,
                         peak_scores,
-                        source_ids,
-                        int(source_cache["base_source_id"][row]),
+                        source_anchor,
+                        dense_scores[base_source_id],
                     )
                     target_index = int(source_cache["target_index"][row])
                     inferred_source = (
@@ -144,7 +149,7 @@ def main() -> None:
                     )
                     error = float(
                         torch.linalg.vector_norm(
-                            (anchors[rank] - inferred_source) * 768.0
+                            (source_anchor - inferred_source) * 768.0
                         )
                     )
                     maximum_error = max(maximum_error, error)
@@ -155,7 +160,7 @@ def main() -> None:
                     offsets[row] = current_offsets.half()
                     scores[row] = current_scores.half()
                     source_mask[row] = current_mask
-                    source_rank[row] = rank
+                    source_in_top128[row] = bool((source_ids == base_source_id).any())
                     seen[row] = True
 
     checks = {
@@ -163,9 +168,7 @@ def main() -> None:
         "images_236": len(rows_by_key) == EXPECTED_IMAGES,
         "all_rows_seen_once": bool(seen.all()),
         "one_source_token_per_row": bool((source_mask.sum(dim=1) == 1).all()),
-        "source_rank_matches_mask": bool(
-            source_mask[torch.arange(EXPECTED_ROWS), source_rank].all()
-        ),
+        "explicit_source_is_last_token": bool(source_mask[:, -1].all()),
         "alignment_error_max_le1e3px": maximum_error
         <= MAXIMUM_ALIGNMENT_ERROR_PIXELS,
     }
@@ -180,7 +183,7 @@ def main() -> None:
         "set_offsets": offsets,
         "set_scores": scores,
         "set_source_mask": source_mask,
-        "set_source_rank": source_rank,
+        "source_in_top128": source_in_top128,
     }
     OUTPUT.mkdir(parents=True)
     _atomic_torch_save(CACHE, payload)
@@ -193,6 +196,8 @@ def main() -> None:
         "rows": EXPECTED_ROWS,
         "images": EXPECTED_IMAGES,
         "maximum_alignment_error_pixels": maximum_error,
+        "source_in_replayed_top128": int(source_in_top128.sum()),
+        "source_outside_replayed_top128": int((~source_in_top128).sum()),
         "elapsed_seconds": time.perf_counter() - started,
         "manifest": manifest_audit,
         "holdout_read": False,
