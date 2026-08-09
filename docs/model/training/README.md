@@ -1,5 +1,9 @@
 # ChemVector 训练档案
 
+当前已预注册：[G3 P18-E0B Bond Endpoint Residual Capacity64](20260810-g3-p18e0b-bond-endpoint-residual-capacity64.md)：
+从 train-only pilot 固定选 32 easy + 32 个 24px 可达 hard，只训练 44k 参数以内的 proposal 级
+endpoint residual；候选身份、score、type、mask 与冻结视觉源全部不变，先验证 56/64 容量门。
+
 当前已完成：[G3 P18-E0A Stress Bond 候选上限拆解](20260810-g3-p18e0a-stress-bond-ceiling.md)：
 top192→512 的 stress Bond exact 均为 35.63%，排除排名截断；top512 在 16/24px 升至
 46.25%/64.38%，判定为端点定位误差。`crossed_bonds` 在 24px 仍仅 14.63%，下一步只做冻结
