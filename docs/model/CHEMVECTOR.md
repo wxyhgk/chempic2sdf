@@ -200,6 +200,11 @@ variant仍有508条，全部容量门GO。现有数据足以做约500→1,300 ha
 得到6,552 hard与27,504 easy，覆盖4,091分子、3,889 scaffold；三个split为5,171/643/738且
 scaffold零重叠。train-only margin选择cap 2.0，全部数据门GO，允许进入三臂结构residual训练。
 
+[P6-E9 Structural Residual Arms](training/20260809-g3-p6e9-structural-residual-arms.md)完成：global/
+local17/multiscale在calibration hard恢复53.81%/50.70%/52.41%，但对easy产生38/61/58个harmful，
+三臂均未满足零harmful门，正式NO-GO。holdout保持000且未读，后续trigger、dev、confirm、整图和
+外部benchmark按协议未启动；瓶颈已收缩为安全改写prior的证书，而不是候选生成或定位容量。
+
 ## 当前版本
 
 - 当前完成的研究 tag：`v0.10.21`。

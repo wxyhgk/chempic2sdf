@@ -26,9 +26,10 @@
 
 ## 训练时间线
 
-当前预注册训练：[G3 P6-E9 Structural Residual Arms](20260809-g3-p6e9-structural-residual-arms.md)：
-固定prior与cap2.0，比较global/local17/multiscale三个零初始化residual；5,171 hard+等量分桶easy，
-每hard 192次曝光。只用calibration按easy零harmful、hard恢复率/MAE/参数量选择唯一winner。
+当前已完成训练：[G3 P6-E9 Structural Residual Arms](20260809-g3-p6e9-structural-residual-arms.md)：
+global/local17/multiscale在calibration hard恢复53.81%/50.70%/52.41%，但分别产生38/61/58个
+easy harmful，没有合法winner，正式NO-GO。holdout仍为000；长周期按门停止，不进入trigger、
+dev、confirm、整图或外部benchmark。下一问题收缩为“何时安全推翻prior”的证书，而非定位容量。
 
 当前已完成审计：[G3 P6-E8 Residual Cycle Data](20260809-g3-p6e8-residual-cycle-data.md)：得到
 6,552 hard/27,504 easy，覆盖4,091分子、3,889 scaffold；train/calibration/holdout为
