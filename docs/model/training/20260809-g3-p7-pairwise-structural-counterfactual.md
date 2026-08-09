@@ -2,7 +2,7 @@
 
 > 日期：2026-08-09
 >
-> 状态：已预注册，P7-E0 数据门通过，尚未训练
+> 状态：calibration GO，holdout 已预注册、尚未读取
 
 P6-E9 的三个视觉 residual 臂可以恢复约一半 hard target，但都会伤害 easy；P6-E10 三臂共识和
 P6-E11 26维安全 MLP 虽能达到零 harmful，却分别只有46和69次 rescue。下一阶段不再增加汇总
@@ -51,6 +51,19 @@ utility_delta = U(alternative | prior) - U(prior | alternative)
 
 只有calibration GO才允许实现并单次运行holdout阶段；MR-TADF、USPTO、confirm_v2和整图SDF当前
 全部禁止读取。
+
+## Calibration结果与holdout预注册
+
+- 256-pair容量：254/256，99.21875%，GO；
+- `patch-only`：28,717参数，OOF准确率76.78%至81.53%；
+- `patch-only` calibration：阈值1.6568973064422607，147执行、110 rescue、0 harmful；
+- `patch-band`：46,345参数，OOF准确率80.39%至82.61%；
+- `patch-band` calibration：58执行、43 rescue、0 harmful；
+- winner固定为`patch-only`，checkpoint SHA256为
+  `a5fb6356a442957f67177288512c1af3f5560b6e00a5d80625fa46ca65956687`。
+
+holdout固定为738 hard与2,776 easy。脚本只允许读取一次且只保存聚合结果，固定使用上述winner与
+阈值；`harmful=0`且`rescues>=100`才GO。读取过程用`finally`恢复两个cache为`000`。
 
 ## 入口
 
