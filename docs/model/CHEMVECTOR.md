@@ -205,6 +205,10 @@ local17/multiscale在calibration hard恢复53.81%/50.70%/52.41%，但对easy产�
 三臂均未满足零harmful门，正式NO-GO。holdout保持000且未读，后续trigger、dev、confirm、整图和
 外部benchmark按协议未启动；瓶颈已收缩为安全改写prior的证书，而不是候选生成或定位容量。
 
+[P6-E10 Consensus Certificate](training/20260809-g3-p6e10-consensus-certificate.md)完成：三臂一致
+改选255项，零harmful阈值2.9200执行48次并救回46项，但未达预注册100 rescue门，正式NO-GO。
+holdout继续保持000；若扩展覆盖，只允许从train训练独立OOF safety模型，不能复用calibration搜规则。
+
 ## 当前版本
 
 - 当前完成的研究 tag：`v0.10.21`。
