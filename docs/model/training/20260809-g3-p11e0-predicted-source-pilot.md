@@ -2,7 +2,7 @@
 
 > 日期：2026-08-09
 >
-> 状态：已预注册，尚未运行
+> 状态：已完成，GO
 
 P10证明合成source路线不能接入整图：真实top128大多已经正确，而P6--P9默认source偏离GT并必须
 移动。P11改用冻结P4-E3真实预测source，并将原位置零偏移作为显式KEEP候选。
@@ -19,3 +19,15 @@ MOVE source生成P6-E1 top8候选；同图中已经6px匹配GT的source按哈希
 浮点排序，过滤到236图会改变batch组成和极邻近峰顺序。MOVE协议因此直接使用动作文件已冻结保存
 的`base_anchor/target_anchor/base_source_id`，不从新排序反推；KEEP仍由当前冻结top128与GT匹配
 得到。该修复发生在任何cache和容量结果产生前。
+
+## 结果
+
+- MOVE source：264，P6 top8可达224（84.85%）；
+- KEEP source：1,888；
+- KEEP harmful alternative：4,930；
+- MOVE覆盖coordgen/original/rdkit/stress为23/27/26/188；
+- cache SHA256：`b84e200c81c02e5f93b4a8c0e51f9d1eae5decae9b71c70742338a4437ea38ee`；
+- 全部数据门通过，历史holdout、confirm和外部集未读。
+
+该结果证明P6 top8对真实漏点仍有足够候选能力，但只能作为可选MOVE；显式KEEP有充足真实负例，
+允许进入P11-E1小规模训练。
