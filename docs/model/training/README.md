@@ -26,6 +26,10 @@
 
 ## 训练时间线
 
+当前预注册审计：[G3 P6-E8 Residual Cycle Data](20260809-g3-p6e8-residual-cycle-data.md)：扫描
+58,376张已隔离训练图，同一次BF16重放保存hard/easy 96px候选cache，按scaffold 80/10/10切分，
+并仅用train margin从1/2/4/8选择覆盖95%的最小residual cap；容量门为4k hard/2k分子/1.5k scaffold。
+
 当前已完成训练：[G3 P6-E7 Peak-Blind Hard Scale](20260808-g3-p6e7-peak-blind-hard-scale.md)：
 500→1,339使hard fit 85.80%→90.29%、calibration 19.35%→29.03%，但holdout仅
 25.37%→26.87%，且远低于第一峰56.72%，正式NO-GO。下一模型保留冻结峰prior，只学习
