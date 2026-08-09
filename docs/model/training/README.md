@@ -26,9 +26,10 @@
 
 ## 训练时间线
 
-当前已预注册：[G3 P11-E3 Predicted Source KEEP/MOVE Full](20260809-g3-p11e3-predicted-source-keep-move-full.md)：
-full80k train严格得到1,464 rescue/1,464 harmful和2,048 equivalent，显式KEEP协议不变训练8,000步；
-calibration至少40 rescue/0 harmful才允许单次解封P11-E2 holdout。
+当前已完成：[G3 P11-E3 Predicted Source KEEP/MOVE Full](20260809-g3-p11e3-predicted-source-keep-move-full.md)：
+1,464:1,464训练后calibration仍只有零执行安全阈值；阈值0为31 rescue/142 harmful，正式NO-GO。
+扩量5.28倍未解决，数据量假设否决。center-field精确点差的pair AUC为0.8113，下一模型显式接入
+source/alternative score及差值，不重扫数据或读取holdout。
 
 当前已完成：[G3 P11-E2 Predicted Source Full80k](20260809-g3-p11e2-predicted-source-full80k.md)：
 80k扫描得到1,495 MOVE、1,216可达；train/calibration/holdout MOVE为1,188/149/158，KEEP为
