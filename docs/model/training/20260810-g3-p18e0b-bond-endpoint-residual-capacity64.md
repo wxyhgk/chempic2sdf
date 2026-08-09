@@ -2,7 +2,7 @@
 
 > 日期：2026-08-10
 >
-> 状态：已预注册，等待训练
+> 状态：已完成，容量 GO
 >
 > 模型：`chemvector-g3-p18e0b-bond-endpoint-residual-capacity64`
 
@@ -35,3 +35,31 @@ P18-E0A 已排除 top192 排名截断，并确认多数 stress Bond 位于 12--2
 
 无论 GO/NO-GO 都保存 checkpoint、提交结果，并创建与模型名完全一致的 annotated Git tag。
 容量 NO-GO 时禁止直接扩量；下一步只能增加候选端点附近的局部像素证据。
+
+## 实际结果
+
+train-only pilot 共扫描 344 张 stress 图后确定性得到 32 easy + 32 hard。hard 分桶为
+`crossed_bonds=8`、`crowded_subgraph=9`、`near_nonbonded=9`、`long_bond=6`；64 张全部通过
+top192/24px Oracle，冻结 source state 不变。
+
+| 指标 | Step 0 | Best step 2500 |
+|---|---:|---:|
+| 总体 Bond exact | 32/64 | **62/64** |
+| Easy exact | 32/32 | **32/32** |
+| Hard exact | 0/32 | **30/32** |
+| Hard Bond recall | 94.57% | **99.81%** |
+| Crossed hard exact | 0/8 | **8/8** |
+
+全部容量门通过，判定 `endpoint_residual_capacity64_go`。模型只有 35,742 参数，训练与 cache
+构建总耗时 12.96 秒；step 3000 与 step 2500 同为 62/64，因此按预注册字典序保留更早的
+step 2500。
+
+产物：
+
+- best：`outputs/checkpoints/chemvector-g3-p18e0b-bond-endpoint-residual-capacity64/best.pt`；
+- best SHA256：`a2e2164e1f7de83dc891a8369b92bcd43657be73b995b54f85b79824459f0357`；
+- capacity cache SHA256：`87dd385720d8757b9047763fb62d4fb88bba13d691b52a1ff57662acad3ae77e`；
+- capacity sample key SHA256：`b131f93d760f659a6d3025f5c524199ce23b7db8a3fa61f2040482b5ebf33229`。
+
+本轮只证明 feature-only endpoint residual 的容量，不允许据此扩量。下一步固定 best step 2500，
+在 fresh640 上做零训练泛化评测；失败时再增加端点局部像素证据。

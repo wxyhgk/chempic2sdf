@@ -57,5 +57,5 @@ def test_loss_trains_positive_and_preserves_negative():
         output, endpoints, targets, supervision, mask
     )
     losses["loss"].backward()
-    assert float(losses["endpoint_loss"]) > 0
+    assert float(losses["endpoint_loss"].detach()) > 0
     assert head.network[-1].weight.grad is not None
