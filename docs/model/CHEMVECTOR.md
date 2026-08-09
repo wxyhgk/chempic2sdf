@@ -209,6 +209,11 @@ local17/multiscale在calibration hard恢复53.81%/50.70%/52.41%，但对easy产�
 改选255项，零harmful阈值2.9200执行48次并救回46项，但未达预注册100 rescue门，正式NO-GO。
 holdout继续保持000；若扩展覆盖，只允许从train训练独立OOF safety模型，不能复用calibration搜规则。
 
+[P6-E11 OOF Residual Safety](training/20260809-g3-p6e11-oof-residual-safety.md)完成：26维连续特征的
+1,409参数五折模型在calibration零harmful下执行366次、rescue69、useless297，仍未达100门，
+正式NO-GO且holdout未读。汇总margin/entropy/agreement不足以证明动作有用；下一表示必须直接比较
+source、prior候选和替代候选的成对结构反事实。
+
 ## 当前版本
 
 - 当前完成的研究 tag：`v0.10.21`。
