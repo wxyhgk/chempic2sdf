@@ -127,7 +127,10 @@ def sample_relation_bands(
 
     if values.ndim != 4 or values.size(1) != 2:
         raise ValueError("band source must have shape [B,2,H,W]")
-    if source_offsets.shape != candidate_offsets.shape != (len(values), 2):
+    if (
+        source_offsets.shape != (len(values), 2)
+        or candidate_offsets.shape != (len(values), 2)
+    ):
         raise ValueError("band offsets must have shape [B,2]")
     begin = _to_grid(source_offsets)
     end = _to_grid(candidate_offsets)

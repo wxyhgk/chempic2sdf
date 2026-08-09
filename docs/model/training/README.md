@@ -26,10 +26,10 @@
 
 ## 训练时间线
 
-当前已预注册：[G3 P7 Pairwise Structural Counterfactual](20260809-g3-p7-pairwise-structural-counterfactual.md)：
-P7-E0已从既有隔离缓存得到train 7,376 rescue/136,562 harmful pair与calibration 921/17,416，
-scaffold重叠0且holdout保持000。下一步先过256-pair 99%容量门，再固定运行patch-only与patch-band
-两个五折OOF臂；calibration必须至少100 rescue且零harmful才允许读取holdout。
+当前已完成：[G3 P7 Pairwise Structural Counterfactual](20260809-g3-p7-pairwise-structural-counterfactual.md)：
+256-pair容量99.22%并完成两个五折OOF臂。28,717参数patch-only在calibration为110 rescue/0 harmful，
+正式GO；固定阈值holdout为151 rescue/1 harmful，严格NO-GO，cache已恢复000。P7停止，不进入整图、
+confirm_v2或外部benchmark；该结果证明pairwise视觉机制有强泛化信号，但当前安全证书仍差1个错误。
 
 当前已完成训练：[G3 P6-E11 OOF Residual Safety](20260809-g3-p6e11-oof-residual-safety.md)：1,409
 参数五折OOF模型在calibration零harmful阈值下执行366次、rescue69、useless297，未达100门，

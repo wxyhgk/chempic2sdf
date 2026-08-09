@@ -67,6 +67,10 @@ def test_pairwise_visual_samplers_have_fixed_shapes() -> None:
     )
     assert patches.shape == (2, 2, 25, 25)
     assert bands.shape == (2, 2, 17, 48)
+    with pytest.raises(ValueError, match="band offsets"):
+        sample_relation_bands(
+            values, source[:1], prior, width=17, samples=48
+        )
 
 
 def test_pairwise_rejects_invalid_inputs() -> None:
