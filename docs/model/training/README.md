@@ -26,10 +26,10 @@
 
 ## 训练时间线
 
-当前已预注册：[G3 P10 Pairwise Dev Shadow](20260809-g3-p10-pairwise-dev-shadow.md)：冻结P9全量
-阈值，在与P6/P7 scaffold零重叠的640图dev上比较P6第一峰与P9改选后的整图top128 coverage。
-只有matched/exact均净增益且paired exact rescue>break才允许设计新的独立confirm；不读取现有
-confirm或外部集，也不切换前端。
+当前已完成：[G3 P10 Pairwise Dev Shadow](20260809-g3-p10-pairwise-dev-shadow.md)：scaffold零重叠
+640图上，原始top128为32,193/32,400 matched、550 exact；无条件P6第一峰暴跌到27,046和45，
+P9再到27,010和44，正式NO-GO。根因是合成source默认离GT 6--12px，而真实top128通常已正确。
+下一协议必须将原source作为显式KEEP候选，并用真实预测source训练KEEP vs MOVE。
 
 当前已完成：[G3 P9 Stratified Pairwise Anchor](20260809-g3-p9-stratified-pairwise-anchor.md)：严格
 4,960:4,960分层训练消除了原TEXT锚点harmful；全calibration为108 rescue/0 harmful，但五折因
