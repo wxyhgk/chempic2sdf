@@ -57,12 +57,10 @@ from chemvector.training.atoms.train_spatial_atom_object import load_grounded_vi
 from chemvector.training.graph.proposals.train_proposal_object_set import (
     evaluate as evaluate_proposal_object_set,
 )
-from chemvector.components.graph.joint.atom_bond_scene import AtomBondSceneConfig
 from chemvector.training.graph.scenes.g3_structural_data import (
     G3SampleManifestRecord,
     G3StructuralCollator,
 )
-from chemvector.training.graph.scenes.train_atom_bond_scene import AtomBondSceneCollator
 from chemvector.training.graph.scenes.train_g3_hierarchical_graph import (
     _atomic_json,
     _atomic_torch_save,
@@ -497,17 +495,51 @@ def _load_baseline(device: torch.device):
     return vision, atom, bond, set_head, PredictedProposalConfig(**payload["proposal_config"])
 
 
+class _BaselineStructuralCollator:
+    """Provide v0.9.71 targets without invoking an unrelated ChemSVG compiler."""
+
+    def __init__(self) -> None:
+        self.structural = G3StructuralCollator(
+            maximum_atoms=ATOM_CAPACITY,
+            maximum_bonds=BOND_CAPACITY,
+            image_size=768,
+        )
+
+    def __call__(self, samples: list[dict]) -> dict:
+        batch = self.structural(samples)
+        size = len(samples)
+        atom_anchors = batch["atom_anchors"]
+        bond_refs = batch["bond_atom_refs"]
+        indices = torch.arange(size)[:, None, None]
+        return {
+            "pixel_values": batch["pixel_values"],
+            "atom_anchors": atom_anchors,
+            "atom_roles": torch.zeros_like(batch["atom_mask"], dtype=torch.long),
+            "atom_text_center": torch.zeros(size, ATOM_CAPACITY, 2),
+            "atom_text_bbox": torch.zeros(size, ATOM_CAPACITY, 4),
+            "atom_text_mask": torch.zeros_like(batch["atom_mask"]),
+            "atom_mask": batch["atom_mask"],
+            "bond_ports": atom_anchors[indices, bond_refs],
+            "bond_display": batch["bond_display"],
+            "bond_chemical": batch["bond_types"],
+            "bond_direction": torch.zeros_like(batch["bond_types"]),
+            "bond_atom_refs": bond_refs,
+            "bond_mask": batch["bond_mask"],
+            "keys": [str(sample["key"]) for sample in samples],
+            "scenes": [],
+        }
+
+
 @torch.inference_mode()
 def evaluate_baseline(samples: list[dict], device: torch.device) -> dict:
     vision, atom, bond, set_head, proposal = _load_baseline(device)
-    config = AtomBondSceneConfig(atom_queries=ATOM_CAPACITY, bond_queries=BOND_CAPACITY)
     metrics = evaluate_proposal_object_set(
         vision,
         atom,
         bond,
         set_head,
         samples,
-        AtomBondSceneCollator(config),
+        _BaselineStructuralCollator(),
         proposal,
         device,
         BATCH_SIZE,

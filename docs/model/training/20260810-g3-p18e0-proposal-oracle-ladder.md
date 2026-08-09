@@ -25,6 +25,7 @@ P4-E3 Atom top128 与 v0.10.1 Bond top192 在同一未训练域中是否具有�
 - Atom：P4-E3 `step-005000.pt`，top128、6px；
 - Bond：v0.10.1 `selected.pt`，top192、无序端点 12px；
 - baseline：v0.9.71 `samples-030000.pt` 在同一 fresh640 上重放；
+- baseline 使用 G3 结构 tensor 直接构造 target，不调用会拒绝重合坐标的旧 ChemSVG compiler；
 - 候选源分别运行自己的冻结 vision，不共享中间特征；
 - source forward 完成后才读取 GT，禁止 GT count、Bond refs 或 render layer 进入模型；
 - 完整候选提取重复两次，tensor digest 必须一致；
