@@ -6,6 +6,12 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
 本页只维护当前状态、架构说明和训练档案索引。每次训练的完整命令、指标、失败
 配置和结论统一放在 [`training/`](training/README.md) 中，不再追加到本页。
 
+2026-08-10 的 P19-E1 从随机初始化训练 2,265,537 参数 Direct AtomPair presence 路径，
+在 train-only capacity64 的 step 2,000 达到 64/64：easy 32/32、crossed 16/16、
+near-nonbonded 16/16，1,921 条真键 0 FP/0 FN。所有容量门通过，但这不是泛化证据；下一步
+只能固定该 checkpoint 与 threshold 0.5 重放 fresh640，不得在 fresh 上选 step 或调阈值。
+详见 [P19-E1](training/20260810-g3-p19e1-direct-atom-pair-capacity64.md)。
+
 2026-08-10 的 P19-E0 已切换到稳定的无序 AtomPair identity，完全绕过 Dense Bond endpoint
 与 incidence。旧 v0.10.3 在 GT Atom fresh640 得到 skeleton 469/640（73.28%）、Edge F1
 98.60%；普通布局为 83%--86%，但 stress 仅 40%，crossed_bonds 为 0/41，因此旧权重直接
