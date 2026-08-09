@@ -53,8 +53,12 @@ def _distance_band(pixels: float) -> int:
     return 0 if pixels < 8.0 else 1 if pixels < 16.0 else 2
 
 
-def build_pair_table(cache: dict, split: str) -> dict:
-    rows = [index for index, scaffold in enumerate(cache["scaffold"]) if scaffold_split(str(scaffold)) == split]
+def build_pair_table(cache: dict, split: str | None) -> dict:
+    rows = [
+        index
+        for index, scaffold in enumerate(cache["scaffold"])
+        if split is None or scaffold_split(str(scaffold)) == split
+    ]
     output: dict[str, list] = defaultdict(list)
     offsets = cache["candidate_offsets"].float()
     targets = cache["offset_targets"].float()
@@ -94,7 +98,9 @@ def build_pair_table(cache: dict, split: str) -> dict:
     }
 
 
-def select_stratified_pools(table: dict) -> tuple[dict[str, torch.Tensor], dict]:
+def select_stratified_pools(
+    table: dict, *, equivalent_pool: int = EQUIVALENT_POOL
+) -> tuple[dict[str, torch.Tensor], dict]:
     rescue: dict[tuple, list[int]] = defaultdict(list)
     harmful: dict[tuple, list[int]] = defaultdict(list)
     equivalent = []
@@ -119,7 +125,7 @@ def select_stratified_pools(table: dict) -> tuple[dict[str, torch.Tensor], dict]
     pools = {
         "rescue": torch.tensor(selected_rescue, dtype=torch.long),
         "harmful": torch.tensor(selected_harmful, dtype=torch.long),
-        "equivalent": torch.tensor(equivalent[:EQUIVALENT_POOL], dtype=torch.long),
+        "equivalent": torch.tensor(equivalent[:equivalent_pool], dtype=torch.long),
     }
     return pools, {"strata": strata, **{name: len(value) for name, value in pools.items()}}
 
