@@ -1,8 +1,10 @@
 # ChemVector 训练档案
 
-当前已预注册：[G3 P19-E0 Direct AtomPair Oracle Ladder](20260810-g3-p19e0-direct-atom-pair-oracle-ladder.md)：
-固定 fresh640 和 v0.10.3 threshold 0.85，在 GT Atom/P4 Oracle Atom 两条路线枚举全部无序
-AtomPair，完全绕过 Dense Bond endpoint 与 incidence；先判断旧 Direct AtomPair 权重能否复用。
+当前已完成：[G3 P19-E0 Direct AtomPair Oracle Ladder](20260810-g3-p19e0-direct-atom-pair-oracle-ladder.md)：
+GT Atom 下 skeleton exact 为 469/640（73.28%）、Edge F1 为 98.60%，普通布局达到
+83%--86%，但 stress 仅 64/160（40%），其中 crossed_bonds 为 0/41，旧 v0.10.3 权重复用
+正式 NO-GO。AtomPair identity 仍明显优于 Dense Bond endpoint；下一步从新初始化 relation
+头做 32 easy + 32 hard 的 capacity64，不使用 endpoint、incidence 或距离裁剪。
 
 当前已完成：[G3 P18-E0C Endpoint Residual Fresh640](20260810-g3-p18e0c-endpoint-residual-fresh640.md)：
 feature-only residual 将 overall 从 499/640 降至 492/640，stress 仅 57→58，crossed 仍为
