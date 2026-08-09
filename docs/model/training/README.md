@@ -26,6 +26,11 @@
 
 ## 训练时间线
 
+当前已预注册：[G3 P9 Stratified Pairwise Anchor](20260809-g3-p9-stratified-pairwise-anchor.md)：
+唯一交叉证书harmful是TEXT连接锚点与字形中心混淆；对应train层实际为83 rescue/22 harmful，暴露
+P7未执行分层匹配的协议错误。P9固定改为role/style/degree/distance逐层1:1的4,960:4,960 pair，
+模型和损失不变，用五折证书验证该因果修复。
+
 当前已完成：[G3 P8 Pairwise Consensus](20260809-g3-p8-pairwise-consensus.md)：两个新seed与P7 winner
 组成三成员一致性。全calibration为103 rescue/0 harmful，但五折certificate仍为102/1，严格
 NO-GO；历史P7 holdout保持000且未读。多seed没有消除唯一错误，下一步只诊断calibration fold 1
