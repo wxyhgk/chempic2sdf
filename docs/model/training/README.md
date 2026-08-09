@@ -26,9 +26,10 @@
 
 ## 训练时间线
 
-当前进行中：[G3 P17 Groupwise Linear KEEP/MOVE](20260809-g3-p17-groupwise-linear-keep-move.md)：
-保持P16同一7维输入和8参数模型，改为按完整source top8最大值训练；直接惩罚KEEP/unsupported组
-最高假动作，calibration仍要求至少20 rescue/0 harmful。
+当前已完成：[G3 P17 Groupwise Linear KEEP/MOVE](20260809-g3-p17-groupwise-linear-keep-move.md)：
+按完整source top8最大值训练后train组准确率95.19%，但所有train/calibration最高logit均为负，
+calibration仍0执行，正式NO-GO。P13--P17局部修正链停止，下一路线转为Atom、Bond与incidence
+联合训练的整图选择。
 
 当前已完成：[G3 P16 Explicit Linear KEEP/MOVE](20260809-g3-p16-explicit-linear-keep-move.md)：
 8参数模型7步Newton收敛且训练准确率78.65%，但calibration安全阈值仍只能0执行；阈值0为
