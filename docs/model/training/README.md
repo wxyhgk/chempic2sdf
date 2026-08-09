@@ -1,8 +1,9 @@
 # ChemVector 训练档案
 
-当前已预注册：[G3 P18-E0A Stress Bond 候选上限拆解](20260810-g3-p18e0a-stress-bond-ceiling.md)：
-针对 P18-E0 的 stress Bond 35.63% exact，固定同一 Bond head 比较 top192/512 与 12/16/24px，
-区分候选排名截断、端点定位误差和 dense 对象未生成；本轮不训练任何模型。
+当前已完成：[G3 P18-E0A Stress Bond 候选上限拆解](20260810-g3-p18e0a-stress-bond-ceiling.md)：
+top192→512 的 stress Bond exact 均为 35.63%，排除排名截断；top512 在 16/24px 升至
+46.25%/64.38%，判定为端点定位误差。`crossed_bonds` 在 24px 仍仅 14.63%，下一步只做冻结
+候选的 proposal 级 endpoint residual capacity64，不扩大 top-k 或训练 joint。
 
 当前已完成：[G3 P18-E0 冻结候选联合 Oracle Ladder](20260810-g3-p18e0-proposal-oracle-ladder.md)：
 fresh640 整体联合 skeleton Oracle 为 76.88%，但 stress 仅 34.38%，未过 60% 分桶门，正式
