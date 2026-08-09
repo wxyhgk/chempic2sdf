@@ -26,6 +26,10 @@
 
 ## 训练时间线
 
+当前进行中：[G3 P13 Local Peak Set KEEP/MOVE](20260809-g3-p13-local-peak-set-keep-move.md)：
+固定P12数据、损失和8,000步，新增top-16区域峰的候选条件DeepSets上下文；calibration至少
+40 rescue/0 harmful才可读取holdout，否则停止单source局部修正路线。
+
 当前已完成：[G3 P12 Explicit Score KEEP/MOVE](20260809-g3-p12-explicit-score-keep-move.md)：显式
 source/alternative center-field点值后仍只有零执行安全阈值，正式NO-GO，holdout未读。局部pair
 信息不足，停止增加patch/标量/step；下一机制必须读取真实top128集合邻域、source score/rank和

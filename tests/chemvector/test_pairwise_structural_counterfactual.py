@@ -8,6 +8,8 @@ from chemvector.components.recovery.pairwise_structural_counterfactual import (
     PAIRWISE_ARMS,
     PairwiseStructuralCounterfactual,
     PairwiseStructuralCounterfactualConfig,
+    extract_local_peak_tokens,
+    masked_deepset_pool,
     pairwise_counterfactual_loss,
     sample_centered_patches,
     sample_relation_bands,
@@ -52,6 +54,55 @@ def test_pairwise_explicit_score_evidence_remains_antisymmetric() -> None:
     reverse = model(image, score, source, alternative, prior, mask)
     torch.testing.assert_close(forward, -reverse, atol=1e-6, rtol=1e-6)
     assert model.config_dict()["explicit_score_evidence"] is True
+
+
+def test_local_peak_tokens_have_fixed_shape_and_rank() -> None:
+    image, score, source, _, alternative, _ = _inputs(batch=2)
+    tokens, mask = extract_local_peak_tokens(
+        image,
+        score,
+        source,
+        alternative,
+        peak_count=16,
+        pooling_kernel=5,
+    )
+    assert tokens.shape == (2, 16, 9)
+    assert mask.shape == (2, 16)
+    assert mask.all()
+    torch.testing.assert_close(tokens[:, 0, -1], torch.zeros(2))
+    torch.testing.assert_close(tokens[:, -1, -1], torch.ones(2))
+
+
+def test_local_peak_pool_is_permutation_invariant_and_masks_padding() -> None:
+    torch.manual_seed(11)
+    encoded = torch.randn(3, 16, 32)
+    mask = torch.ones(3, 16, dtype=torch.bool)
+    mask[:, -3:] = False
+    baseline = masked_deepset_pool(encoded, mask)
+    encoded[:, -3:] = 1e6
+    torch.testing.assert_close(masked_deepset_pool(encoded, mask), baseline)
+    order = torch.randperm(16)
+    torch.testing.assert_close(
+        masked_deepset_pool(encoded[:, order], mask[:, order]), baseline
+    )
+
+
+def test_local_peak_set_model_remains_exactly_antisymmetric() -> None:
+    model = PairwiseStructuralCounterfactual(
+        PairwiseStructuralCounterfactualConfig(
+            arm="patch-only",
+            explicit_score_evidence=True,
+            local_peak_set_evidence=True,
+        )
+    )
+    with torch.no_grad():
+        model.utility[-1].weight.normal_()
+    image, score, source, prior, alternative, mask = _inputs()
+    forward = model(image, score, source, prior, alternative, mask)
+    reverse = model(image, score, source, alternative, prior, mask)
+    torch.testing.assert_close(forward, -reverse, atol=1e-6, rtol=1e-6)
+    assert model.config_dict()["local_peak_set_evidence"] is True
+    assert model.parameter_count < 300_000
 
 
 def test_pairwise_mask_and_gradient() -> None:

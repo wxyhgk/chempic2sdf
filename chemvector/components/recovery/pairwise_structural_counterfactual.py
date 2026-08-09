@@ -11,6 +11,7 @@ from torch.nn import functional as F
 
 IMAGE_SIZE = 768.0
 CONTEXT_SIZE = 96
+LOCAL_PEAK_TOKEN_DIM = 9
 PAIRWISE_ARMS = ("patch-only", "patch-band")
 PAIR_RESCUE = 1
 PAIR_HARMFUL = 0
@@ -25,6 +26,9 @@ class PairwiseStructuralCounterfactualConfig:
     band_samples: int = 48
     residual_cap: float = 2.0
     explicit_score_evidence: bool = False
+    local_peak_set_evidence: bool = False
+    local_peak_count: int = 16
+    local_peak_kernel: int = 5
 
     def __post_init__(self) -> None:
         if self.arm not in PAIRWISE_ARMS:
@@ -35,6 +39,10 @@ class PairwiseStructuralCounterfactualConfig:
             raise ValueError("band dimensions must be at least 3")
         if self.residual_cap <= 0:
             raise ValueError("residual_cap must be positive")
+        if self.local_peak_count < 1 or self.local_peak_count > CONTEXT_SIZE**2:
+            raise ValueError("local_peak_count must fit inside the context crop")
+        if self.local_peak_kernel < 3 or self.local_peak_kernel % 2 == 0:
+            raise ValueError("local_peak_kernel must be an odd integer of at least 3")
 
 
 def _validate_inputs(
@@ -160,6 +168,101 @@ def sample_relation_bands(
     )
 
 
+def extract_local_peak_tokens(
+    image_crops: torch.Tensor,
+    score_crops: torch.Tensor,
+    source_offsets: torch.Tensor,
+    candidate_offsets: torch.Tensor,
+    *,
+    peak_count: int,
+    pooling_kernel: int,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Extract a fixed-size set of regional center-field maxima."""
+
+    if image_crops.ndim != 4 or image_crops.shape[1:] != (
+        1,
+        CONTEXT_SIZE,
+        CONTEXT_SIZE,
+    ):
+        raise ValueError("image_crops must have shape [B,1,96,96]")
+    if score_crops.shape != image_crops.shape:
+        raise ValueError("score_crops must match image_crops")
+    batch = len(image_crops)
+    if source_offsets.shape != (batch, 2) or candidate_offsets.shape != (batch, 2):
+        raise ValueError("peak offsets must have shape [B,2]")
+    if peak_count < 1 or peak_count > CONTEXT_SIZE**2:
+        raise ValueError("peak_count must fit inside the context crop")
+    if pooling_kernel < 3 or pooling_kernel % 2 == 0:
+        raise ValueError("pooling_kernel must be an odd integer of at least 3")
+
+    score = score_crops[:, 0].float()
+    # The deterministic sub-ULP ramp makes flat plateaus choose one stable pixel.
+    flat_rank = torch.arange(
+        CONTEXT_SIZE**2, device=score.device, dtype=torch.float32
+    ).reshape(1, CONTEXT_SIZE, CONTEXT_SIZE)
+    priority = score + flat_rank * torch.finfo(torch.float32).eps
+    maxima = priority == F.max_pool2d(
+        priority[:, None],
+        pooling_kernel,
+        stride=1,
+        padding=pooling_kernel // 2,
+    )[:, 0]
+    ranked = priority.masked_fill(~maxima, -torch.inf).flatten(1)
+    _, flat_ids = ranked.topk(peak_count, dim=1, largest=True, sorted=True)
+    flat_score = score.flatten(1)
+    peak_score = flat_score.gather(1, flat_ids)
+    peak_ink = image_crops[:, 0].float().flatten(1).gather(1, flat_ids)
+    peak_mask = torch.isfinite(peak_score)
+
+    peak_x = (flat_ids.remainder(CONTEXT_SIZE).float() + 0.5) - CONTEXT_SIZE * 0.5
+    peak_y = (flat_ids.div(CONTEXT_SIZE, rounding_mode="floor").float() + 0.5) - CONTEXT_SIZE * 0.5
+    peak_offsets = torch.stack((peak_x, peak_y), dim=-1) / IMAGE_SIZE
+    relative_source = (
+        (peak_offsets - source_offsets[:, None].float()) * IMAGE_SIZE / CONTEXT_SIZE
+    )
+    relative_candidate = (
+        (peak_offsets - candidate_offsets[:, None].float()) * IMAGE_SIZE
+        / CONTEXT_SIZE
+    )
+    distance_source = torch.linalg.vector_norm(relative_source, dim=-1)
+    distance_candidate = torch.linalg.vector_norm(relative_candidate, dim=-1)
+    rank = torch.arange(peak_count, device=score.device, dtype=torch.float32)
+    rank = rank[None].expand(batch, -1) / max(peak_count - 1, 1)
+    tokens = torch.cat(
+        (
+            relative_source,
+            relative_candidate,
+            torch.tanh(peak_score / 8.0)[..., None],
+            peak_ink[..., None],
+            distance_source[..., None],
+            distance_candidate[..., None],
+            rank[..., None],
+        ),
+        dim=-1,
+    )
+    return torch.where(peak_mask[..., None], tokens, torch.zeros_like(tokens)), peak_mask
+
+
+def masked_deepset_pool(
+    encoded_tokens: torch.Tensor,
+    token_mask: torch.Tensor,
+) -> torch.Tensor:
+    """Permutation-invariant mean/max pooling over valid set members."""
+
+    if encoded_tokens.ndim != 3:
+        raise ValueError("encoded_tokens must have shape [B,K,D]")
+    if token_mask.shape != encoded_tokens.shape[:2] or token_mask.dtype != torch.bool:
+        raise ValueError("token_mask must have boolean shape [B,K]")
+    valid = token_mask[..., None]
+    count = valid.sum(dim=1).clamp_min(1)
+    mean = (encoded_tokens * valid).sum(dim=1) / count
+    floor = torch.finfo(encoded_tokens.dtype).min
+    maximum = encoded_tokens.masked_fill(~valid, floor).amax(dim=1)
+    any_valid = token_mask.any(dim=1, keepdim=True)
+    maximum = torch.where(any_valid, maximum, torch.zeros_like(maximum))
+    return torch.cat((mean, maximum), dim=-1)
+
+
 class _RasterEncoder(nn.Module):
     def __init__(self, output_dim: int) -> None:
         super().__init__()
@@ -198,11 +301,22 @@ class PairwiseStructuralCounterfactual(nn.Module):
         self.band_encoder = (
             _RasterEncoder(24) if self.config.arm == "patch-band" else None
         )
+        self.local_peak_encoder = (
+            nn.Sequential(
+                nn.Linear(LOCAL_PEAK_TOKEN_DIM, 32),
+                nn.GELU(),
+                nn.Linear(32, 32),
+                nn.GELU(),
+            )
+            if self.config.local_peak_set_evidence
+            else None
+        )
         candidate_dim = (
             40
             + (24 if self.band_encoder is not None else 0)
             + 4
             + (2 if self.config.explicit_score_evidence else 0)
+            + (64 if self.local_peak_encoder is not None else 0)
         )
         self.utility = nn.Sequential(
             nn.Linear(candidate_dim * 3, 96),
@@ -267,6 +381,16 @@ class PairwiseStructuralCounterfactual(nn.Module):
                     (candidate_value, candidate_value - source_value), dim=-1
                 )
             )
+        if self.local_peak_encoder is not None:
+            tokens, token_mask = extract_local_peak_tokens(
+                values[:, 0:1],
+                values[:, 1:2],
+                source,
+                candidate,
+                peak_count=self.config.local_peak_count,
+                pooling_kernel=self.config.local_peak_kernel,
+            )
+            parts.append(masked_deepset_pool(self.local_peak_encoder(tokens), token_mask))
         return torch.cat(parts, dim=-1)
 
     def _ordered_utility(
@@ -313,6 +437,9 @@ class PairwiseStructuralCounterfactual(nn.Module):
             "band_samples": self.config.band_samples,
             "residual_cap": self.config.residual_cap,
             "explicit_score_evidence": self.config.explicit_score_evidence,
+            "local_peak_set_evidence": self.config.local_peak_set_evidence,
+            "local_peak_count": self.config.local_peak_count,
+            "local_peak_kernel": self.config.local_peak_kernel,
             "parameter_count": self.parameter_count,
             "exact_antisymmetry": True,
         }
@@ -385,6 +512,8 @@ __all__ = [
     "PairwiseStructuralCounterfactual",
     "PairwiseStructuralCounterfactualConfig",
     "pairwise_counterfactual_loss",
+    "extract_local_peak_tokens",
+    "masked_deepset_pool",
     "sample_centered_patches",
     "sample_relation_bands",
     "swap_pair_inputs",
