@@ -6,6 +6,12 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
 本页只维护当前状态、架构说明和训练档案索引。每次训练的完整命令、指标、失败
 配置和结论统一放在 [`training/`](training/README.md) 中，不再追加到本页。
 
+2026-08-10 的 P19-E4 在全新 scaffold 隔离 calibration/eval 上选择全局 threshold
+`0.99609375`：独立 eval 将 P19-E3 从 437/640 提到 538/640，超过旧 v0.10.3 的 531/640；
+普通布局 456>453、stress 82>78、crossed 7>0，21 rescue/14 break。near-nonbonded 仍
+6<9，故整体门 NO-GO、校准机制 GO。下一步冻结新旧模型做保守 logit 融合，不重训主头。
+详见 [P19-E4](training/20260810-g3-p19e4-presence-threshold-calibration.md)。
+
 2026-08-10 的 P19-E3 在 scaffold 隔离 internal dev640 比较 20k scratch presence 与旧
 v0.10.3：best 为 437/640，低于旧基线 531/640；Edge recall 99.98%，但有 1,391 FP，
 逐图 11 rescue/105 break。20k 终点又回退到 382，证明增加数据有收益却无法修复当前
