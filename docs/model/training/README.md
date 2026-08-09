@@ -26,6 +26,10 @@
 
 ## 训练时间线
 
+当前预注册训练：[G3 P6-E11 OOF Residual Safety](20260809-g3-p6e11-oof-residual-safety.md)：按
+scaffold五折，用三臂连续margin/entropy/residual/agreement和候选坐标训练小型安全MLP；calibration
+仅冻结零harmful概率阈值，至少100 rescues才允许解锁holdout。
+
 当前已完成审计：[G3 P6-E10 Consensus Certificate](20260809-g3-p6e10-consensus-certificate.md)：
 三臂一致改选255项；阈值2.9200时执行48次、rescue46、harmful0，但未达100 rescue门，正式
 NO-GO，holdout保持000。若继续须从train训练独立OOF safety模型，不能在calibration继续搜规则。
