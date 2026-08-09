@@ -6,6 +6,13 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
 本页只维护当前状态、架构说明和训练档案索引。每次训练的完整命令、指标、失败
 配置和结论统一放在 [`training/`](training/README.md) 中，不再追加到本页。
 
+2026-08-10 的 P18 周期已停止 P13-P17 局部修补，并在 fresh640 完成冻结 Atom/Bond Oracle
+审计：整体 skeleton 上限 76.88%，但 stress 仅 34.38%，瓶颈是 Bond endpoint localization。
+top192 扩到512无收益，24px诊断上限为64.38%。35,742参数的feature-only端点残差在train-only
+capacity64达到62/64，但fresh640从499/640回退到492/640、crossed仍0/41，正式NO-GO。
+下一周期只能增加端点局部像素patch，不得扩大feature-only训练量或启动joint。详见
+[P18-E0C](training/20260810-g3-p18e0c-endpoint-residual-fresh640.md)。
+
 2026-08-07 的 G3 P3-E22 零训练审计已将 Atom candidate 固定预算从128扩到192：
 train/dev/confirm recall为99.2409%/99.3549%/99.4125%，三组均通过预注册99%门。
 下一周期先验证旧base/expert和P3-E16对动态候选长度的兼容性，再恢复五路线完整SDF比较；

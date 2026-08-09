@@ -1,8 +1,9 @@
 # ChemVector 训练档案
 
-当前已预注册：[G3 P18-E0C Endpoint Residual Fresh640](20260810-g3-p18e0c-endpoint-residual-fresh640.md)：
-固定 P18-E0B step 2500 与已有 fresh640 top192 cache，零训练评测 endpoint residual 的真正泛化；
-要求 overall≥80%、stress≥50%、非 stress 回退≤2pp 且 crossed 至少 8/41。
+当前已完成：[G3 P18-E0C Endpoint Residual Fresh640](20260810-g3-p18e0c-endpoint-residual-fresh640.md)：
+feature-only residual 将 overall 从 499/640 降至 492/640，stress 仅 57→58，crossed 仍为
+0/41，正式 NO-GO；P18-E0B 的 62/64 是容量记忆，禁止直接扩量。下一周期只允许增加端点局部
+像素 patch，并复用本轮固定 fresh640 门。
 
 当前已完成：[G3 P18-E0B Bond Endpoint Residual Capacity64](20260810-g3-p18e0b-bond-endpoint-residual-capacity64.md)：
 35,742 参数的 proposal endpoint residual 将总体从 32/64 提到 62/64，hard 从 0/32 提到
