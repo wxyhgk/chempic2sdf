@@ -26,6 +26,10 @@
 
 ## 训练时间线
 
+当前已预注册：[G3 P12 Explicit Score KEEP/MOVE](20260809-g3-p12-explicit-score-keep-move.md)：
+P11-E3扩量仍无安全动作；center-field精确点差pair AUC 0.8113。保持数据/模型/损失不变，只显式
+加入source、alternative及差值标量训练8,000步，calibration至少40 rescue/0 harmful才读holdout。
+
 当前已完成：[G3 P11-E3 Predicted Source KEEP/MOVE Full](20260809-g3-p11e3-predicted-source-keep-move-full.md)：
 1,464:1,464训练后calibration仍只有零执行安全阈值；阈值0为31 rescue/142 harmful，正式NO-GO。
 扩量5.28倍未解决，数据量假设否决。center-field精确点差的pair AUC为0.8113，下一模型显式接入

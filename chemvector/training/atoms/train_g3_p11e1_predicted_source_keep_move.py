@@ -170,11 +170,15 @@ def train_model(
     model_seed: int,
     schedule_seed: int,
     device: torch.device,
+    explicit_score_evidence: bool = False,
 ) -> tuple[PairwiseStructuralCounterfactual, dict]:
     torch.manual_seed(model_seed)
     torch.cuda.manual_seed_all(model_seed)
     model = PairwiseStructuralCounterfactual(
-        PairwiseStructuralCounterfactualConfig(arm="patch-only")
+        PairwiseStructuralCounterfactualConfig(
+            arm="patch-only",
+            explicit_score_evidence=explicit_score_evidence,
+        )
     ).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
     sums = Counter()

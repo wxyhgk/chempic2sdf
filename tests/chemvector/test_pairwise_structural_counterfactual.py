@@ -39,6 +39,21 @@ def test_pairwise_model_is_exactly_antisymmetric(arm: str) -> None:
     assert model.parameter_count < 300_000
 
 
+def test_pairwise_explicit_score_evidence_remains_antisymmetric() -> None:
+    model = PairwiseStructuralCounterfactual(
+        PairwiseStructuralCounterfactualConfig(
+            arm="patch-only", explicit_score_evidence=True
+        )
+    )
+    with torch.no_grad():
+        model.utility[-1].weight.normal_()
+    image, score, source, prior, alternative, mask = _inputs()
+    forward = model(image, score, source, prior, alternative, mask)
+    reverse = model(image, score, source, alternative, prior, mask)
+    torch.testing.assert_close(forward, -reverse, atol=1e-6, rtol=1e-6)
+    assert model.config_dict()["explicit_score_evidence"] is True
+
+
 def test_pairwise_mask_and_gradient() -> None:
     model = PairwiseStructuralCounterfactual()
     image, score, source, prior, alternative, mask = _inputs()

@@ -24,6 +24,7 @@ class PairwiseStructuralCounterfactualConfig:
     band_width: int = 17
     band_samples: int = 48
     residual_cap: float = 2.0
+    explicit_score_evidence: bool = False
 
     def __post_init__(self) -> None:
         if self.arm not in PAIRWISE_ARMS:
@@ -197,7 +198,12 @@ class PairwiseStructuralCounterfactual(nn.Module):
         self.band_encoder = (
             _RasterEncoder(24) if self.config.arm == "patch-band" else None
         )
-        candidate_dim = 40 + (24 if self.band_encoder is not None else 0) + 4
+        candidate_dim = (
+            40
+            + (24 if self.band_encoder is not None else 0)
+            + 4
+            + (2 if self.config.explicit_score_evidence else 0)
+        )
         self.utility = nn.Sequential(
             nn.Linear(candidate_dim * 3, 96),
             nn.GELU(),
@@ -240,6 +246,27 @@ class PairwiseStructuralCounterfactual(nn.Module):
             (candidate * IMAGE_SIZE, (candidate - source) * IMAGE_SIZE), dim=-1
         ) / CONTEXT_SIZE
         parts.append(geometry.float())
+        if self.config.explicit_score_evidence:
+            score_field = values[:, 1:2].float()
+            source_value = F.grid_sample(
+                score_field,
+                _to_grid(source)[:, None, None, :],
+                mode="bilinear",
+                padding_mode="zeros",
+                align_corners=False,
+            ).flatten()
+            candidate_value = F.grid_sample(
+                score_field,
+                _to_grid(candidate)[:, None, None, :],
+                mode="bilinear",
+                padding_mode="zeros",
+                align_corners=False,
+            ).flatten()
+            parts.append(
+                torch.stack(
+                    (candidate_value, candidate_value - source_value), dim=-1
+                )
+            )
         return torch.cat(parts, dim=-1)
 
     def _ordered_utility(
@@ -285,6 +312,7 @@ class PairwiseStructuralCounterfactual(nn.Module):
             "band_width": self.config.band_width,
             "band_samples": self.config.band_samples,
             "residual_cap": self.config.residual_cap,
+            "explicit_score_evidence": self.config.explicit_score_evidence,
             "parameter_count": self.parameter_count,
             "exact_antisymmetry": True,
         }
