@@ -6,6 +6,12 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
 本页只维护当前状态、架构说明和训练档案索引。每次训练的完整命令、指标、失败
 配置和结论统一放在 [`training/`](training/README.md) 中，不再追加到本页。
 
+2026-08-10 的 P19-E3 在 scaffold 隔离 internal dev640 比较 20k scratch presence 与旧
+v0.10.3：best 为 437/640，低于旧基线 531/640；Edge recall 99.98%，但有 1,391 FP，
+逐图 11 rescue/105 break。20k 终点又回退到 382，证明增加数据有收益却无法修复当前
+balanced/listwise 的过度召回。下一步冻结 best 做独立 calibration/eval 阈值审计，不直接扩
+full80k。详见 [P19-E3](training/20260810-g3-p19e3-direct-atom-pair-presence-pilot20k.md)。
+
 2026-08-10 的 P19-E2 固定 P19-E1 step 2,000 与 threshold 0.5 重放 fresh640：GT Atom
 skeleton 只有 305/640，低于旧 10k 模型的 469/640；Edge recall 97.23%，但 1,833 FP，
 逐图 13 rescue/177 break。crossed 0→3、near 6→9，而普通三布局 405→262，正式判定为

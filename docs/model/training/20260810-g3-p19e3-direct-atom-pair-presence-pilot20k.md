@@ -2,7 +2,7 @@
 
 > 日期：2026-08-10
 >
-> 状态：已预注册，等待运行
+> 状态：已完成，Pilot20k NO-GO
 >
 > 模型：`chemvector-g3-p19e3-direct-atom-pair-presence-pilot20k`
 
@@ -47,3 +47,56 @@ P19-E1 的 64 张容量集达到 64/64，但 P19-E2 fresh640 只有 305/640；�
 再把问题归因于“只训练了 64 张”；下一步应增加整图 AtomPair context，而不是继续同架构堆数据。
 
 无论 GO/NO-GO 都保存 checkpoint、写回结果，并创建与模型名完全相同的 annotated Git tag。
+
+## 实际结果
+
+从 full80k 中有 13,576 个 molecule 同时满足非 pilot molecule、非 pilot scaffold；固定 SHA
+选出 160 个 molecule、640 图。fit/dev molecule 与 scaffold overlap 均为 0，四种 variant
+各 160 张。训练完整消费 20,000 图、10,000 step、9,698,720 个 AtomPair 与 656,556 条
+真键；全部真键均在完整 pair universe 中。
+
+同一 internal dev640 的旧 v0.10.3 固定基线为：
+
+- overall 531/640，Edge precision/recall 99.34%/98.94%；
+- 普通三布局 458/480；
+- stress 73/160；
+- crossed 0/38、crowded 31/36、long 31/39、near-nonbonded 11/47。
+
+scratch 模型曲线：
+
+| Samples | Overall | 普通三布局 | Stress | Crossed | Near | FP / FN |
+|---:|---:|---:|---:|---:|---:|---:|
+| 5k | 343/640 | 306/480 | 37/160 | 4/38 | 0/47 | 3,393 / 0 |
+| 10k | 393/640 | 348/480 | 45/160 | 5/38 | 2/47 | 1,712 / 4 |
+| **15k** | **437/640** | **386/480** | **51/160** | **5/38** | **3/47** | **1,391 / 4** |
+| 20k | 382/640 | 342/480 | 40/160 | 2/38 | 0/47 | 3,874 / 2 |
+
+step 7,500 / 15k samples 为 best。其 Edge precision/recall 为 93.77%/99.98%，相对旧基线
+逐图为 11 rescue / 105 break；crossed 单项为 5 rescue / 0 break，但 near-nonbonded 为
+2 rescue / 10 break。固定 best 两次重放 digest 相同，冻结 state 未变化。
+
+## 决策
+
+正式决策为 `direct_atom_pair_presence_pilot20k_no_go`。split、冻结状态、重复重放与 crossed
+增益门通过；overall、普通布局、stress、near-nonbonded 和 paired 净增益门失败。
+
+本轮修正了“只是 64 张太少”的解释：20k 确实把 scratch presence 的跨 scaffold exact 提高，
+但 balanced BCE + listwise margin 长期维持接近 100% recall，同时留下大量 FP；20k 终点还从
+best 的 437 回退到 382。数据量有作用，但当前首要断点是 presence logit 的可分性/校准和假边
+抑制，不应直接扩到 full80k。
+
+下一步先冻结 best 做独立 calibration/eval 审计：从未使用的 full80k 余量再取两组 scaffold
+隔离样本，只在 calibration 选一个全局 threshold，在 eval 固定重放。若阈值可恢复到或超过旧
+基线，说明模型学到关系但 0.5 校准不对；若所有阈值仍有大量 FP，则停止当前 balanced/listwise
+目标，改为保留旧 BCE prior 的 residual/hard-negative 训练或整图 pair context。
+
+## 产物
+
+- best：`outputs/checkpoints/chemvector-g3-p19e3-direct-atom-pair-presence-pilot20k/best.pt`；
+- best step/samples：7,500 / 15,000；
+- best SHA256：`ab25e9de7294e48baa22797a5800c9208de4af09d9fd5ef71410773cf9eaf1e0`；
+- result SHA256：`e92bc27a602838fdfba543887a1e010e87abc73eac93f3e9f1bb5bd85c962a0c`；
+- dev manifest SHA256：`4e2cefe593ad81c856ef254475309db5fbf33b17361fc24d9a538bc0380ab6f7`；
+- best prediction SHA256：`1e8cd675f3b85eff67372cafdc71176e60c37a171127fd25714e8a39b30011e5`；
+- 可训练参数：2,265,537；
+- 总耗时：545.48 秒。
