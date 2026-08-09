@@ -26,6 +26,11 @@
 
 ## 训练时间线
 
+当前已预注册：[G3 P7 Pairwise Structural Counterfactual](20260809-g3-p7-pairwise-structural-counterfactual.md)：
+P7-E0已从既有隔离缓存得到train 7,376 rescue/136,562 harmful pair与calibration 921/17,416，
+scaffold重叠0且holdout保持000。下一步先过256-pair 99%容量门，再固定运行patch-only与patch-band
+两个五折OOF臂；calibration必须至少100 rescue且零harmful才允许读取holdout。
+
 当前已完成训练：[G3 P6-E11 OOF Residual Safety](20260809-g3-p6e11-oof-residual-safety.md)：1,409
 参数五折OOF模型在calibration零harmful阈值下执行366次、rescue69、useless297，未达100门，
 正式NO-GO；holdout保持000。停止堆汇总特征MLP，下一机制须学习候选对之间的结构反事实。
