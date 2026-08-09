@@ -105,6 +105,73 @@ def test_local_peak_set_model_remains_exactly_antisymmetric() -> None:
     assert model.parameter_count < 300_000
 
 
+def test_global_candidate_set_is_permutation_invariant_and_antisymmetric() -> None:
+    model = PairwiseStructuralCounterfactual(
+        PairwiseStructuralCounterfactualConfig(
+            arm="patch-only",
+            explicit_score_evidence=True,
+            local_peak_set_evidence=True,
+            global_candidate_set_evidence=True,
+        )
+    )
+    with torch.no_grad():
+        model.utility[-1].weight.normal_()
+    image, score, source, prior, alternative, mask = _inputs()
+    torch.manual_seed(19)
+    offsets = torch.rand(4, 129, 2) * 0.5 - 0.25
+    scores = torch.rand(4, 129)
+    source_mask = torch.zeros(4, 129, dtype=torch.bool)
+    source_mask[:, -1] = True
+    forward = model(
+        image,
+        score,
+        source,
+        prior,
+        alternative,
+        mask,
+        offsets,
+        scores,
+        source_mask,
+    )
+    reverse = model(
+        image,
+        score,
+        source,
+        alternative,
+        prior,
+        mask,
+        offsets,
+        scores,
+        source_mask,
+    )
+    torch.testing.assert_close(forward, -reverse, atol=1e-6, rtol=1e-6)
+    order = torch.randperm(129)
+    permuted = model(
+        image,
+        score,
+        source,
+        prior,
+        alternative,
+        mask,
+        offsets[:, order],
+        scores[:, order],
+        source_mask[:, order],
+    )
+    torch.testing.assert_close(permuted, forward, atol=1e-6, rtol=1e-6)
+    assert model.config_dict()["global_candidate_set_evidence"] is True
+    assert model.parameter_count < 300_000
+
+
+def test_global_candidate_set_is_required_when_enabled() -> None:
+    model = PairwiseStructuralCounterfactual(
+        PairwiseStructuralCounterfactualConfig(
+            arm="patch-only", global_candidate_set_evidence=True
+        )
+    )
+    with pytest.raises(ValueError, match="global candidate set evidence"):
+        model(*_inputs())
+
+
 def test_pairwise_mask_and_gradient() -> None:
     model = PairwiseStructuralCounterfactual()
     image, score, source, prior, alternative, mask = _inputs()

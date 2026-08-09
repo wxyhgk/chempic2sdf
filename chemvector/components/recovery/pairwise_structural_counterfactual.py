@@ -12,6 +12,7 @@ from torch.nn import functional as F
 IMAGE_SIZE = 768.0
 CONTEXT_SIZE = 96
 LOCAL_PEAK_TOKEN_DIM = 9
+GLOBAL_SET_TOKEN_DIM = 8
 PAIRWISE_ARMS = ("patch-only", "patch-band")
 PAIR_RESCUE = 1
 PAIR_HARMFUL = 0
@@ -29,6 +30,8 @@ class PairwiseStructuralCounterfactualConfig:
     local_peak_set_evidence: bool = False
     local_peak_count: int = 16
     local_peak_kernel: int = 5
+    global_candidate_set_evidence: bool = False
+    global_candidate_count: int = 129
 
     def __post_init__(self) -> None:
         if self.arm not in PAIRWISE_ARMS:
@@ -43,6 +46,8 @@ class PairwiseStructuralCounterfactualConfig:
             raise ValueError("local_peak_count must fit inside the context crop")
         if self.local_peak_kernel < 3 or self.local_peak_kernel % 2 == 0:
             raise ValueError("local_peak_kernel must be an odd integer of at least 3")
+        if self.global_candidate_count < 2:
+            raise ValueError("global_candidate_count must include candidates and source")
 
 
 def _validate_inputs(
@@ -311,12 +316,23 @@ class PairwiseStructuralCounterfactual(nn.Module):
             if self.config.local_peak_set_evidence
             else None
         )
+        self.global_set_encoder = (
+            nn.Sequential(
+                nn.Linear(GLOBAL_SET_TOKEN_DIM, 32),
+                nn.GELU(),
+                nn.Linear(32, 32),
+                nn.GELU(),
+            )
+            if self.config.global_candidate_set_evidence
+            else None
+        )
         candidate_dim = (
             40
             + (24 if self.band_encoder is not None else 0)
             + 4
             + (2 if self.config.explicit_score_evidence else 0)
             + (64 if self.local_peak_encoder is not None else 0)
+            + (64 if self.global_set_encoder is not None else 0)
         )
         self.utility = nn.Sequential(
             nn.Linear(candidate_dim * 3, 96),
@@ -342,6 +358,9 @@ class PairwiseStructuralCounterfactual(nn.Module):
         values: torch.Tensor,
         source: torch.Tensor,
         candidate: torch.Tensor,
+        global_offsets: torch.Tensor | None = None,
+        global_scores: torch.Tensor | None = None,
+        global_source_mask: torch.Tensor | None = None,
     ) -> torch.Tensor:
         patch = sample_centered_patches(
             values, candidate, self.config.patch_size
@@ -391,6 +410,63 @@ class PairwiseStructuralCounterfactual(nn.Module):
                 pooling_kernel=self.config.local_peak_kernel,
             )
             parts.append(masked_deepset_pool(self.local_peak_encoder(tokens), token_mask))
+        if self.global_set_encoder is not None:
+            if (
+                global_offsets is None
+                or global_scores is None
+                or global_source_mask is None
+            ):
+                raise ValueError("global candidate set evidence is required")
+            count = self.config.global_candidate_count
+            batch = len(values)
+            if global_offsets.shape != (batch, count, 2):
+                raise ValueError("global_offsets have invalid shape")
+            if global_scores.shape != (batch, count):
+                raise ValueError("global_scores have invalid shape")
+            if (
+                global_source_mask.shape != (batch, count)
+                or global_source_mask.dtype != torch.bool
+            ):
+                raise ValueError("global_source_mask has invalid shape or dtype")
+            if bool((global_source_mask.sum(dim=1) != 1).any()):
+                raise ValueError("global candidate set requires one explicit source token")
+            if not bool(
+                torch.isfinite(global_offsets).all()
+                & torch.isfinite(global_scores).all()
+            ):
+                raise ValueError("global candidate set contains non-finite values")
+            relative_source = (
+                (global_offsets.float() - source[:, None].float())
+                * IMAGE_SIZE
+                / CONTEXT_SIZE
+            )
+            relative_candidate = (
+                (global_offsets.float() - candidate[:, None].float())
+                * IMAGE_SIZE
+                / CONTEXT_SIZE
+            )
+            score_rank = (
+                global_scores[:, :, None].float()
+                < global_scores[:, None, :].float()
+            ).sum(dim=-1).float() / max(count - 1, 1)
+            global_tokens = torch.cat(
+                (
+                    relative_source,
+                    relative_candidate,
+                    global_scores.float()[..., None],
+                    score_rank[..., None],
+                    global_source_mask.float()[..., None],
+                    torch.linalg.vector_norm(relative_candidate, dim=-1)[..., None],
+                ),
+                dim=-1,
+            )
+            valid = torch.ones_like(global_source_mask)
+            parts.append(
+                masked_deepset_pool(
+                    self.global_set_encoder(global_tokens),
+                    valid,
+                )
+            )
         return torch.cat(parts, dim=-1)
 
     def _ordered_utility(
@@ -409,6 +485,9 @@ class PairwiseStructuralCounterfactual(nn.Module):
         prior_offsets: torch.Tensor,
         alternative_offsets: torch.Tensor,
         pair_mask: torch.Tensor,
+        global_offsets: torch.Tensor | None = None,
+        global_scores: torch.Tensor | None = None,
+        global_source_mask: torch.Tensor | None = None,
     ) -> torch.Tensor:
         _validate_inputs(
             image_crops,
@@ -419,9 +498,21 @@ class PairwiseStructuralCounterfactual(nn.Module):
             pair_mask,
         )
         values = torch.cat((image_crops.float(), score_crops.float()), dim=1)
-        prior = self._candidate_features(values, source_offsets, prior_offsets)
+        prior = self._candidate_features(
+            values,
+            source_offsets,
+            prior_offsets,
+            global_offsets,
+            global_scores,
+            global_source_mask,
+        )
         alternative = self._candidate_features(
-            values, source_offsets, alternative_offsets
+            values,
+            source_offsets,
+            alternative_offsets,
+            global_offsets,
+            global_scores,
+            global_source_mask,
         )
         forward = self._ordered_utility(alternative, prior)
         reverse = self._ordered_utility(prior, alternative)
@@ -440,6 +531,8 @@ class PairwiseStructuralCounterfactual(nn.Module):
             "local_peak_set_evidence": self.config.local_peak_set_evidence,
             "local_peak_count": self.config.local_peak_count,
             "local_peak_kernel": self.config.local_peak_kernel,
+            "global_candidate_set_evidence": self.config.global_candidate_set_evidence,
+            "global_candidate_count": self.config.global_candidate_count,
             "parameter_count": self.parameter_count,
             "exact_antisymmetry": True,
         }
