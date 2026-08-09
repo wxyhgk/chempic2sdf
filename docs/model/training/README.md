@@ -26,6 +26,10 @@
 
 ## 训练时间线
 
+当前已闭环周期：[G3 P6 Residual Long Cycle](20260809-g3-p6-residual-long-cycle.md)：P6-E8数据门GO，
+P6-E9三个residual臂全部执行，但easy harmful为38/61/58，没有安全winner；holdout保持000，后续
+trigger/dev/confirm/SDF/外部评测按门未启动。状态机可审计已有阶段并在同一安全门自动停止。
+
 当前已完成训练：[G3 P6-E9 Structural Residual Arms](20260809-g3-p6e9-structural-residual-arms.md)：
 global/local17/multiscale在calibration hard恢复53.81%/50.70%/52.41%，但分别产生38/61/58个
 easy harmful，没有合法winner，正式NO-GO。holdout仍为000；长周期按门停止，不进入trigger、
