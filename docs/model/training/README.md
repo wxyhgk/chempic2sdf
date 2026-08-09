@@ -1,5 +1,9 @@
 # ChemVector 训练档案
 
+当前已预注册：[G3 P19-E4 Presence Threshold Calibration](20260810-g3-p19e4-presence-threshold-calibration.md)：
+冻结 P19-E3 best，从未使用的 full80k 余量建立 scaffold 隔离 calibration640/eval640；只在
+calibration 按整图 exact 区间选一个全局 threshold，再锁定到 eval 与旧 v0.10.3 比较。
+
 当前已完成：[G3 P19-E3 Direct AtomPair Presence Pilot20k](20260810-g3-p19e3-direct-atom-pair-presence-pilot20k.md)：
 scaffold 隔离 internal dev 上，scratch best 为 437/640，低于旧 v0.10.3 的 531/640；recall
 99.98% 但有 1,391 FP，逐图 11 rescue/105 break。20k 终点又回退到 382，正式 NO-GO。
