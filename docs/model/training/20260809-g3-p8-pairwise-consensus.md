@@ -23,3 +23,7 @@ patch-only成员B/C，各8,000步。一个source只有在三个成员各自选�
 - 通过后才允许从未进入P6/P7的scaffold构造新的P8安全确认集。
 
 两个新成员无论GO/NO-GO都保存checkpoint、提交结果并创建与模型名相同的annotated tag。
+
+第一次正式执行已完成两个8,000步成员并保存checkpoint，但calibration中存在只有prior、没有任何
+alternative的source；空索引默认成为float tensor，评估在产生任何证书结果前报错。修复固定将
+该边界样本视为“不执行”，并按checkpoint/audit SHA复用已训练成员，禁止重新训练或改变seed。

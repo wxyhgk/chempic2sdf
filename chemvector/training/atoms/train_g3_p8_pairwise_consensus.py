@@ -97,6 +97,26 @@ def evaluate_consensus_cache(
         )[0]
         prior_index = int(normalized.argmax())
         alternatives.remove(prior_index)
+        target = cache["offset_targets"][row].float()
+        candidate_offsets = cache["candidate_offsets"][row].float()
+        prior_distance = float(
+            torch.linalg.vector_norm((candidate_offsets[prior_index] - target) * IMAGE_SIZE)
+        )
+        if not alternatives:
+            records.append(
+                {
+                    "source": source_kind,
+                    "row": row,
+                    "scaffold": str(cache["scaffold"][row]),
+                    "score": -math.inf,
+                    "consensus": False,
+                    "prior_good": prior_distance <= 6.0,
+                    "alternative_good": prior_distance <= 6.0,
+                    "prior_index": prior_index,
+                    "alternative_index": prior_index,
+                }
+            )
+            continue
         count = len(alternatives)
         image = cache["image_crops"][row : row + 1].to(device).float().expand(count, -1, -1, -1)
         score = cache["score_crops"][row : row + 1].to(device).float().expand(count, -1, -1, -1)
@@ -117,11 +137,6 @@ def evaluate_consensus_cache(
             )
             scores.append((base_margin + delta.float()).cpu())
         winner, certificate = select_unanimous_candidate(torch.stack(scores))
-        target = cache["offset_targets"][row].float()
-        candidate_offsets = cache["candidate_offsets"][row].float()
-        prior_distance = float(
-            torch.linalg.vector_norm((candidate_offsets[prior_index] - target) * IMAGE_SIZE)
-        )
         if winner is None:
             alternative_index = prior_index
             alternative_distance = prior_distance
@@ -190,6 +205,24 @@ def main() -> None:
         }
     ]
     for member_seed, schedule_seed in zip(MEMBER_SEEDS, SCHEDULE_SEEDS, strict=True):
+        model_type = f"chemvector-g3-p8e1-pairwise-consensus-seed{member_seed}-train11762"
+        checkpoint = Path("outputs/checkpoints") / model_type / f"step-{FULL_STEPS:06d}.pt"
+        member_audit = checkpoint.parent / "audit.json"
+        if checkpoint.exists() or member_audit.exists():
+            if not checkpoint.is_file() or not member_audit.is_file():
+                raise RuntimeError(f"incomplete P8 member output: {model_type}")
+            member = json.loads(member_audit.read_text(encoding="utf-8"))
+            payload = torch.load(checkpoint, map_location="cpu", weights_only=False)
+            if (
+                payload["model_type"] != model_type
+                or int(payload["model_seed"]) != member_seed
+                or int(payload["schedule_seed"]) != schedule_seed
+                or file_sha256(checkpoint) != member["checkpoint_sha256"]
+            ):
+                raise ValueError(f"existing P8 member lineage differs: {model_type}")
+            members.append(member)
+            models.append(_load_model(checkpoint, member["checkpoint_sha256"], device))
+            continue
         model, training = p7._train_model(
             "patch-only",
             pairs,
@@ -200,8 +233,6 @@ def main() -> None:
             model_seed=member_seed,
             device=device,
         )
-        model_type = f"chemvector-g3-p8e1-pairwise-consensus-seed{member_seed}-train11762"
-        checkpoint = Path("outputs/checkpoints") / model_type / f"step-{FULL_STEPS:06d}.pt"
         checkpoint.parent.mkdir(parents=True)
         _atomic_torch_save(
             checkpoint,
