@@ -26,6 +26,10 @@
 
 ## 训练时间线
 
+当前进行中：[G3 P15-E0 Bond Endpoint Pair Signal](20260809-g3-p15e0-bond-endpoint-pair-signal.md)：
+在P11真实source与P6 top8位置缓存冻结BondObject端点证据，只用train scaffold三折OOF验证相对
+无Bond基线的增量信号；信号门通过前不训练P15、不读取calibration标签或holdout。
+
 当前已完成：[G3 P14 Full Top128 Context KEEP/MOVE](20260809-g3-p14-full-top128-context-keep-move.md)：
 P14-E0为2,152个真实source构建129-token完整上下文并零误差对齐；模型64/64容量通过，但
 calibration安全阈值仍只能0执行，阈值0为14 rescue/59 harmful，正式NO-GO。停止独立
