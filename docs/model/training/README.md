@@ -26,6 +26,10 @@
 
 ## 训练时间线
 
+当前预注册训练：[G3 P6-E9 Structural Residual Arms](20260809-g3-p6e9-structural-residual-arms.md)：
+固定prior与cap2.0，比较global/local17/multiscale三个零初始化residual；5,171 hard+等量分桶easy，
+每hard 192次曝光。只用calibration按easy零harmful、hard恢复率/MAE/参数量选择唯一winner。
+
 当前已完成审计：[G3 P6-E8 Residual Cycle Data](20260809-g3-p6e8-residual-cycle-data.md)：得到
 6,552 hard/27,504 easy，覆盖4,091分子、3,889 scaffold；train/calibration/holdout为
 5,171/643/738且零重叠，train-only选择residual cap 2.0，全部容量门GO。
