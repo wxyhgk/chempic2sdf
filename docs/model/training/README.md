@@ -26,6 +26,10 @@
 
 ## 训练时间线
 
+当前预注册审计：[G3 P6-E10 Consensus Certificate](20260809-g3-p6e10-consensus-certificate.md)：
+固定global为primary，仅允许三臂一致选择同一非prior候选；在calibration对global新旧winner分差
+校准零harmful阈值。至少救回100个hard才允许单次解锁holdout，本轮不训练。
+
 当前已闭环周期：[G3 P6 Residual Long Cycle](20260809-g3-p6-residual-long-cycle.md)：P6-E8数据门GO，
 P6-E9三个residual臂全部执行，但easy harmful为38/61/58，没有安全winner；holdout保持000，后续
 trigger/dev/confirm/SDF/外部评测按门未启动。状态机可审计已有阶段并在同一安全门自动停止。
