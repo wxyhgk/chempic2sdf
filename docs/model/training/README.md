@@ -1,5 +1,10 @@
 # ChemVector 训练档案
 
+当前已预注册：[G3 P18-E0 冻结候选联合 Oracle Ladder](20260810-g3-p18e0-proposal-oracle-ladder.md)：
+停止 P13-P17 局部修补路线，先在未参与训练的 fresh640 上审计 P4-E3 Atom top128 与
+v0.10.1 Bond top192 的联合可表达上限；只有联合 skeleton、分风格、同域 baseline headroom 与
+编译损失全部过门，才允许进入冻结 proposal 的 incidence/structured selector 训练。
+
 本目录保存每一次已执行训练或候选实验的独立记录。模型主文档只维护当前架构、
 当前最佳结果和本目录索引，不再承载完整训练日志。
 
