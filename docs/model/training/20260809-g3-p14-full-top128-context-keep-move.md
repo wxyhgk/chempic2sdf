@@ -2,7 +2,7 @@
 
 > 日期：2026-08-09
 >
-> 状态：已预注册，尚未训练
+> 状态：已完成，NO-GO
 
 P13加入局部top-16区域峰集合后仍只有零执行安全阈值。P14不再增加单点标量或patch，而是检验
 P13尚未覆盖的机制：KEEP/MOVE是否必须知道当前source在完整P4-E3 top128候选集合中的全局竞争
@@ -37,3 +37,24 @@ P13尚未覆盖的机制：KEEP/MOVE是否必须知道当前source在完整P4-E3
 
 若容量门通过但calibration失败，说明完整top128几何/score集合仍不足以判断安全MOVE；下一路线
 必须加入联合Atom选择或Bond incidence，而不是继续扩大同一KEEP/MOVE头。
+
+## 结果
+
+- 64-pair容量：64/64，100%，容量门通过；
+- 正式训练：281 rescue、281 harmful、512 equivalent，6,000步，39.47秒；
+- 模型参数：68,877；
+- checkpoint：`outputs/checkpoints/chemvector-g3-p14-full-top128-context-keep-move-fit562/step-006000.pt`；
+- checkpoint SHA256：`c79e97a1d68dce0caa50c783c1d6aca434c5af45834c10e1baf87f7c1e2099b3`；
+- calibration安全阈值仍为正无穷，只能0执行、0 rescue、0 harmful；
+- 未扫描full80k上下文，历史holdout保持000且未读。
+
+固定阈值诊断排除“门槛过严”：阈值0执行301项，为14 rescue/59 harmful；阈值1.5执行98项，
+仍为9 rescue/33 harmful。完整top128上下文能记住容量集，却不能在新scaffold上将安全MOVE排到
+harmful之前。
+
+## 结论
+
+P14正式NO-GO。P13已证明局部峰集合不足，P14进一步证明完整top128的坐标、score、rank与显式
+source身份仍不足。停止P7--P14的独立KEEP/MOVE修正分支，不增加同类数据、step、patch、集合
+层数或阈值搜索。下一周期必须让动作进入最终Atom一对一选择，或引入冻结的纯视觉Bond incidence
+证据；不得读取GT bond/render layer作为forward特征。

@@ -26,9 +26,10 @@
 
 ## 训练时间线
 
-当前进行中：[G3 P14 Full Top128 Context KEEP/MOVE](20260809-g3-p14-full-top128-context-keep-move.md)：
-P14-E0已为2,152个真实source构建top128+显式source的129-token上下文并零误差对齐；下一步固定
-64-pair容量门和562-pair正式训练，calibration至少20 rescue/0 harmful才允许扫描full80k。
+当前已完成：[G3 P14 Full Top128 Context KEEP/MOVE](20260809-g3-p14-full-top128-context-keep-move.md)：
+P14-E0为2,152个真实source构建129-token完整上下文并零误差对齐；模型64/64容量通过，但
+calibration安全阈值仍只能0执行，阈值0为14 rescue/59 harmful，正式NO-GO。停止独立
+KEEP/MOVE分支，下一周期转向最终Atom一对一联合选择或纯视觉Bond incidence。
 
 当前已完成：[G3 P13 Local Peak Set KEEP/MOVE](20260809-g3-p13-local-peak-set-keep-move.md)：
 49,101参数模型新增top-16区域峰的候选条件DeepSets上下文，8,000步后安全阈值仍只能0执行；
