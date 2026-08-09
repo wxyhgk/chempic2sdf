@@ -21,7 +21,7 @@ from chemvector.components.atoms.objects.spatial_atom_object import (
     SpatialAtomObjectConfig,
     SpatialAtomObjectDetector,
 )
-from chemvector.components.bonds.objects.dense_bond_object import (
+from chemvector.dense_bond_object import (
     DenseBondObjectConfig,
     DenseBondObjectDetector,
     MultiScaleDenseBondObjectDetector,
