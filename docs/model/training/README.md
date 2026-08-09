@@ -26,6 +26,11 @@
 
 ## 训练时间线
 
+当前已预注册：[G3 P10 Pairwise Dev Shadow](20260809-g3-p10-pairwise-dev-shadow.md)：冻结P9全量
+阈值，在与P6/P7 scaffold零重叠的640图dev上比较P6第一峰与P9改选后的整图top128 coverage。
+只有matched/exact均净增益且paired exact rescue>break才允许设计新的独立confirm；不读取现有
+confirm或外部集，也不切换前端。
+
 当前已完成：[G3 P9 Stratified Pairwise Anchor](20260809-g3-p9-stratified-pairwise-anchor.md)：严格
 4,960:4,960分层训练消除了原TEXT锚点harmful；全calibration为108 rescue/0 harmful，但五折因
 fold 4阈值降至1.4126出现新1 harmful，合计124/1，严格NO-GO。剩余问题是极值阈值小样本波动，
