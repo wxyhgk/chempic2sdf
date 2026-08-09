@@ -136,13 +136,16 @@ def select_fresh640(rows: list[dict]) -> tuple[list[dict], dict]:
     if len(eligible) < MOLECULES:
         raise ValueError("P18-E0 fresh_dev has too few complete molecules")
     chosen = eligible[:MOLECULES]
-    selected = []
-    for _, _, group in chosen:
-        by_variant = {str(row["variant"]): row for row in group}
-        selected.extend(by_variant[variant] for variant in VARIANTS)
+    chosen_ids = {item[1] for item in chosen}
+    # The source manifest SHA pins physical tar order. Keeping that order allows
+    # the streaming loader to prove one-pass identity without random tar seeks.
+    selected = [row for row in rows if str(row["molecule_id"]) in chosen_ids]
     sample_keys = [str(row["sample_key"]) for row in selected]
     return selected, {
-        "policy": "first 160 SHA256(molecule_id\\0scaffold), fixed variant order",
+        "policy": (
+            "first 160 SHA256(molecule_id\\0scaffold), then committed source "
+            "manifest physical order"
+        ),
         "molecules": len(chosen),
         "images": len(selected),
         "variants": dict(Counter(str(row["variant"]) for row in selected)),

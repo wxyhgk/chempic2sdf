@@ -21,7 +21,7 @@ P4-E3 Atom top128 与 v0.10.1 Bond top192 在同一未训练域中是否具有�
 ## 固定协议
 
 - 数据：fresh_dev 按 `SHA256(molecule_id + "\\0" + scaffold)` 固定取 160 个完整分子，四种
-  variant 各一张，共 640 张；
+  variant 各一张，共 640 张；选集确定后恢复为已固定 SHA 的源 manifest 物理顺序；
 - Atom：P4-E3 `step-005000.pt`，top128、6px；
 - Bond：v0.10.1 `selected.pt`，top192、无序端点 12px；
 - baseline：v0.9.71 `samples-030000.pt` 在同一 fresh640 上重放；

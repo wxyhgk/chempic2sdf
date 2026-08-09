@@ -26,8 +26,8 @@ def test_select_fresh640_is_group_complete_and_deterministic(monkeypatch):
             )
     first, first_audit = select_fresh640(rows)
     second, second_audit = select_fresh640(list(reversed(rows)))
-    assert [row["sample_key"] for row in first] == [row["sample_key"] for row in second]
-    assert first_audit == second_audit
+    assert {row["sample_key"] for row in first} == {row["sample_key"] for row in second}
+    assert first_audit["molecule_ids_sha256"] == second_audit["molecule_ids_sha256"]
     assert len(first) == 8
     assert all(count == 2 for count in first_audit["variants"].values())
 
