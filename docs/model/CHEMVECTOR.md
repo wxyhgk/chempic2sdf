@@ -196,6 +196,10 @@ variant仍有508条，全部容量门GO。现有数据足以做约500→1,300 ha
 26.87%，且两臂远低于原第一峰56.72%，正式NO-GO。完全删除峰强度丢失泛化先验；下一路线
 固定峰logit为base，只训练零初始化视觉residual，并以easy保持约束保护原排序。
 
+[P6-E8 Residual Cycle Data](training/20260809-g3-p6e8-residual-cycle-data.md)完成：58,376张隔离训练图
+得到6,552 hard与27,504 easy，覆盖4,091分子、3,889 scaffold；三个split为5,171/643/738且
+scaffold零重叠。train-only margin选择cap 2.0，全部数据门GO，允许进入三臂结构residual训练。
+
 ## 当前版本
 
 - 当前完成的研究 tag：`v0.10.21`。
