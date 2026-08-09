@@ -26,6 +26,10 @@
 
 ## 训练时间线
 
+当前进行中：[G3 P16 Explicit Linear KEEP/MOVE](20260809-g3-p16-explicit-linear-keep-move.md)：
+冻结P15中OOF AUC 0.84743的7维baseline，使用只有8参数的确定性L2 logistic验证P14失败是否来自
+高容量模型；calibration至少20 rescue/0 harmful才GO，仍不读取holdout。
+
 当前已完成：[G3 P15-E0 Bond Endpoint Pair Signal](20260809-g3-p15e0-bond-endpoint-pair-signal.md)：
 冻结Bond端点覆盖69.04%的rescue MOVE，但train-only OOF从baseline 0.84743降至0.84551，增量
 为-0.00193，正式NO-GO且未读calibration标签。低维baseline自身信号很强，下一周期改为确定性
