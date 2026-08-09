@@ -2,7 +2,7 @@
 
 > 日期：2026-08-09
 >
-> 状态：已预注册，尚未训练
+> 状态：已完成，NO-GO
 
 P7 patch-only在calibration达到110 rescue/0 harmful，但固定holdout为151 rescue/1 harmful。之后
 只使用原calibration做五折交叉证书：四折选零harmful阈值、一折验证，其中1/5折再次出现1个
@@ -27,3 +27,19 @@ patch-only成员B/C，各8,000步。一个source只有在三个成员各自选�
 第一次正式执行已完成两个8,000步成员并保存checkpoint，但calibration中存在只有prior、没有任何
 alternative的source；空索引默认成为float tensor，评估在产生任何证书结果前报错。修复固定将
 该边界样本视为“不执行”，并按checkpoint/audit SHA复用已训练成员，禁止重新训练或改变seed。
+
+## 结果
+
+- 新成员seed2026089201 checkpoint SHA256：
+  `6301bb9afa09820438bb0487f8be34eb5872a5081f719da78c2696a82fca49af`；
+- 新成员seed2026089202 checkpoint SHA256：
+  `213f72174c4c4a27a01b9d7aced6476fe9832d4a7ad002bc5b300bf3046f6c6c`；
+- 全calibration：127执行、103 rescue、0 harmful、24 useless，能力门通过；
+- 五折certificate合计：127执行、102 rescue、1 harmful、24 useless；
+- fold 1出现唯一harmful，其余四折均为0；
+- 历史P7 holdout保持`000`且未读取。
+
+交叉证书零harmful门失败，正式决定为`pairwise_consensus_certificate_no_go`。按预注册不构造新的
+独立确认集，不进入dev/confirm/外部benchmark。三成员仍复现一个错误，说明剩余问题更像系统性
+局部歧义而不是单seed方差；下一步只允许查看calibration fold 1反例做机制诊断，不能调整本周期
+阈值或改写NO-GO。
