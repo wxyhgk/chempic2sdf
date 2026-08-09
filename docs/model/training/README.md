@@ -26,6 +26,10 @@
 
 ## 训练时间线
 
+当前已预注册：[G3 P11-E2 Predicted Source Full80k](20260809-g3-p11e2-predicted-source-full80k.md)：
+P11-E1容量100%但跨scaffold零安全动作，确认225个MOVE不足。固定扫描full80k动态构造真实source，
+目标至少1,000 MOVE/800可达，并按scaffold 80/10/10物理拆分和封存holdout；数据门后才扩量训练。
+
 当前已完成：[G3 P11-E1 Predicted Source KEEP/MOVE](20260809-g3-p11e1-predicted-source-keep-move.md)：
 64-pair容量100%，但225个train MOVE训练后，39 MOVE/304 KEEP calibration的零harmful阈值只能
 0执行；最高分区已有12 harmful/1 rescue，正式NO-GO。真实KEEP协议正确，但pilot正动作不足；
