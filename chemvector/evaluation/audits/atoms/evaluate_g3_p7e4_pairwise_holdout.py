@@ -72,6 +72,7 @@ def _load_model(device: torch.device) -> PairwiseStructuralCounterfactual:
 def main() -> None:
     if OUTPUT.exists():
         raise RuntimeError("P7 holdout has already been evaluated")
+    OUTPUT.mkdir(parents=True)
     if file_sha256(CALIBRATION_AUDIT) != CALIBRATION_AUDIT_SHA256:
         raise ValueError("P7 calibration audit SHA256 differs")
     calibration = json.loads(CALIBRATION_AUDIT.read_text(encoding="utf-8"))
@@ -127,7 +128,10 @@ def main() -> None:
         "calibration_audit_sha256": CALIBRATION_AUDIT_SHA256,
         "metrics": metrics,
         "protocol": {
-            "single_read": True,
+            "physical_read_attempts": 2,
+            "single_result_observation": True,
+            "first_attempt": "unobserved audit-directory write failure after scoring",
+            "replay_change": "create output directory only",
             "aggregate_only": True,
             "per_sample_scores_saved": False,
             "threshold_frozen": True,

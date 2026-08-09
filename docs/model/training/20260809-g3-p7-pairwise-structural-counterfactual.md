@@ -65,6 +65,10 @@ utility_delta = U(alternative | prior) - U(prior | alternative)
 holdout固定为738 hard与2,776 easy。脚本只允许读取一次且只保存聚合结果，固定使用上述winner与
 阈值；`harmful=0`且`rescues>=100`才GO。读取过程用`finally`恢复两个cache为`000`。
 
+第一次执行已完成模型评分，但因脚本没有预先创建审计目录，在写JSON前发生`FileNotFoundError`；
+结果未落盘、未打印，缓存已由`finally`恢复为`000`。机械重放只增加输出目录创建，不修改模型、
+阈值、评分或门控。最终审计必须记录物理读取2次、结果只观察1次，不能声称物理单读。
+
 ## 入口
 
 ```bash
