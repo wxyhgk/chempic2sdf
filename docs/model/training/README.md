@@ -26,6 +26,10 @@
 
 ## 训练时间线
 
+当前已预注册：[G3 P11-E0 Predicted Source Pilot](20260809-g3-p11e0-predicted-source-pilot.md)：
+重放P4-E3真实top128 source，把零偏移原位置作为显式KEEP，P6 top8只作为MOVE候选。先审计已有
+264个真实fit-refine动作的top8可达性，并从同图采样正确KEEP；数据门通过后才训练KEEP vs MOVE。
+
 当前已完成：[G3 P10 Pairwise Dev Shadow](20260809-g3-p10-pairwise-dev-shadow.md)：scaffold零重叠
 640图上，原始top128为32,193/32,400 matched、550 exact；无条件P6第一峰暴跌到27,046和45，
 P9再到27,010和44，正式NO-GO。根因是合成source默认离GT 6--12px，而真实top128通常已正确。
