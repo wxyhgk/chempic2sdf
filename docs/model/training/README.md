@@ -1,5 +1,10 @@
 # ChemVector 训练档案
 
+当前已预注册：[G3 P19-E1 Direct AtomPair Capacity64](20260810-g3-p19e1-direct-atom-pair-capacity64.md)：
+从新初始化 226 万参数 Direct AtomPair 头，在 train-only 32 easy + 16 crossed + 16
+near-nonbonded 上监督全部无序原子对；固定阈值 0.5，要求 easy 32/32、总体至少 60/64。
+通过后才允许固定 checkpoint 重放 fresh640。
+
 当前已完成：[G3 P19-E0 Direct AtomPair Oracle Ladder](20260810-g3-p19e0-direct-atom-pair-oracle-ladder.md)：
 GT Atom 下 skeleton exact 为 469/640（73.28%）、Edge F1 为 98.60%，普通布局达到
 83%--86%，但 stress 仅 64/160（40%），其中 crossed_bonds 为 0/41，旧 v0.10.3 权重复用
