@@ -2,7 +2,7 @@
 
 > 日期：2026-08-10
 >
-> 状态：已预注册，等待运行
+> 状态：已完成，NO-GO
 >
 > 类型：零训练能力审计，不创建模型 tag
 
@@ -49,3 +49,31 @@ P4-E3 Atom top128 与 v0.10.1 Bond top192 在同一未训练域中是否具有�
 - `outputs/audits/chemvector-g3-p18e0-proposal-oracle-ladder-fresh640/candidate-cache.pt`
 - `outputs/audits/chemvector-g3-p18e0-proposal-oracle-ladder-fresh640/fresh640.jsonl`
 - `outputs/audits/chemvector-g3-p18e0-proposal-oracle-ladder-fresh640/rows.json`
+
+## 实际结果
+
+完整 640 图运行耗时 81.25 秒。两次冻结候选提取的 tensor SHA256 均为
+`a4ed27c674c179d8d54424df8891166c2388e2af3a1d38a46676b5f221c3386b`，冻结 state、数据隔离和
+compiler 门均通过。
+
+| variant | Atom exact | Bond exact | 联合 skeleton exact |
+|---|---:|---:|---:|
+| coordgen | 98.13% | 93.13% | 91.25% |
+| original | 98.13% | 92.50% | 91.88% |
+| rdkit | 97.50% | 90.63% | 90.00% |
+| stress | **86.25%** | **35.63%** | **34.38%** |
+| overall | 95.00% | 77.97% | 76.88% |
+
+同域 v0.9.71 full-object exact 为 22.03%，Oracle headroom 为 54.84pp；联合图到无类型 skeleton
+的编译损失为 0。整体联合上限超过 70%，但 stress 远低于预注册的 60% 分桶门，因此正式
+NO-GO，禁止进入 P18-E1 incidence 和 P18-E2 structured selector。
+
+分阶梯因果很清楚：Atom 在 stress 仍有 86.25% exact，而 Bond 只有 35.63%；另外三种风格的
+Bond exact 均超过 90%。下一步只拆解 stress Bond proposal，区分 top192 排名截断与 dense
+Bond 几何不可达，不调整 incidence、presence 或 compiler。
+
+结果文件 SHA256：
+
+- `audit.json`：`83b033c4a0e3ed5227804335a6f5eecef49c9dbac3f89a2afa21b0ec2132978f`；
+- `candidate-cache.pt`：`009d9dcf77c0d65a17530c2afff6566f7f2265adc9383f750f9b43a7f7cd88cc`；
+- `fresh640.jsonl`：`7aeb5df329338faab36b0e5a3baa5bc0e078273034c6cd6718e16f66864bb9bc`。
