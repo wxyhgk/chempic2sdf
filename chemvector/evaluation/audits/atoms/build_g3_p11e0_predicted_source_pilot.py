@@ -48,7 +48,7 @@ ORACLE_AUDIT_SHA256 = "5dc3189f7901a42edcc0d97b27cd43c8e8bb47b33573db4605d560cce
 IMAGE_SIZE = 768.0
 TOP_K = 128
 KEEP_PER_IMAGE = 8
-BATCH_SIZE = 4
+BATCH_SIZE = 8
 EXPECTED_MOVE = 264
 MINIMUM_REACHABLE_MOVE = 180
 MINIMUM_KEEP = 1_500
@@ -154,6 +154,10 @@ def main() -> None:
     np.random.seed(SEED)
     torch.manual_seed(SEED)
     torch.cuda.manual_seed_all(SEED)
+    torch.use_deterministic_algorithms(True)
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cuda.matmul.allow_tf32 = False
+    torch.backends.cudnn.allow_tf32 = False
     device = torch.device("cuda")
     actions = [
         row
@@ -207,19 +211,28 @@ def main() -> None:
                 expected = batch["atom_anchors"][batch_index][batch["atom_mask"][batch_index]].float().to(device)
                 move_rows = actions_by_key[key]
                 source_specs = []
-                excluded = set()
                 for action in move_rows:
-                    candidate_index = int(action["candidate_index"])
-                    excluded.add(candidate_index)
-                    if int(source_ids[candidate_index]) != int(action["base_source_id"]):
-                        raise RuntimeError("P11-E0 replay source identity differs")
                     target_index = int(action["target_index"])
-                    source_specs.append(("MOVE", candidate_index, target_index))
+                    source_specs.append(
+                        (
+                            "MOVE",
+                            torch.tensor(action["base_anchor"], device=device),
+                            target_index,
+                            int(action["base_source_id"]),
+                        )
+                    )
                 assignments = p4e6.maximum_cardinality_assignments(raw.cpu(), expected.cpu())
-                for target_index, source_index in select_keep_assignments(key, assignments, excluded):
-                    source_specs.append(("KEEP", source_index, target_index))
-                sources = torch.stack([raw[source_index] for _, source_index, _ in source_specs])
-                targets = torch.stack([expected[target_index] for _, _, target_index in source_specs])
+                for target_index, source_index in select_keep_assignments(key, assignments, set()):
+                    source_specs.append(
+                        (
+                            "KEEP",
+                            raw[source_index],
+                            target_index,
+                            int(source_ids[source_index]),
+                        )
+                    )
+                sources = torch.stack([source for _, source, _, _ in source_specs])
+                targets = torch.stack([expected[target_index] for _, _, target_index, _ in source_specs])
                 image_crops = anchor_centered_context_crops(darkness[batch_index : batch_index + 1], sources[None])[0]
                 score_crops = anchor_centered_context_crops(center[batch_index : batch_index + 1], sources[None])[0]
                 zeros = torch.zeros(len(sources), device=device)
@@ -232,7 +245,7 @@ def main() -> None:
                 ).masked_fill(~masks, torch.inf)
                 metadata = []
                 meta = image_meta[key]
-                for row, (action, source_index, target_index) in enumerate(source_specs):
+                for row, (action, _source, target_index, base_source_id) in enumerate(source_specs):
                     reachable = bool((distances[row] <= 6.0).any())
                     harmful = int(((distances[row] > 6.0) & masks[row]).sum())
                     equivalent = int(((distances[row] <= 6.0) & masks[row]).sum())
@@ -251,7 +264,7 @@ def main() -> None:
                             "target_role": batch["atom_roles"][batch_index][target_index],
                             "degree_bucket": p6e8.degree_bucket(batch["atom_degrees"][batch_index][target_index]),
                             "target_index": target_index,
-                            "base_source_id": int(source_ids[source_index]),
+                            "base_source_id": base_source_id,
                         }
                     )
                 _append(cache, image_crops, score_crops, offsets, logits, masks, list(target_offsets), metadata)
