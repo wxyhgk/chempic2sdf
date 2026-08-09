@@ -1,5 +1,10 @@
 # ChemVector 训练档案
 
+当前已预注册：[G3 P19-E3 Direct AtomPair Presence Pilot20k](20260810-g3-p19e3-direct-atom-pair-presence-pilot20k.md)：
+scratch presence 模型扩大到 pilot 20k，并从 full80k 剔除 pilot molecule/scaffold 后固定选
+internal dev640；全程不再读取 fresh640。要求 overall/普通布局不低于旧 v0.10.3，同时 stress
+至少 +8、crossed/near 各至少 +2，才能进入下一阶段。
+
 当前已完成：[G3 P19-E2 Direct AtomPair Fresh640](20260810-g3-p19e2-direct-atom-pair-fresh640.md)：
 capacity64 的 64/64 在 fresh640 回退到 305/640，低于旧 10k 模型的 469/640；Edge recall
 仍为 97.23%，但有 1,833 FP，逐图为 13 rescue/177 break。crossed 0→3、near 6→9，
