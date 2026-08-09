@@ -6,6 +6,12 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
 本页只维护当前状态、架构说明和训练档案索引。每次训练的完整命令、指标、失败
 配置和结论统一放在 [`training/`](training/README.md) 中，不再追加到本页。
 
+2026-08-10 的 P19-E2 固定 P19-E1 step 2,000 与 threshold 0.5 重放 fresh640：GT Atom
+skeleton 只有 305/640，低于旧 10k 模型的 469/640；Edge recall 97.23%，但 1,833 FP，
+逐图 13 rescue/177 break。crossed 0→3、near 6→9，而普通三布局 405→262，正式判定为
+capacity64 记忆/训练覆盖不足。下一步从 train-only pool 做 scaffold 隔离 20k 训练，不再用
+fresh640 调参。详见 [P19-E2](training/20260810-g3-p19e2-direct-atom-pair-fresh640.md)。
+
 2026-08-10 的 P19-E1 从随机初始化训练 2,265,537 参数 Direct AtomPair presence 路径，
 在 train-only capacity64 的 step 2,000 达到 64/64：easy 32/32、crossed 16/16、
 near-nonbonded 16/16，1,921 条真键 0 FP/0 FN。所有容量门通过，但这不是泛化证据；下一步

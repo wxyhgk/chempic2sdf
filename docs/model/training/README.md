@@ -1,8 +1,10 @@
 # ChemVector 训练档案
 
-当前已预注册：[G3 P19-E2 Direct AtomPair Fresh640](20260810-g3-p19e2-direct-atom-pair-fresh640.md)：
-固定 P19-E1 step 2,000 best 与 threshold 0.5，零训练重放 fresh640；要求 GT Atom overall
-至少 512/640、stress 96/160、crossed 8/41、near 12/34，普通三布局不低于旧基线 405/480。
+当前已完成：[G3 P19-E2 Direct AtomPair Fresh640](20260810-g3-p19e2-direct-atom-pair-fresh640.md)：
+capacity64 的 64/64 在 fresh640 回退到 305/640，低于旧 10k 模型的 469/640；Edge recall
+仍为 97.23%，但有 1,833 FP，逐图为 13 rescue/177 break。crossed 0→3、near 6→9，
+普通三布局却 405→262，判定为容量记忆/训练覆盖不足；下一步改为 train-only 20k 规模训练，
+不得在 fresh640 上调参。
 
 当前已完成：[G3 P19-E1 Direct AtomPair Capacity64](20260810-g3-p19e1-direct-atom-pair-capacity64.md)：
 从新初始化的 2,265,537 参数 presence 模型在 step 2,000 达到 64/64，1,921 条真键为
