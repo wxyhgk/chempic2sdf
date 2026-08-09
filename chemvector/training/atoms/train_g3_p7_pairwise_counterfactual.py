@@ -236,10 +236,11 @@ def _train_model(
     *,
     steps: int,
     seed: int,
+    model_seed: int = MODEL_SEED,
     device: torch.device,
 ) -> tuple[PairwiseStructuralCounterfactual, dict]:
-    torch.manual_seed(MODEL_SEED)
-    torch.cuda.manual_seed_all(MODEL_SEED)
+    torch.manual_seed(model_seed)
+    torch.cuda.manual_seed_all(model_seed)
     model = PairwiseStructuralCounterfactual(
         PairwiseStructuralCounterfactualConfig(arm=arm)
     ).to(device)

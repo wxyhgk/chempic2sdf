@@ -26,6 +26,11 @@
 
 ## 训练时间线
 
+当前已预注册：[G3 P8 Pairwise Consensus](20260809-g3-p8-pairwise-consensus.md)：P7 calibration
+五折交叉证书复现1个harmful，确认单模型阈值不稳定。P8固定训练两个新patch-only seed，与P7 winner
+组成三成员一致性；必须全calibration 80 rescue/0 harmful且五折certificate合计60/0才允许构造
+新的独立安全确认集，历史P7 holdout不再读取。
+
 当前已完成：[G3 P7 Pairwise Structural Counterfactual](20260809-g3-p7-pairwise-structural-counterfactual.md)：
 256-pair容量99.22%并完成两个五折OOF臂。28,717参数patch-only在calibration为110 rescue/0 harmful，
 正式GO；固定阈值holdout为151 rescue/1 harmful，严格NO-GO，cache已恢复000。P7停止，不进入整图、
