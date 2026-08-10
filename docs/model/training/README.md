@@ -1,5 +1,9 @@
 # ChemVector 训练档案
 
+当前已预注册：[G3 P19-E5 Old/New Logit Fusion](20260810-g3-p19e5-old-new-logit-fusion.md)：
+冻结 P19-E3 与旧 v0.10.3，在 P19-E4 calibration 上选择归一化 logit 融合 alpha/threshold，
+再锁定到 eval；必须同时守住 overall 538、普通 456、stress 82、crossed 7、near 9。
+
 当前已完成：[G3 P19-E4 Presence Threshold Calibration](20260810-g3-p19e4-presence-threshold-calibration.md)：
 calibration 选择 `0.99609375`，独立 eval 将 P19-E3 从 437/640 提到 538/640，超过旧模型
 531/640；普通布局 456>453、stress 82>78、crossed 7>0，逐图 21 rescue/14 break。但
