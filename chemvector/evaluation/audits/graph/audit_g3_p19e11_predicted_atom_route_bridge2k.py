@@ -18,7 +18,6 @@ from chemvector.components.graph.correction.output_route_risk_router import (
     OutputRouteRiskRouter,
     OutputRouteRiskRouterConfig,
 )
-from chemvector.components.graph.joint.atom_bond_scene import AtomBondSceneConfig
 from chemvector.components.graph.joint.direct_atom_pair_bond import (
     enumerate_unordered_atom_pairs,
 )
@@ -49,10 +48,8 @@ from chemvector.training.graph.relations.train_direct_atom_pair_bond import (
     frozen_atom_objects,
     match_atom_targets,
 )
-from chemvector.training.graph.scenes.train_atom_bond_scene import (
-    AtomBondSceneCollator,
-    stack_targets,
-)
+from chemvector.training.graph.scenes.g3_structural_data import G3StructuralCollator
+from chemvector.training.graph.scenes.train_atom_bond_scene import stack_targets
 from chemvector.training.graph.scenes.train_g3_hierarchical_graph import (
     _atomic_json,
     _atomic_torch_save,
@@ -208,11 +205,10 @@ def collect_predicted_route_cache(
             p18e0._manifest_records(rows), accepted_split="train"
         )
     )
-    collator = AtomBondSceneCollator(
-        AtomBondSceneConfig(
-            atom_queries=proposal_config.maximum_atoms,
-            bond_queries=proposal_config.maximum_bonds,
-        )
+    collator = G3StructuralCollator(
+        maximum_atoms=proposal_config.maximum_atoms,
+        maximum_bonds=proposal_config.maximum_bonds,
+        image_size=proposal_config.image_size,
     )
     records = []
     for start in range(0, len(samples), BATCH_SIZE):
