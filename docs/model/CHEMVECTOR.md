@@ -6,6 +6,12 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
 本页只维护当前状态、架构说明和训练档案索引。每次训练的完整命令、指标、失败
 配置和结论统一放在 [`training/`](training/README.md) 中，不再追加到本页。
 
+2026-08-10 的 P19-E5 在 calibration 选出 new/old logit 权重 `0.55/0.45`。独立 eval 保持
+overall 538、普通 456、stress 82，并将 near-nonbonded 从新模型 6 恢复到旧模型 9；但
+crossed 从 7 降到 4，唯一未过严格 Pareto 门。全局融合有效但不能表达何时信任哪个模型；
+下一步先审计三路线 Oracle union 与输出分歧特征。详见
+[P19-E5](training/20260810-g3-p19e5-old-new-logit-fusion.md)。
+
 2026-08-10 的 P19-E4 在全新 scaffold 隔离 calibration/eval 上选择全局 threshold
 `0.99609375`：独立 eval 将 P19-E3 从 437/640 提到 538/640，超过旧 v0.10.3 的 531/640；
 普通布局 456>453、stress 82>78、crossed 7>0，21 rescue/14 break。near-nonbonded 仍
