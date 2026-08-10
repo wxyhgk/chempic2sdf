@@ -6,6 +6,13 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
 本页只维护当前状态、架构说明和训练档案索引。每次训练的完整命令、指标、失败
 配置和结论统一放在 [`training/`](training/README.md) 中，不再追加到本页。
 
+2026-08-10 的 P19-E8 将同一 78 维、27,267 参数 router 迁移到 scaffold 隔离的
+4k/640/640。calibration `541->544`、3 rescue/0 harmful；锁定 checkpoint/threshold 后首次
+读取 holdout，得到 `534->537`、4 rescue/1 harmful，正式 NO-GO。结果说明输出统计有少量
+泛化信号，但三分类置信度不能作为安全概率；下一周期改为显式学习每条替代路线相对 fusion 的
+RESCUE/HARMFUL/SAME 风险，并使用全新隔离 holdout。详见
+[P19-E8](training/20260810-g3-p19e8-output-route-train4k.md)。
+
 2026-08-10 的 P19-E7 用 78 维纯输出图特征训练 27,267 参数三动作 router。capacity640 的
 融合/Oracle 为 543/559，step 250 达到 559/640、16 rescue、0 harmful、640/640 action
 correct，容量 GO。该数据已用于 calibration，结果不可部署；下一步必须在 full80k 未使用余量

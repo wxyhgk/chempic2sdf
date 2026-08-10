@@ -1,9 +1,10 @@
 # ChemVector 训练档案
 
-当前已预注册：[G3 P19-E8 Output-route Train4k](20260810-g3-p19e8-output-route-train4k.md)：
-从 full80k 未使用余量建立 scaffold 隔离 4k/640/640，固定 P19-E7 feature/MLP；calibration
-锁定 action threshold 后一次性读取 holdout。正式门为 calibration/holdout 均 0 harmful 且
-至少 3 rescue。
+当前已完成：[G3 P19-E8 Output-route Train4k](20260810-g3-p19e8-output-route-train4k.md)：
+scaffold 隔离 calibration 为 `541->544`、3 rescue/0 harmful；锁定 checkpoint 与阈值后，
+一次性 holdout 为 `534->537`、4 rescue/1 harmful，零有害门失败，正式 NO-GO。下一周期改为
+直接监督替代路线相对 fusion 的 RESCUE/HARMFUL/SAME，并扩大独立风险校准样本；本轮 holdout
+不得再调参。
 
 当前已完成：[G3 P19-E7 Output-route Capacity640](20260810-g3-p19e7-output-route-capacity640.md)：
 78 维纯输出特征、27,267 参数 MLP 在 step 250 将融合 543/640 提至 Oracle 559/640，16 rescue、
