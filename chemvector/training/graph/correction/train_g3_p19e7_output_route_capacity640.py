@@ -7,6 +7,7 @@ from collections import Counter
 from dataclasses import asdict
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import random
@@ -169,8 +170,10 @@ def build_observable_features(
     if new_probabilities.shape != old_probabilities.shape or new_probabilities.ndim != 1:
         raise ValueError("P19-E7 old/new probability shapes differ")
     atom_count = infer_atom_count(len(new_probabilities))
-    new_reference = torch.logit(torch.tensor(NEW_THRESHOLD))
-    old_reference = torch.logit(torch.tensor(OLD_THRESHOLD))
+    # Match P19-E5 exactly: its reference logits are Python double constants
+    # converted during tensor subtraction, not torch.logit(float32 scalars).
+    new_reference = math.log(NEW_THRESHOLD / (1.0 - NEW_THRESHOLD))
+    old_reference = math.log(OLD_THRESHOLD / (1.0 - OLD_THRESHOLD))
     new_margin = p19e5._logit(new_probabilities) - new_reference
     old_margin = p19e5._logit(old_probabilities) - old_reference
     fusion_score = ALPHA_NEW * new_margin + (1.0 - ALPHA_NEW) * old_margin
@@ -528,7 +531,7 @@ def main() -> None:
         "route_oracle_headroom_min10": oracle_exact - fusion_exact >= 10,
         "observable_disagreement_present": target_disagreement >= 20,
         "both_alternative_actions_present": (
-            class_counts[1] > 0 and class_counts[2] > 0
+            bool(class_counts[1] > 0) and bool(class_counts[2] > 0)
         ),
         "router_zero_harmful": best_metrics["overall"]["harmful"] == 0,
         "router_within2_of_oracle": (

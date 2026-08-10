@@ -35,6 +35,36 @@ def test_observable_features_do_not_depend_on_targets():
     assert not any("target" in name or "false_positive" in name for name in names)
 
 
+def test_fusion_decisions_match_p19e5_reference_math():
+    new = torch.tensor([0.999, 0.99, 0.5])
+    old = torch.tensor([0.9, 0.8, 0.5])
+    _, _, selected = p19e7.build_observable_features(new, old)
+    fused = p19e7.p19e5.fuse_probability_records(
+        [
+            {
+                "sample_key": "a",
+                "variant": "stress",
+                "stress_operation": "crossed_bonds",
+                "probabilities": new,
+                "presence": torch.tensor([True, True, False]),
+            }
+        ],
+        [
+            {
+                "sample_key": "a",
+                "variant": "stress",
+                "stress_operation": "crossed_bonds",
+                "probabilities": old,
+                "presence": torch.tensor([True, True, False]),
+            }
+        ],
+        alpha=p19e7.ALPHA_NEW,
+    )[0]
+    assert torch.equal(
+        selected["fusion"], fused["probabilities"] >= p19e7.FUSION_THRESHOLD
+    )
+
+
 def test_route_label_defaults_to_fusion_and_uses_rescue_route():
     assert p19e7._route_label(torch.tensor([True, False, False])) == 0
     assert p19e7._route_label(torch.tensor([False, True, False])) == 1
