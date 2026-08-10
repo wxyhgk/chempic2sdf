@@ -49,7 +49,6 @@ from chemvector.training.graph.relations.train_direct_atom_pair_bond import (
     match_atom_targets,
 )
 from chemvector.training.graph.scenes.g3_structural_data import G3StructuralCollator
-from chemvector.training.graph.scenes.train_atom_bond_scene import stack_targets
 from chemvector.training.graph.scenes.train_g3_hierarchical_graph import (
     _atomic_json,
     _atomic_torch_save,
@@ -145,6 +144,16 @@ def route_exact_flags(
     return pair_exact & bool(atom_exact), pair_exact
 
 
+def structural_targets(batch: dict, device: torch.device) -> dict[str, torch.Tensor]:
+    return {
+        "atom_anchors": batch["atom_anchors"].to(device, non_blocking=True),
+        "atom_mask": batch["atom_mask"].to(device, non_blocking=True),
+        "bond_atom_refs": batch["bond_atom_refs"].to(device, non_blocking=True),
+        "bond_chemical": batch["bond_types"].to(device, non_blocking=True),
+        "bond_mask": batch["bond_mask"].to(device, non_blocking=True),
+    }
+
+
 def _records_to_cache(records: list[dict], feature_dim: int) -> dict:
     features = []
     for record in records:
@@ -215,7 +224,7 @@ def collect_predicted_route_cache(
         current = samples[start : start + BATCH_SIZE]
         batch = collator(current)
         pixels = batch["pixel_values"].to(device, non_blocking=True)
-        targets = stack_targets(batch, device)
+        targets = structural_targets(batch, device)
         feature_map, atoms = frozen_atom_objects(
             vision,
             atom,

@@ -64,3 +64,23 @@ def test_cache_zero_fills_non_router_eligible_features():
     assert cache["features"].shape == (1, 78)
     assert not bool(cache["features"].any())
     assert not bool(cache["router_eligible"][0])
+
+
+def test_structural_targets_maps_g3_bond_type_protocol():
+    batch = {
+        "atom_anchors": torch.zeros(1, 2, 2),
+        "atom_mask": torch.ones(1, 2, dtype=torch.bool),
+        "bond_atom_refs": torch.tensor([[[0, 1]]]),
+        "bond_types": torch.tensor([[3]]),
+        "bond_mask": torch.ones(1, 1, dtype=torch.bool),
+        "unrelated": torch.tensor([1]),
+    }
+    targets = p19e11.structural_targets(batch, torch.device("cpu"))
+    assert set(targets) == {
+        "atom_anchors",
+        "atom_mask",
+        "bond_atom_refs",
+        "bond_chemical",
+        "bond_mask",
+    }
+    assert targets["bond_chemical"].tolist() == [[3]]
