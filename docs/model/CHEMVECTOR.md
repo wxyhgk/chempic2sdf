@@ -6,6 +6,11 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
 本页只维护当前状态、架构说明和训练档案索引。每次训练的完整命令、指标、失败
 配置和结论统一放在 [`training/`](training/README.md) 中，不再追加到本页。
 
+2026-08-10 的 P19-E6 三路线 Oracle 为 553/640，比融合多 15；普通 462、stress 91、
+crossed 7、near 11，全部 Pareto 上限门通过。640 张只有 37 张路线分歧，下一步冻结主干，
+以融合为默认训练三动作小 router；当前 eval640 只保留为已消费上限集，不再参与选模。详见
+[P19-E6](training/20260810-g3-p19e6-three-route-oracle.md)。
+
 2026-08-10 的 P19-E5 在 calibration 选出 new/old logit 权重 `0.55/0.45`。独立 eval 保持
 overall 538、普通 456、stress 82，并将 near-nonbonded 从新模型 6 恢复到旧模型 9；但
 crossed 从 7 降到 4，唯一未过严格 Pareto 门。全局融合有效但不能表达何时信任哪个模型；

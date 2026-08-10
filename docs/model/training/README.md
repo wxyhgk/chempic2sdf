@@ -1,8 +1,9 @@
 # ChemVector 训练档案
 
-当前已预注册：[G3 P19-E6 Three-route Oracle](20260810-g3-p19e6-three-route-oracle.md)：
-固定旧/新/融合三路线 eval 行结果，计算逐图 exact union；只有 overall 至少 553、相对融合
-headroom 至少 10，且普通/stress/crossed/near 全过 Pareto 门，才训练输出级 router。
+当前已完成：[G3 P19-E6 Three-route Oracle](20260810-g3-p19e6-three-route-oracle.md)：
+三路线 exact union 为 553/640，比融合多 15；普通 462、stress 91、crossed 7、near 11，
+全部门通过。只有 37 张路线分歧图；下一步以融合为默认，只在 train-only/calibration 分歧缓存
+训练 `KEEP_FUSION/USE_NEW/USE_OLD` 小 router，当前 eval640 不得再参与选模。
 
 当前已完成：[G3 P19-E5 Old/New Logit Fusion](20260810-g3-p19e5-old-new-logit-fusion.md)：
 calibration 选择 new/old `0.55/0.45`；eval 保持 overall 538、普通 456、stress 82，并将 near
