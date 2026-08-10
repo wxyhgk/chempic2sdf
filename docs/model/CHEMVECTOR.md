@@ -6,6 +6,13 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
 本页只维护当前状态、架构说明和训练档案索引。每次训练的完整命令、指标、失败
 配置和结论统一放在 [`training/`](training/README.md) 中，不再追加到本页。
 
+2026-08-10 的 P19-E9 将 NEW/OLD 相对 fusion 的结果显式拆成
+`BOTH_WRONG/BOTH_EXACT/RESCUE/HARMFUL`。全新 scaffold 隔离 calibration 为
+`1665->1683`、18 rescue/0 harmful；锁定 step250 和 `0.5/0.02` 风险规则后，一次性
+holdout 为 `1653->1666`、13 rescue/0 harmful，正式 GO。27 次动作仍不足以宣称生产级
+安全；下一步冻结模型与规则做大规模 fixed confirm。详见
+[P19-E9](training/20260810-g3-p19e9-pairwise-route-risk12k.md)。
+
 2026-08-10 的 P19-E8 将同一 78 维、27,267 参数 router 迁移到 scaffold 隔离的
 4k/640/640。calibration `541->544`、3 rescue/0 harmful；锁定 checkpoint/threshold 后首次
 读取 holdout，得到 `534->537`、4 rescue/1 harmful，正式 NO-GO。结果说明输出统计有少量
