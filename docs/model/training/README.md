@@ -1,9 +1,9 @@
 # ChemVector 训练档案
 
-当前已预注册：[G3 P19-E10 Pairwise Route Fixed Confirm20k](20260810-g3-p19e10-pairwise-route-fixed-confirm20k.md)：
-冻结 P19-E9 step250 与 `0.5/0.02` 风险规则，在全新 5,000 scaffold/20,000 图上一次性验证；
-要求至少 100 action、50 rescue、0 harmful，且单侧 95% harmful 上界不超过 2%。本轮不训练、
-不调规则。
+当前已完成：[G3 P19-E10 Pairwise Route Fixed Confirm20k](20260810-g3-p19e10-pairwise-route-fixed-confirm20k.md)：
+冻结 P19-E9 在全新 5,000 scaffold/20,000 图执行 226 次动作，得到 164 rescue/0 harmful，
+rescue precision 72.57%，单侧 95% harmful 上界 1.3168%；`16719->16883`，全部门通过。
+这些是 GT Atom 条件 relation 指标；下一步必须做 predicted Atom bridge，不能直接接默认前端。
 
 当前已完成：[G3 P19-E9 Pairwise Route Risk12k](20260810-g3-p19e9-pairwise-route-risk12k.md)：
 显式监督 NEW/OLD 相对融合的四结果风险。Calibration `1665->1683`、18 rescue/0 harmful；

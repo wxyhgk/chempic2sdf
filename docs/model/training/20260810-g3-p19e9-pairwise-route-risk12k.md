@@ -100,3 +100,9 @@ BOTH_WRONG 也说明 utility precision 仍可提高。下一步冻结 step 250�
 - result SHA256：`6e532bf10b68695c1072949586d5d95297e7bdc0a4afccd252724251941acdb9`；
 - 参数量：27,912；
 - 总耗时：434.46 秒。
+
+## 后验边界澄清
+
+P19-E10 复核确认 P19-E9 的 route cache 使用 GT `atom_anchors` 和 `atom_mask`。因此本页全部
+指标都是 GT Atom 条件 relation 结果，不是 predicted Atom 或端到端 SDF 指标。该澄清不改变
+P19-E9 的预注册 GO，但限制了适用范围；后续必须经过 predicted Atom bridge 才能接推理链。

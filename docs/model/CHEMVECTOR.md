@@ -6,6 +6,12 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
 本页只维护当前状态、架构说明和训练档案索引。每次训练的完整命令、指标、失败
 配置和结论统一放在 [`training/`](training/README.md) 中，不再追加到本页。
 
+2026-08-10 的 P19-E10 将 P19-E9 step250 与 `0.5/0.02` 规则冻结后，在全新 5,000 scaffold/
+20,000 图执行 226 次动作：164 rescue、0 harmful，rescue precision 72.57%，harmful 单侧
+95% 上界 1.3168%，exact `16719->16883`。13 项门全部通过，但这些指标使用 GT Atom anchors/
+mask，只能称为 relation 组件 GO；下一步必须验证 predicted Atom bridge，不能直接接默认前端。
+详见 [P19-E10](training/20260810-g3-p19e10-pairwise-route-fixed-confirm20k.md)。
+
 2026-08-10 的 P19-E9 将 NEW/OLD 相对 fusion 的结果显式拆成
 `BOTH_WRONG/BOTH_EXACT/RESCUE/HARMFUL`。全新 scaffold 隔离 calibration 为
 `1665->1683`、18 rescue/0 harmful；锁定 step250 和 `0.5/0.02` 风险规则后，一次性
