@@ -84,3 +84,12 @@ def test_structural_targets_maps_g3_bond_type_protocol():
         "bond_mask",
     }
     assert targets["bond_chemical"].tolist() == [[3]]
+
+
+def test_force_keep_for_ineligible_is_not_in_place():
+    source = torch.tensor([1, 2, 1])
+    selected = p19e11.force_keep_for_ineligible(
+        source, torch.tensor([True, False, True])
+    )
+    assert source.tolist() == [1, 2, 1]
+    assert selected.tolist() == [1, 0, 1]

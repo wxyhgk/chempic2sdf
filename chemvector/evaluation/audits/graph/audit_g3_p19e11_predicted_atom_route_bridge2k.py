@@ -154,6 +154,16 @@ def structural_targets(batch: dict, device: torch.device) -> dict[str, torch.Ten
     }
 
 
+def force_keep_for_ineligible(
+    actions: torch.Tensor, router_eligible: torch.Tensor
+) -> torch.Tensor:
+    if actions.shape != router_eligible.shape:
+        raise ValueError("P19-E11 action eligibility shape differs")
+    return torch.where(
+        router_eligible.to(actions.device), actions, torch.zeros_like(actions)
+    )
+
+
 def _records_to_cache(records: list[dict], feature_dim: int) -> dict:
     features = []
     for record in records:
@@ -482,7 +492,7 @@ def main() -> None:
             EXPECTED_RULE["rescue_threshold"],
             EXPECTED_RULE["harmful_threshold"],
         ).cpu()
-    actions[~cache["router_eligible"]] = 0
+    actions = force_keep_for_ineligible(actions, cache["router_eligible"])
     records = evaluation_records(cache)
     metrics = p19e9.evaluate_risk_actions(actions, records)
     atom_mask = cache["atom_exact"]
