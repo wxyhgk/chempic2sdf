@@ -6,6 +6,12 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
 本页只维护当前状态、架构说明和训练档案索引。每次训练的完整命令、指标、失败
 配置和结论统一放在 [`training/`](training/README.md) 中，不再追加到本页。
 
+2026-08-10 的 P19-E7 用 78 维纯输出图特征训练 27,267 参数三动作 router。capacity640 的
+融合/Oracle 为 543/559，step 250 达到 559/640、16 rescue、0 harmful、640/640 action
+correct，容量 GO。该数据已用于 calibration，结果不可部署；下一步必须在 full80k 未使用余量
+建立 scaffold 隔离 train/calibration/holdout。详见
+[P19-E7](training/20260810-g3-p19e7-output-route-capacity640.md)。
+
 2026-08-10 的 P19-E6 三路线 Oracle 为 553/640，比融合多 15；普通 462、stress 91、
 crossed 7、near 11，全部 Pareto 上限门通过。640 张只有 37 张路线分歧，下一步冻结主干，
 以融合为默认训练三动作小 router；当前 eval640 只保留为已消费上限集，不再参与选模。详见
