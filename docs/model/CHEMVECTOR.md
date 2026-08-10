@@ -6,6 +6,13 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
 本页只维护当前状态、架构说明和训练档案索引。每次训练的完整命令、指标、失败
 配置和结论统一放在 [`training/`](training/README.md) 中，不再追加到本页。
 
+2026-08-10 的 P19-E11 首次把 P19 risk router 接到部署 predicted AtomObject。Atom matched
+recall 为 97.36%，但整图 Atom exact 仅 59.30%，stress 仅 153/500、crossed 仅 1/126。
+GT Atom router 在预测分布得到 6 rescue/3 harmful，`1101->1104`，正式 NO-GO；old/new 相对
+fusion 分别为 41/7 与 7/72 rescue/break，证明路线分布已反转。下一步只能训练 predicted-aware
+risk，并继续封存剩余新 scaffold。详见
+[P19-E11](training/20260810-g3-p19e11-predicted-atom-route-bridge2k.md)。
+
 2026-08-10 的 P19-E10 将 P19-E9 step250 与 `0.5/0.02` 规则冻结后，在全新 5,000 scaffold/
 20,000 图执行 226 次动作：164 rescue、0 harmful，rescue precision 72.57%，harmful 单侧
 95% 上界 1.3168%，exact `16719->16883`。13 项门全部通过，但这些指标使用 GT Atom anchors/

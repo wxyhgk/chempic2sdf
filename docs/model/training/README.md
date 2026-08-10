@@ -1,9 +1,10 @@
 # ChemVector 训练档案
 
-当前已预注册：[G3 P19-E11 Predicted Atom Route Bridge2k](20260810-g3-p19e11-predicted-atom-route-bridge2k.md)：
-冻结 P19-E9 和部署 Atom/set 路径，在已消费 P19-E10 的 500 分子/2,000 图上改用 predicted
-AtomObject 构建全部无序 AtomPair；GT 仅做事后 matching。只有 skeleton 净增、0 harmful 且
-协议门全部通过，才允许读取剩余新 scaffold。
+当前已完成：[G3 P19-E11 Predicted Atom Route Bridge2k](20260810-g3-p19e11-predicted-atom-route-bridge2k.md)：
+部署 predicted AtomObject 协议已打通；Atom recall 97.36%，但整图 Atom exact 仅 59.30%。
+固定 GT Atom router 得到 `1101->1104`、6 rescue/3 harmful，正式 NO-GO。预测分布下 old 为
+41 rescue/7 break、new 为 7/72，路线优劣反转；下一步在已消费数据上训练 predicted-aware
+risk，剩余新 scaffold 继续封存。
 
 当前已完成：[G3 P19-E10 Pairwise Route Fixed Confirm20k](20260810-g3-p19e10-pairwise-route-fixed-confirm20k.md)：
 冻结 P19-E9 在全新 5,000 scaffold/20,000 图执行 226 次动作，得到 164 rescue/0 harmful，
