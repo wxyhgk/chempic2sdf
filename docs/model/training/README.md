@@ -1,5 +1,10 @@
 # ChemVector 训练档案
 
+当前已预注册：[G3 P19-E9 Pairwise Route Risk12k](20260810-g3-p19e9-pairwise-route-risk12k.md)：
+在全新 scaffold 隔离 8k/2k/2k 上，分别监督 NEW/OLD 相对融合的
+`BOTH_WRONG/BOTH_EXACT/RESCUE/HARMFUL`；固定风险网格锁定后一次性读取 holdout，正式门为
+calibration/holdout 均 0 harmful 且至少 5 rescue。
+
 当前已完成：[G3 P19-E8 Output-route Train4k](20260810-g3-p19e8-output-route-train4k.md)：
 scaffold 隔离 calibration 为 `541->544`、3 rescue/0 harmful；锁定 checkpoint 与阈值后，
 一次性 holdout 为 `534->537`、4 rescue/1 harmful，零有害门失败，正式 NO-GO。下一周期改为
