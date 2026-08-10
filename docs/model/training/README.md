@@ -1,5 +1,9 @@
 # ChemVector 训练档案
 
+当前已预注册：[G3 P19-E7 Output-route Capacity640](20260810-g3-p19e7-output-route-capacity640.md)：
+在已消费 calibration640 上，以融合为默认，用纯输出图统计训练三动作小 MLP；要求 0 harmful，
+exact/rescue 距三路线 Oracle 均不超过 2。只做容量，不读取 eval640。
+
 当前已完成：[G3 P19-E6 Three-route Oracle](20260810-g3-p19e6-three-route-oracle.md)：
 三路线 exact union 为 553/640，比融合多 15；普通 462、stress 91、crossed 7、near 11，
 全部门通过。只有 37 张路线分歧图；下一步以融合为默认，只在 train-only/calibration 分歧缓存
