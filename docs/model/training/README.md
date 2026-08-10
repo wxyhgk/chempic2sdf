@@ -1,5 +1,10 @@
 # ChemVector 训练档案
 
+当前已预注册：[G3 P19-E10 Pairwise Route Fixed Confirm20k](20260810-g3-p19e10-pairwise-route-fixed-confirm20k.md)：
+冻结 P19-E9 step250 与 `0.5/0.02` 风险规则，在全新 5,000 scaffold/20,000 图上一次性验证；
+要求至少 100 action、50 rescue、0 harmful，且单侧 95% harmful 上界不超过 2%。本轮不训练、
+不调规则。
+
 当前已完成：[G3 P19-E9 Pairwise Route Risk12k](20260810-g3-p19e9-pairwise-route-risk12k.md)：
 显式监督 NEW/OLD 相对融合的四结果风险。Calibration `1665->1683`、18 rescue/0 harmful；
 锁定 step250 与 `rescue>=0.5/harmful<=0.02` 后，一次性 holdout `1653->1666`、13 rescue/
