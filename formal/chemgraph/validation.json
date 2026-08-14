@@ -1,0 +1,40 @@
+{
+  "schema_version": "chemgraph-formal-validation-0.1",
+  "validated_at": "2026-08-14",
+  "status": "passed_finite_abstract_foundation",
+  "training_authorized": false,
+  "toolchain": {
+    "lean": "4.33.0",
+    "lean_commit": "d8b18978322de05a8f3dba51ef03cf5461676c17",
+    "lake": "5.0.0-src+d8b1897",
+    "toolchain_archive_sha256": "4b3fb03c29a1e0a253fb1d11f9bae3725f19a0dc6fc09b3ea16d2c9df3349e2c"
+  },
+  "build": {
+    "command": "lake clean && lake build",
+    "jobs_passed": 11,
+    "jobs_failed": 0,
+    "sorry_admit_axiom_matches": 0
+  },
+  "source_tree_sha256_excluding_validation": "eeccf7139d8e127f41244f8eb1300ae997d619e8bef0f44f9d2a408ed86b6eb0",
+  "proved_boundaries": [
+    "crossing 与中心 junction 在不透明四臂观测中发生同观测异图碰撞",
+    "双键与两根平行单键在不透明 lane 观测中发生同观测异图碰撞",
+    "发生同观测异图碰撞时不存在对全部场景精确的确定性解码器",
+    "BondGroupingOracle 不能由已经碰撞的不透明观测确定性导出",
+    "BondGroupingOracle 会丢失键级和重复 Bond 实例数量",
+    "八个有限 toy kind 的 strict/ambiguity 分类和 Bond 排列不变性通过",
+    "异图间隔大于两倍噪声半径时，噪声球内图语义唯一"
+  ],
+  "independent_review": {
+    "alternative_reviewer": "APPROVE finite abstract foundation only",
+    "red_team": "GO finite negative theorem foundation; NO-GO training"
+  },
+  "remaining_training_gates": [
+    "完整 Atom/Text/visible-port/order/multiplicity Oracle field",
+    "忽略 Atom 重命名的规范图同构签名",
+    "66,712 个有限几何核心及 production tensor 碰撞枚举",
+    "production tensor 距离、异图最小间隔和拒识半径的实测与冻结",
+    "Oracle field 到 production decoder 的 100% graph exact",
+    "独立未知 seed 连续两轮审批"
+  ]
+}

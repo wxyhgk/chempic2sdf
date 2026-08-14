@@ -1,0 +1,6 @@
+name = "chemgraph"
+version = "0.1.0"
+defaultTargets = ["ChemGraph"]
+
+[[lean_lib]]
+name = "ChemGraph"
