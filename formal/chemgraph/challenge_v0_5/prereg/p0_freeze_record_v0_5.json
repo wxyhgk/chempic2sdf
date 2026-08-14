@@ -1,0 +1,49 @@
+{
+  "schema_version": "chemgraph-observation-closure-p0-freeze-v0.5",
+  "p0_git_commit": "697fa295d8e53ce10db2b57aa0ceb124cdcfb33b",
+  "artifacts": [
+    {
+      "git_blob": "7b8a7793614d22b4987dddfe2bdd2bcc69735801",
+      "path": "docs/model/formal/20260815-observation-closure-v0_5-preregistration.md",
+      "sha256": "417ad730d329c62522e01e9fef6e4d61bb3b08fee25ebb93a384bef79916c556"
+    },
+    {
+      "git_blob": "861745c27b4d3a846d493bd85c5bcc7a09a04160",
+      "path": "formal/chemgraph/challenge_v0_5/prereg/p0_contract_v0_5.json",
+      "sha256": "55ddcaacdf851166554ccd586b2a924c0e793f86cc7a6319f98132ef0ffb6b65"
+    },
+    {
+      "git_blob": "1f8cf9a11fce9b702646a1f4d751550fdbc5a515",
+      "path": "docs/ai_consultations/20260815-kimi-v05-observation-closure-review.md",
+      "sha256": "c772cb2c7a7b22c8c391545dc3913aee7d419205d4a7805b405b8e2764a89bdc"
+    }
+  ],
+  "baseline": {
+    "git_commit": "43898a4cfababbc1ba210e3a640667dfa0065079",
+    "generator_sha256": "193309ef6feb4521931b1446233c0cba7fa716a6d883e99903d053bf034a0775",
+    "rasterizer_sha256": "5d673ae1c33648b5498b4ebacfc1b91136fee5abdbae4fa1503a144a59816943"
+  },
+  "formal_toolchain": {
+    "lake_version": "5.0.0-src+d8b1897",
+    "lean_commit": "d8b18978322de05a8f3dba51ef03cf5461676c17",
+    "lean_version": "4.33.0"
+  },
+  "mechanical_checks": {
+    "contract_json_parse": "passed",
+    "contract_markdown_hash_binding": "passed",
+    "delivery_lift_count": 152473557600,
+    "diff_check": "passed",
+    "lake_build": "passed",
+    "pilot_axis_coverage": "all_declared_values",
+    "pilot_tuple_count": 360885,
+    "quotient_tuple_count": 36088416,
+    "tuple_ids_continuous": true
+  },
+  "reviewers": [
+    {"decision": "APPROVE", "role": "lean_and_type_review"},
+    {"decision": "APPROVE", "role": "oracle_and_executable_audit"},
+    {"decision": "APPROVE", "role": "adversarial_red_team"}
+  ],
+  "status": "p0_frozen",
+  "training_authorized": false
+}
