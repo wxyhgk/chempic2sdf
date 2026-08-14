@@ -1,0 +1,33 @@
+{
+  "schema_version": "finite-micro-scene-reviewed-result-0.1",
+  "status": "passed_full_audit_replayed",
+  "training_authorized": false,
+  "implementation_commit": "dae58c7",
+  "full_runs": 2,
+  "metrics": {
+    "core_scenes": 66712,
+    "fixture_scenes": 4,
+    "unique_observations": 53206,
+    "graph_collision_classes": 3518,
+    "scenes_in_graph_collision_classes": 17028,
+    "preprocessing_only_collision_classes": 0,
+    "maximum_graph_signatures_per_observation": 9
+  },
+  "reproducible_artifacts": {
+    "summary_sha256": "56c2d7af660711fb5e54cf2767d8a7e205401b53c14978080e2c4c6686d65508",
+    "validation_sha256": "7c7c15014bb5ba0cf50d76f8e162f19dbf66abeeb4239be44177e81e8ef6f4b4",
+    "collision_certificates_sha256": "fe0df24ed8266d380beba97caf0893709f5076d77b1605b6f8f73e5787920077",
+    "independent_review_sha256": "d4e027fd619cbd3d2dbc780c83ac854bf2a817db9afb70f78cdaeeaffe2ec9a4",
+    "byte_identical_across_full_runs": true
+  },
+  "independent_graph_review": {
+    "engine": "networkx.is_isomorphic",
+    "reviewer_script_sha256": "0f9ef32937fbd70d9e7c52c42695a6370f7e0917eab53f08756bf56d97fe9cd6",
+    "node_attributes": ["color"],
+    "edge_attributes": ["order", "display_type"],
+    "different_signature_pairs_checked": 12294,
+    "isomorphic_pairs_misclassified_as_different": 0
+  },
+  "scope": "black 3px fixed 3x3 geometry only",
+  "remaining_gate": "full Oracle field and style observation shell"
+}

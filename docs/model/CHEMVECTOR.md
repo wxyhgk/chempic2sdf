@@ -9,10 +9,12 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
 2026-08-14 起正式训练暂停，先执行[数学与形式化验证](formal/README.md)。Lean 4
 `v4.33.0` 已证明：不透明像素并集中的 crossing/junction、双键/平行单键存在同观测异图，
 因此任何确定性模型都不可能在全部此类输入上同时正确；Bond 分组 Oracle 也不能从已经碰撞
-的粗观测导出，并且仍会丢失键级和重复实例。当前只批准“有限抽象基础”，
-`training_authorized=false`。恢复训练前必须完成 66,712 个有限几何核心的 production tensor
-碰撞枚举、完整 Two-Port/Text Oracle、图同构签名、最小间隔与拒识半径、Oracle decoder
-100% 和两轮未知 seed 独立审批。
+的粗观测导出，并且仍会丢失键级和重复实例。66,712 个有限几何核心的 production tensor
+枚举已完整复现两轮：3,518 个 observation 类包含不同图，涉及 17,028/66,716 个场景，
+全部碰撞在 raw raster 阶段已经存在。该比例只描述刻意穷举的 toy 语法，不代表真实分子分布。
+当前 `training_authorized=false`；恢复训练前还需完成完整 Two-Port/Text Oracle、样式扰动 shell、
+最小间隔与拒识半径、Oracle decoder 100% 和两轮未知 seed 独立审批。详见
+[全量形式化审计](formal/20260814-finite-production-audit-v0_1.md)。
 
 2026-08-14 已停止 P19 relation router 支线，转向以 TextObject、BondObject 和
 Endpoint/Junction 为一等对象的 edge-centric v1。首个 Oracle10k 中 9,947/10,000

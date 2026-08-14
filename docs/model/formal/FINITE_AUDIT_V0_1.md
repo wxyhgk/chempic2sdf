@@ -57,4 +57,9 @@ PNG 文件名、压缩参数和 metadata 不属于观测。必须另外检查 ra
 7. 推理目录不含 SDF 和 sidecar，并审计 sidecar 读取数为 0。
 8. 独立 reviewer 用未知 seed 连续两轮复现通过；代码、阈值或权重变化后重新计数。
 
-Lean 中的 `FiniteAudit.lean` 当前只自动检查 8 个最小抽象场景。66,712 个图和 production tensor 碰撞枚举器是下一实现阶段，完成之前不得恢复正式训练。
+Lean 中的 `FiniteAudit.lean` 自动检查 8 个最小抽象场景。CPU 枚举器现已完整运行两轮
+66,712 个核心图，并得到逐字节相同的 summary 和碰撞证书；结果见
+[单一样式 production tensor 全量结果](20260814-finite-production-audit-v0_1.md)。
+
+该结果完成的是固定黑色 3px 样式的 exact collision 门，不包含本协议上方列出的
+Multiplicity/Text 全量核和 observation shell，也没有完成 Oracle decoder，因此训练仍未授权。

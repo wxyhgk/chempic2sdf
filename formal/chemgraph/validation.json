@@ -1,7 +1,7 @@
 {
   "schema_version": "chemgraph-formal-validation-0.1",
   "validated_at": "2026-08-14",
-  "status": "passed_finite_abstract_foundation",
+  "status": "passed_finite_abstract_and_single_style_raster",
   "training_authorized": false,
   "toolchain": {
     "lean": "4.33.0",
@@ -15,7 +15,7 @@
     "jobs_failed": 0,
     "sorry_admit_axiom_matches": 0
   },
-  "source_tree_sha256_excluding_validation": "eeccf7139d8e127f41244f8eb1300ae997d619e8bef0f44f9d2a408ed86b6eb0",
+  "source_tree_sha256_excluding_validation": "864fac9623b2e5e9b2326b744a9fd9d1a6c071bfa76208461a9a3a14bf02c61a",
   "proved_boundaries": [
     "crossing 与中心 junction 在不透明四臂观测中发生同观测异图碰撞",
     "双键与两根平行单键在不透明 lane 观测中发生同观测异图碰撞",
@@ -26,13 +26,29 @@
     "异图间隔大于两倍噪声半径时，噪声球内图语义唯一"
   ],
   "independent_review": {
-    "alternative_reviewer": "APPROVE finite abstract foundation only",
-    "red_team": "GO finite negative theorem foundation; NO-GO training"
+    "alternative_reviewer": "APPROVE finite abstract and single-style exact-collision gate only",
+    "red_team": "APPROVE fixed 3px toy-grammar negative audit; NO-GO training"
+  },
+  "finite_raster_audit": {
+    "implementation_commit": "dae58c7",
+    "full_runs": 2,
+    "core_scenes": 66712,
+    "fixture_scenes": 4,
+    "unique_observations": 53206,
+    "graph_collision_classes": 3518,
+    "scenes_in_collision_classes": 17028,
+    "preprocessing_only_collision_classes": 0,
+    "summary_sha256": "56c2d7af660711fb5e54cf2767d8a7e205401b53c14978080e2c4c6686d65508",
+    "collision_certificates_sha256": "fe0df24ed8266d380beba97caf0893709f5076d77b1605b6f8f73e5787920077",
+    "validation_sha256": "7c7c15014bb5ba0cf50d76f8e162f19dbf66abeeb4239be44177e81e8ef6f4b4",
+    "replay_byte_identical": true,
+    "networkx_nonisomorphic_pairs_checked": 12294,
+    "networkx_false_graph_differences": 0,
+    "independent_review_sha256": "d4e027fd619cbd3d2dbc780c83ac854bf2a817db9afb70f78cdaeeaffe2ec9a4"
   },
   "remaining_training_gates": [
     "完整 Atom/Text/visible-port/order/multiplicity Oracle field",
-    "忽略 Atom 重命名的规范图同构签名",
-    "66,712 个有限几何核心及 production tensor 碰撞枚举",
+    "字体、文字、颜色、线宽、lane gap、模糊与缩放 observation shell",
     "production tensor 距离、异图最小间隔和拒识半径的实测与冻结",
     "Oracle field 到 production decoder 的 100% graph exact",
     "独立未知 seed 连续两轮审批"
