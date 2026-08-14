@@ -59,6 +59,12 @@ HOLDOUT_MOLECULES = 100
 EXPECTED_IMAGES = 8_000
 EXPECTED_MOLECULES = 2_000
 EXPECTED_VARIANTS = frozenset({"coordgen", "original", "rdkit", "stress"})
+SOURCE_REJECTIONS = {
+    "chembl:CHEMBL5856698": (
+        "rdkit/stress layouts place atom 15 and atom 19 at identical visual "
+        "coordinates; ChemScene v0.2 cannot represent the sample losslessly"
+    )
+}
 
 
 def _rank_molecule(molecule_id: str) -> tuple[str, str]:
@@ -88,7 +94,11 @@ def split_fresh_rows(
         for group in by_molecule.values()
     ):
         raise ValueError("P2-D2-E0 molecule variants differ")
-    ranked = sorted(by_molecule, key=_rank_molecule)
+    ranked = [
+        molecule_id
+        for molecule_id in sorted(by_molecule, key=_rank_molecule)
+        if molecule_id not in SOURCE_REJECTIONS
+    ]
     calibration_ids = set(ranked[:CALIBRATION_MOLECULES])
     holdout_ids = set(
         ranked[CALIBRATION_MOLECULES : CALIBRATION_MOLECULES + HOLDOUT_MOLECULES]
@@ -260,6 +270,7 @@ def main() -> None:
         "holdout_molecule_ids_sha256": _molecule_ids_sha256(holdout),
         "fresh_holdout_tar_members_read": 0,
         "sealed_test_samples_read": 0,
+        "source_rejections": SOURCE_REJECTIONS,
     }
     _atomic_json(args.output_dir / "split.json", split)
     result = {
@@ -279,6 +290,7 @@ def main() -> None:
         "separator_sha256": SEPARATOR_SHA256,
         "source_commitment": SOURCE_COMMITMENT,
         "source_samples_csv_sha256": SAMPLES_CSV_SHA256,
+        "source_rejections": SOURCE_REJECTIONS,
         "rows_sha256": file_sha256(rows_path),
         "split": split,
         "summary": summary,

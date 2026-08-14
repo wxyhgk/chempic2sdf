@@ -2,6 +2,7 @@ import csv
 
 from chemvector.evaluation.audits.bonds.audit_v1p2d2e0_fresh_candidate_oracle import (
     FRESH_ROOT,
+    SOURCE_REJECTIONS,
     split_fresh_rows,
 )
 
@@ -15,6 +16,7 @@ def test_fresh_candidate_oracle_split_is_molecule_disjoint() -> None:
     holdout_ids = {row["molecule_id"] for row in holdout}
     assert (len(calibration_ids), len(holdout_ids)) == (100, 100)
     assert not calibration_ids & holdout_ids
+    assert not (calibration_ids | holdout_ids) & set(SOURCE_REJECTIONS)
     assert {row["variant"] for row in calibration} == {
         "coordgen",
         "original",

@@ -2,7 +2,7 @@
 
 > 日期：2026-08-14
 >
-> 状态：已预注册，等待执行
+> 状态：已预注册，首次执行因源样本异常中止
 >
 > 审计：`chemvector-v1p2d2e0-fresh-candidate-oracle`
 
@@ -28,6 +28,17 @@ scorer 掩盖上游不可达；若仍达到 95% pair recall，才进入 P2-D2 �
 - MR-TADF、USPTO、旧 validation 和 internal test 均不读取。
 
 四个图片变体必须按分子留在同一侧，不能发生同分子不同渲染泄漏。
+
+### 首次执行的数据修正
+
+首次执行在第 200 多张图按 fail-closed 原则中止，没有写入部分指标。定位发现
+`chembl:CHEMBL5856698` 的 `rdkit` 和 `stress` 布局把 atom 15 与 atom 19 放在完全相同的
+可视坐标。该分子虽然通过了数据侧 chemical roundtrip 和图层验收，但不能无损编译为
+ChemScene v0.2，属于视觉布局异常。
+
+因此整分子四种布局固定排除，再按同一 SHA256 排序从后备池补入下一分子；不只跳过报错的两张
+图片。拒绝 ID、原因和补位后的 calibration/holdout 哈希写入 `split.json`。这次修正只清理
+不可表示标签，不使用模型输出，也不改变预注册能力门。
 
 ## 固定协议
 
