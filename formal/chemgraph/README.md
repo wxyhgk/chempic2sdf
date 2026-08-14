@@ -2,7 +2,9 @@
 
 这个目录用 Lean 4 检查“图片到化学图”路线中最基础的数学前提。它不是模型实现，也不以通过几个定理来替代真实 benchmark。
 
-本轮机器验收见 `validation.json`。当前状态是 `passed_finite_abstract_foundation`，其中 `training_authorized=false`。
+本轮机器验收见 `validation.json`。当前状态是
+`passed_formal_boundaries_observation_recovery_no_go`：形式化边界与有限审计有效，但
+observable extractor 和全局 prior 均未通过，`training_authorized=false`。
 
 ## 当前结论
 

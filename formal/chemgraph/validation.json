@@ -16,7 +16,7 @@
     "sorry_admit_axiom_matches": 0
   },
   "source_tree_hash_method": "sha256 of sorted sha256sum lines for git-tracked formal/chemgraph files excluding validation.json",
-  "source_tree_sha256_excluding_validation": "e8502c82d13c8030c8392ea67ae1e2958c3cf884a5677c4ce537bfa612d0331b",
+  "source_tree_sha256_excluding_validation": "a9abcc458341faef83afe4d6404f297338a78bc36164fbb48267b0da1f5a088e",
   "proved_boundaries": [
     "crossing 与中心 junction 在不透明四臂观测中发生同观测异图碰撞",
     "双键与两根平行单键在不透明 lane 观测中发生同观测异图碰撞",
