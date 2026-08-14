@@ -2,7 +2,7 @@
 
 > 日期：2026-08-14
 >
-> 状态：已预注册，首次执行因源样本异常中止
+> 状态：已完成，严格 NO-GO
 >
 > 审计：`chemvector-v1p2d2e0-fresh-candidate-oracle`
 
@@ -71,8 +71,30 @@ GO 只说明 P2-D2 输入候选在新风格上仍可达，不代表键识别模�
   chemvector.evaluation.audits.bonds.audit_v1p2d2e0_fresh_candidate_oracle
 ```
 
+## 实际结果
+
+修正源异常后完整运行 100 个分子、400 张图，共 16,656 个 GT BondObject：
+
+| 候选预算 | Pair recall | Image exact | 平均 pair/图 |
+| --- | ---: | ---: | ---: |
+| 每端 top2 | 83.33% | 7.50% | 357.42 |
+| 每端 top4 | 89.70% | 20.50% | 643.04 |
+| 每端 top8 | 92.83% | 35.75% | 1,161.94 |
+| 每端 top16 | 94.31% | 43.50% | 2,175.28 |
+
+top8 stress/crossed/long-bond recall 分别为 90.11%/85.83%/93.14%，三个分桶门和 image exact
+门通过，但 overall recall 低于 95%，最终判定 `fresh_candidate_oracle_no_go`。即使将候选翻倍
+到 top16 仍未达到 95%，因此不能直接训练 graph-set scorer；下一步在同一 calibration 拆解
+endpoint 与 pair 的可达性。
+
 ## 产物
 
 - audit：`outputs/audits/chemvector-v1p2d2e0-fresh-candidate-oracle/audit.json`；
 - calibration 明细：同目录 `rows.jsonl`；
 - 固定拆分摘要：同目录 `split.json`。
+
+SHA256：
+
+- `audit.json`：`31c49f8fb9a52aeaabf0a1b9f3092ed28841e8c9637d180ba22753b94df45298`；
+- `rows.jsonl`：`d86e3fc5a6d033cb6f18eaef8f745522507dc18172dea83efe58fb8c8b54f286`；
+- `split.json`：`21d8548af326d81afb321afc829e35aa522402bbe70ec2c3a893e501e4e6e5af`。

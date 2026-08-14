@@ -1,5 +1,15 @@
 # ChemVector 训练档案
 
+当前已完成：[v1 P2-D2-E1 Fresh Endpoint Reachability](20260814-v1p2d2e1-fresh-endpoint-reachability.md)：
+held-out 字体 fresh calibration 的 unique-port/exhaustive pair recall 只有 95.88%/95.15%，
+top8 为 92.83%；主要损失在 endpoint 候选进入配对之前。p95 候选已撞到 256，下一步先做
+maximum-points/threshold 冻结阶梯，不训练 graph-set scorer。
+
+当前已完成：[v1 P2-D2-E0 Fresh Candidate Oracle](20260814-v1p2d2e0-fresh-candidate-oracle.md)：
+fresh calibration 的 top8 pair recall 92.83%、image exact 35.75%，overall recall 未过 95% 门，
+严格 NO-GO；top16 仍仅 94.31%。源数据另发现 1 个分子的两个布局存在原子坐标完全重合，已
+整分子固定排除并记录，不跳过单图计分。
+
 当前已完成：[v1 P2-D1 Listwise Pair Scorer Pilot](20260814-v1p2d1-listwise-pair-scorer-pilot.md)：
 25,089 参数独立 pair MLP 三轮后，一次性 holdout 的 known recall 73.04%、predicted F1
 66.85%、count exact 0.50%、image exact 0，stress/crossed 67.61%/57.41%，严格 NO-GO。

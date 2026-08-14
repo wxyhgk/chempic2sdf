@@ -70,6 +70,16 @@ stress/crossed 67.61%/57.41%，严格 NO-GO。相同候选 Oracle 为 95.91%，�
 共享 endpoint、重复候选和整图 cardinality。下一步改为 candidate graph 的 node/edge/set
 联合建模，不增加同一 MLP 的层数、数据或轮数。
 
+[v1 P2-D2-E0](training/20260814-v1p2d2e0-fresh-candidate-oracle.md) 在 held-out 字体 fresh
+calibration 上得到 top8 pair recall 92.83%、image exact 35.75%，未过 95% 可达性门；top16
+仍仅 94.31%，因此暂停 graph-set 训练。审计同时发现并整分子排除了一个原子坐标重合的异常
+源布局，未跳过单图计分。
+
+[v1 P2-D2-E1](training/20260814-v1p2d2e1-fresh-endpoint-reachability.md) 进一步得到 unique-port
+recall 95.88%、exhaustive pair recall 95.15%，而 top8 为 92.83%。主要损失在 endpoint 候选
+阶段；p95 候选已撞到 256 上限。下一步先冻结审计 maximum-points/threshold 阶梯，再决定提高
+候选预算还是重训 endpoint 场，不训练下游 graph-set 掩盖不可达输入。
+
 2026-08-10 的 P19-E11 首次把 P19 risk router 接到部署 predicted AtomObject。Atom matched
 recall 为 97.36%，但整图 Atom exact 仅 59.30%，stress 仅 153/500、crossed 仅 1/126。
 GT Atom router 在预测分布得到 6 rescue/3 harmful，`1101->1104`，正式 NO-GO；old/new 相对
