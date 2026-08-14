@@ -3,6 +3,7 @@ import torch
 from chemvector.components.bonds.objects.semantic_bond_candidate_query_set import (
     SemanticBondCandidateQuerySet,
     SemanticBondCandidateQuerySetConfig,
+    _group_pointer_log_probability,
     semantic_bond_candidate_query_set_loss,
 )
 from chemvector.components.bonds.objects.semantic_endpoint_candidate_graph import (
@@ -74,3 +75,12 @@ def test_bond_query_set_rejects_unreachable_target_group() -> None:
         assert "unreachable" in str(error)
     else:
         raise AssertionError("Query-set loss should reject an unreachable target Bond")
+
+
+def test_bond_query_group_score_matches_argmax_instead_of_probability_mass() -> None:
+    logits = torch.log(torch.tensor(((0.30, 0.30, 0.40),)))
+    scores = _group_pointer_log_probability(
+        logits, torch.tensor((0, 0, 1)), bond_count=2
+    )
+    assert scores.shape == (1, 2)
+    assert float(scores[0, 1]) > float(scores[0, 0])

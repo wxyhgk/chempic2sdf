@@ -156,7 +156,7 @@ def _group_pointer_log_probability(
         mask = target_bond_ids == bond_id
         if not bool(mask.any()):
             raise ValueError(f"Bond query-set target Bond {bond_id} is unreachable")
-        columns.append(torch.logsumexp(log_probability[:, mask], dim=-1))
+        columns.append(log_probability[:, mask].amax(dim=-1))
     return torch.stack(columns, dim=-1) if columns else log_probability.new_empty((len(pointer_logits), 0))
 
 

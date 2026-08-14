@@ -1,5 +1,10 @@
 # ChemVector 训练档案
 
+当前进行中：[v1 P2-D2-E8 Stable Bond Query Set Capacity64](20260814-v1p2d2e8-stable-bond-query-set-capacity64.md)：
+单图隔离发现 E7 的组 `logsumexp` 与实际 argmax 不一致；改为 latent max 后 700 step 达到
+1/1 全门。E8 在同一 64 图使用每 8 图梯度累积和 `1e-4`，验证跨图 assignment 稳定性；
+64/64 三门保持不变。
+
 当前已完成：[v1 P2-D2-E7 Bond Query Set Capacity64](20260814-v1p2d2e7-bond-query-set-capacity64.md)：
 128 Bond query 在单图连续更新下 assignment 剧烈震荡；冻结 known recall 30.69%、count 3/64、
 exact 0，正式 NO-GO。这首先是优化稳定性失败；下一步先做单图 overfit 隔离，再决定修 loss
