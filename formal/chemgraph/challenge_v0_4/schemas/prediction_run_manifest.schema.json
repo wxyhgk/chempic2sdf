@@ -1,0 +1,62 @@
+{
+  "$id": "prediction_run_manifest.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "challenge_id": {
+      "$ref": "common.schema.json#/$defs/canonical_id"
+    },
+    "environment_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "freeze_id": {
+      "pattern": "^freeze-[a-z0-9-]+$",
+      "type": "string"
+    },
+    "image_pack_manifest_sha256": {
+      "$ref": "common.schema.json#/$defs/sha256"
+    },
+    "input_order_sha256": {
+      "$ref": "common.schema.json#/$defs/sha256"
+    },
+    "pack_id": {
+      "pattern": "^pack-[ab]$",
+      "type": "string"
+    },
+    "prediction_records_jsonl": {
+      "$ref": "common.schema.json#/$defs/artifact_ref"
+    },
+    "replay_id": {
+      "enum": [
+        "replay-1",
+        "replay-2"
+      ]
+    },
+    "run_id": {
+      "pattern": "^run-[ab]-[12]$",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "hidden-prediction-run-0.4"
+    },
+    "visibility": {
+      "const": "prediction_frozen_before_reveal"
+    }
+  },
+  "required": [
+    "schema_version",
+    "visibility",
+    "challenge_id",
+    "run_id",
+    "pack_id",
+    "replay_id",
+    "freeze_id",
+    "environment_digest",
+    "image_pack_manifest_sha256",
+    "input_order_sha256",
+    "prediction_records_jsonl"
+  ],
+  "title": "Frozen prediction run manifest",
+  "type": "object"
+}

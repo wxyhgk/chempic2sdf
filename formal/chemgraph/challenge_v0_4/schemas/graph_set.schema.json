@@ -1,0 +1,139 @@
+{
+  "$defs": {
+    "graph": {
+      "additionalProperties": false,
+      "properties": {
+        "edges": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "begin_node_id": {
+                "pattern": "^n-[0-9]{4}$",
+                "type": "string"
+              },
+              "end_node_id": {
+                "pattern": "^n-[0-9]{4}$",
+                "type": "string"
+              },
+              "order": {
+                "enum": [
+                  1,
+                  2,
+                  3
+                ]
+              }
+            },
+            "required": [
+              "begin_node_id",
+              "end_node_id",
+              "order"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "graph_id": {
+          "pattern": "^g-[0-9]{4}$",
+          "type": "string"
+        },
+        "nodes": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "chemical_label": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "formal_charge": {
+                "maximum": 8,
+                "minimum": -8,
+                "type": "integer"
+              },
+              "node_id": {
+                "pattern": "^n-[0-9]{4}$",
+                "type": "string"
+              }
+            },
+            "required": [
+              "node_id",
+              "chemical_label",
+              "formal_charge"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "graph_id",
+        "nodes",
+        "edges"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "graph_set.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "ambiguity_kind": {
+      "enum": [
+        "none",
+        "crossing_junction",
+        "parallel_multiplicity",
+        "text_or_lane",
+        "mixed"
+      ]
+    },
+    "graph_set_id": {
+      "pattern": "^gs-[0-9]{8}$",
+      "type": "string"
+    },
+    "graphs": {
+      "items": {
+        "$ref": "#/$defs/graph"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "interpretation_graph_map": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "graph_id": {
+            "pattern": "^g-[0-9]{4}$",
+            "type": "string"
+          },
+          "interpretation_id": {
+            "pattern": "^int-[0-9]{8}-[0-9]{2}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "interpretation_id",
+          "graph_id"
+        ],
+        "type": "object"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "observation_id": {
+      "pattern": "^obs-[0-9]{8}$",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "hidden-graph-set-0.4"
+    }
+  },
+  "required": [
+    "schema_version",
+    "graph_set_id",
+    "observation_id",
+    "ambiguity_kind",
+    "graphs",
+    "interpretation_graph_map"
+  ],
+  "title": "Hidden exact GraphSet for one observation",
+  "type": "object"
+}

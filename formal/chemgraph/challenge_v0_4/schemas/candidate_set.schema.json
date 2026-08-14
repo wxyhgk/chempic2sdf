@@ -1,0 +1,27 @@
+{
+  "$id": "candidate_set.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "delivery_id": {
+      "pattern": "^img-[0-9]{8}$",
+      "type": "string"
+    },
+    "graphs": {
+      "items": {
+        "$ref": "graph_set.schema.json#/$defs/graph"
+      },
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "predicted-candidate-set-0.4"
+    }
+  },
+  "required": [
+    "schema_version",
+    "delivery_id",
+    "graphs"
+  ],
+  "title": "Prediction-side candidate graph set",
+  "type": "object"
+}

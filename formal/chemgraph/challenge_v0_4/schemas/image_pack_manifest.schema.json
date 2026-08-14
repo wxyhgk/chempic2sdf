@@ -1,0 +1,114 @@
+{
+  "$id": "image_pack_manifest.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "challenge_id": {
+      "$ref": "common.schema.json#/$defs/canonical_id"
+    },
+    "images": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "byte_length": {
+            "maximum": 4194304,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "delivery_id": {
+            "pattern": "^img-[0-9]{8}$",
+            "type": "string"
+          },
+          "height": {
+            "const": 768
+          },
+          "media_type": {
+            "const": "image/png"
+          },
+          "png_sha256": {
+            "$ref": "common.schema.json#/$defs/sha256"
+          },
+          "relative_path": {
+            "pattern": "^images/img-[0-9]{8}\\.png$",
+            "type": "string"
+          },
+          "width": {
+            "const": 768
+          }
+        },
+        "required": [
+          "delivery_id",
+          "relative_path",
+          "png_sha256",
+          "byte_length",
+          "media_type",
+          "width",
+          "height"
+        ],
+        "type": "object"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "pack_id": {
+      "pattern": "^pack-[ab]$",
+      "type": "string"
+    },
+    "png_profile": {
+      "additionalProperties": false,
+      "properties": {
+        "allowed_chunks": {
+          "const": [
+            "IHDR",
+            "IDAT",
+            "IEND"
+          ]
+        },
+        "bit_depth": {
+          "const": 8
+        },
+        "color_type": {
+          "const": 0
+        },
+        "interlace": {
+          "const": 0
+        },
+        "profile_id": {
+          "const": "canonical-gray8-768-v0.4"
+        },
+        "trailing_bytes_allowed": {
+          "const": false
+        }
+      },
+      "required": [
+        "profile_id",
+        "bit_depth",
+        "color_type",
+        "interlace",
+        "allowed_chunks",
+        "trailing_bytes_allowed"
+      ],
+      "type": "object"
+    },
+    "schema_version": {
+      "const": "hidden-image-pack-manifest-0.4"
+    },
+    "spec_sha256": {
+      "$ref": "common.schema.json#/$defs/sha256"
+    },
+    "visibility": {
+      "const": "pre_prediction_public"
+    }
+  },
+  "required": [
+    "schema_version",
+    "visibility",
+    "challenge_id",
+    "pack_id",
+    "spec_sha256",
+    "png_profile",
+    "images"
+  ],
+  "title": "Prediction-visible canonical PNG pack",
+  "type": "object"
+}

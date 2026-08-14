@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "chemgraph-hidden-observation-reveal-v0.4",
+  "title": "Custodian-only observation linkage",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "visibility", "observation_id", "delivery_id", "pack_id",
+    "family_id", "style_bucket_id", "png_sha256", "production_gray_sha256",
+    "quartet_ordinal", "variant", "ink_program_id", "ink_program_sha256",
+    "transform_id", "interpretation_ids", "graph_set_id", "ambiguity_kind"
+  ],
+  "properties": {
+    "schema_version": {"const": "hidden-observation-gt-0.4"},
+    "visibility": {"const": "post_prediction_reveal"},
+    "observation_id": {"type": "string", "pattern": "^obs-[0-9]{8}$"},
+    "delivery_id": {"type": "string", "pattern": "^img-[0-9]{8}$"},
+    "pack_id": {"enum": ["pack-a", "pack-b"]},
+    "family_id": {"enum": ["s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "c1", "c2", "c3", "c4"]},
+    "quartet_ordinal": {"type": "integer", "minimum": 0},
+    "variant": {"type": "integer", "minimum": 0, "maximum": 3},
+    "style_bucket_id": {"type": "string"},
+    "png_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "production_gray_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "ink_program_id": {"type": "string", "pattern": "^ink-[0-9]{8}$"},
+    "ink_program_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "transform_id": {"type": "string", "pattern": "^tr-[0-9]{8}$"},
+    "interpretation_ids": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "graph_set_id": {"type": "string", "pattern": "^gs-[0-9]{8}$"},
+    "ambiguity_kind": {"enum": ["none", "crossing_junction", "parallel_multiplicity", "text_or_lane"]},
+    "support_certificate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "rule", "primitive_foreground_pixel_counts", "pairs", "all_separated"],
+      "properties": {
+        "schema_version": {"const": "hidden-support-certificate-0.4"},
+        "rule": {"const": "pairwise_zero_intersection_and_no_8_neighbor_adjacency"},
+        "all_separated": {"const": true},
+        "primitive_foreground_pixel_counts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["primitive_id", "pixel_count"],
+            "properties": {
+              "primitive_id": {"type": "string", "pattern": "^p-[0-9]{6}$"},
+              "pixel_count": {"type": "integer", "minimum": 1}
+            }
+          }
+        },
+        "pairs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["left_primitive_id", "right_primitive_id", "foreground_intersection_count", "eight_neighbor_adjacent", "separated"],
+            "properties": {
+              "left_primitive_id": {"type": "string", "pattern": "^p-[0-9]{6}$"},
+              "right_primitive_id": {"type": "string", "pattern": "^p-[0-9]{6}$"},
+              "foreground_intersection_count": {"const": 0},
+              "eight_neighbor_adjacent": {"const": false},
+              "separated": {"const": true}
+            }
+          }
+        }
+      }
+    }
+  }
+}

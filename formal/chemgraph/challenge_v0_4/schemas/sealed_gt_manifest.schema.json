@@ -1,0 +1,65 @@
+{
+  "$id": "sealed_gt_manifest.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "challenge_id": {
+      "$ref": "common.schema.json#/$defs/canonical_id"
+    },
+    "ciphertext": {
+      "$ref": "common.schema.json#/$defs/artifact_ref"
+    },
+    "commitment_id": {
+      "pattern": "^commit-[0-9]{4}$",
+      "type": "string"
+    },
+    "encryption": {
+      "additionalProperties": false,
+      "properties": {
+        "algorithm": {
+          "enum": [
+            "age-x25519-v1",
+            "aes-256-gcm-v1"
+          ]
+        },
+        "associated_data_sha256": {
+          "$ref": "common.schema.json#/$defs/sha256"
+        },
+        "recipient_fingerprints": {
+          "items": {
+            "$ref": "common.schema.json#/$defs/sha256"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "algorithm",
+        "associated_data_sha256",
+        "recipient_fingerprints"
+      ],
+      "type": "object"
+    },
+    "plaintext_schema": {
+      "const": "hidden-sealed-gt-index-0.4"
+    },
+    "schema_version": {
+      "const": "hidden-sealed-gt-manifest-0.4"
+    },
+    "visibility": {
+      "const": "pre_prediction_public_ciphertext_metadata"
+    }
+  },
+  "required": [
+    "schema_version",
+    "visibility",
+    "challenge_id",
+    "commitment_id",
+    "plaintext_schema",
+    "ciphertext",
+    "encryption"
+  ],
+  "title": "Prediction-visible metadata for encrypted GT",
+  "type": "object"
+}

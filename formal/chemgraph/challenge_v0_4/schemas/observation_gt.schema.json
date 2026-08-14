@@ -1,0 +1,86 @@
+{
+  "$id": "observation_gt.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "support_certificate": {
+      "additionalProperties": false,
+      "properties": {
+        "all_separated": {"const": true},
+        "pairs": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "eight_neighbor_adjacent": {"const": false},
+              "foreground_intersection_count": {"const": 0},
+              "left_primitive_id": {"pattern": "^p-[0-9]{6}$", "type": "string"},
+              "right_primitive_id": {"pattern": "^p-[0-9]{6}$", "type": "string"},
+              "separated": {"const": true}
+            },
+            "required": [
+              "left_primitive_id", "right_primitive_id", "foreground_intersection_count",
+              "eight_neighbor_adjacent", "separated"
+            ],
+            "type": "object"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "primitive_foreground_pixel_counts": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "pixel_count": {"minimum": 1, "type": "integer"},
+              "primitive_id": {"pattern": "^p-[0-9]{6}$", "type": "string"}
+            },
+            "required": ["primitive_id", "pixel_count"],
+            "type": "object"
+          },
+          "minItems": 2,
+          "type": "array"
+        },
+        "rule": {"const": "pairwise_zero_intersection_and_no_8_neighbor_adjacency"},
+        "schema_version": {"const": "hidden-support-certificate-0.4"}
+      },
+      "required": [
+        "schema_version", "rule", "primitive_foreground_pixel_counts", "pairs", "all_separated"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "ambiguity_kind": {
+      "enum": ["none", "crossing_junction", "parallel_multiplicity", "text_or_lane"]
+    },
+    "delivery_id": {"pattern": "^img-[0-9]{8}$", "type": "string"},
+    "family_id": {"pattern": "^(s[1-8]|c[1-4])$", "type": "string"},
+    "graph_set_id": {"pattern": "^gs-[0-9]{8}$", "type": "string"},
+    "ink_program_id": {"pattern": "^ink-[0-9]{8}$", "type": "string"},
+    "ink_program_sha256": {"$ref": "common.schema.json#/$defs/sha256"},
+    "interpretation_ids": {
+      "items": {"pattern": "^int-[0-9]{8}-[0-9]{2}$", "type": "string"},
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "observation_id": {"pattern": "^obs-[0-9]{8}$", "type": "string"},
+    "pack_id": {"pattern": "^pack-[ab]$", "type": "string"},
+    "png_sha256": {"$ref": "common.schema.json#/$defs/sha256"},
+    "production_gray_sha256": {"$ref": "common.schema.json#/$defs/sha256"},
+    "quartet_ordinal": {"minimum": 0, "type": "integer"},
+    "schema_version": {"const": "hidden-observation-gt-0.4"},
+    "style_bucket_id": {"pattern": "^w[1-9]-(butt|round|square)-round-(binary-1x|box-2x2|box-4x4)$", "type": "string"},
+    "support_certificate": {"$ref": "#/$defs/support_certificate"},
+    "transform_id": {"pattern": "^tr-[0-9]{8}$", "type": "string"},
+    "variant": {"maximum": 3, "minimum": 0, "type": "integer"},
+    "visibility": {"const": "post_prediction_reveal"}
+  },
+  "required": [
+    "schema_version", "visibility", "observation_id", "delivery_id", "pack_id",
+    "family_id", "quartet_ordinal", "variant", "style_bucket_id", "png_sha256",
+    "production_gray_sha256", "ink_program_id", "ink_program_sha256", "transform_id",
+    "interpretation_ids", "graph_set_id", "ambiguity_kind"
+  ],
+  "title": "Post-reveal observation-to-GT linkage",
+  "type": "object"
+}

@@ -1,0 +1,103 @@
+{
+  "$id": "freeze_record.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "artifacts": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "artifact": {
+            "$ref": "common.schema.json#/$defs/artifact_ref"
+          },
+          "role": {
+            "enum": [
+              "schema_bundle",
+              "challenge_spec",
+              "generator_source",
+              "generator_container",
+              "rasterizer_source",
+              "png_encoder_source",
+              "oracle_enumerator_source",
+              "independent_verifier_source",
+              "prediction_pipeline_source",
+              "prediction_container"
+            ]
+          },
+          "visibility": {
+            "enum": [
+              "pre_prediction_public",
+              "custodian_only_until_reveal"
+            ]
+          }
+        },
+        "required": [
+          "role",
+          "visibility",
+          "artifact"
+        ],
+        "type": "object"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "challenge_id": {
+      "$ref": "common.schema.json#/$defs/canonical_id"
+    },
+    "created_at": {
+      "$ref": "common.schema.json#/$defs/utc_timestamp"
+    },
+    "freeze_id": {
+      "pattern": "^freeze-[a-z0-9-]+$",
+      "type": "string"
+    },
+    "git_commit": {
+      "$ref": "common.schema.json#/$defs/git_commit"
+    },
+    "roles": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "$ref": "common.schema.json#/$defs/canonical_id"
+          },
+          "role": {
+            "enum": [
+              "seed_custodian",
+              "generator_author",
+              "generator_reviewer",
+              "prediction_author",
+              "oracle_enumerator_author",
+              "evaluator_reviewer"
+            ]
+          }
+        },
+        "required": [
+          "role",
+          "agent_id"
+        ],
+        "type": "object"
+      },
+      "minItems": 4,
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "hidden-freeze-record-0.4"
+    },
+    "visibility": {
+      "const": "pre_prediction_public"
+    }
+  },
+  "required": [
+    "schema_version",
+    "visibility",
+    "challenge_id",
+    "freeze_id",
+    "git_commit",
+    "created_at",
+    "roles",
+    "artifacts"
+  ],
+  "title": "Immutable implementation and role freeze",
+  "type": "object"
+}

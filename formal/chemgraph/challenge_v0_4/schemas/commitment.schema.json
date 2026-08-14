@@ -1,0 +1,36 @@
+{
+  "$id": "commitment.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "challenge_id": {"const": "chemgraph-hidden-v0-4"},
+    "config_sha256": {"$ref": "common.schema.json#/$defs/sha256"},
+    "generator_source_tree_sha256": {"$ref": "common.schema.json#/$defs/sha256"},
+    "gt_index_sha256": {"$ref": "common.schema.json#/$defs/sha256"},
+    "image_manifest_sha256": {"$ref": "common.schema.json#/$defs/sha256"},
+    "image_merkle_like_root": {"$ref": "common.schema.json#/$defs/sha256"},
+    "invocation_count": {"minimum": 1, "type": "integer"},
+    "pack_id": {"pattern": "^pack-[ab]$", "type": "string"},
+    "pack_metadata_sha256": {"$ref": "common.schema.json#/$defs/sha256"},
+    "profile": {"enum": ["smoke", "full"]},
+    "protocol_bundle_sha256": {"$ref": "common.schema.json#/$defs/sha256"},
+    "python_version": {"pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$", "type": "string"},
+    "rejection_log_sha256": {"$ref": "common.schema.json#/$defs/sha256"},
+    "samples_manifest_sha256": {"$ref": "common.schema.json#/$defs/sha256"},
+    "schema_version": {"const": "chemgraph-hidden-commitment-v0.4"},
+    "seed_commitment": {"$ref": "common.schema.json#/$defs/sha256"},
+    "seed_included": {"const": false},
+    "unique_observation_count": {"minimum": 1, "type": "integer"},
+    "zlib_version": {"minLength": 1, "type": "string"}
+  },
+  "required": [
+    "schema_version", "challenge_id", "pack_id", "profile", "seed_commitment",
+    "seed_included", "generator_source_tree_sha256", "config_sha256",
+    "protocol_bundle_sha256",
+    "samples_manifest_sha256", "image_manifest_sha256", "image_merkle_like_root",
+    "gt_index_sha256", "rejection_log_sha256", "pack_metadata_sha256",
+    "python_version", "zlib_version", "unique_observation_count", "invocation_count"
+  ],
+  "title": "Generated pack commitment",
+  "type": "object"
+}

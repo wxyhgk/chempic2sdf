@@ -1,0 +1,50 @@
+{
+  "$id": "schema_bundle_manifest.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "canonicalization": {
+      "const": "utf8-sort-keys-no-space-final-newline-v1"
+    },
+    "entries": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "file_name": {
+            "pattern": "^[a-z0-9_]+\\.schema\\.json$",
+            "type": "string"
+          },
+          "schema_id": {
+            "pattern": "^[a-z0-9_]+\\.schema\\.json$",
+            "type": "string"
+          },
+          "sha256": {
+            "$ref": "common.schema.json#/$defs/sha256"
+          }
+        },
+        "required": [
+          "file_name",
+          "schema_id",
+          "sha256"
+        ],
+        "type": "object"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "hidden-schema-bundle-manifest-0.4"
+    },
+    "visibility": {
+      "const": "pre_prediction_public"
+    }
+  },
+  "required": [
+    "schema_version",
+    "visibility",
+    "canonicalization",
+    "entries"
+  ],
+  "title": "Committed schema bundle inventory",
+  "type": "object"
+}

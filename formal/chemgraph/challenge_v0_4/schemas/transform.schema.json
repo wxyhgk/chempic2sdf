@@ -1,0 +1,57 @@
+{
+  "$id": "transform.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "reflection": {
+      "enum": [
+        "none",
+        "x",
+        "y"
+      ]
+    },
+    "rotation": {
+      "additionalProperties": false,
+      "properties": {
+        "cos": {
+          "$ref": "common.schema.json#/$defs/rational"
+        },
+        "sin": {
+          "$ref": "common.schema.json#/$defs/rational"
+        }
+      },
+      "required": [
+        "cos",
+        "sin"
+      ],
+      "type": "object"
+    },
+    "scale": {
+      "$ref": "common.schema.json#/$defs/rational"
+    },
+    "schema_version": {
+      "const": "hidden-transform-0.4"
+    },
+    "transform_id": {
+      "pattern": "^tr-[0-9]{8}$",
+      "type": "string"
+    },
+    "transform_order": {
+      "const": "reflection_then_rotation_then_scale_then_translation"
+    },
+    "translation_q16": {
+      "$ref": "common.schema.json#/$defs/point_q16"
+    }
+  },
+  "required": [
+    "schema_version",
+    "transform_id",
+    "transform_order",
+    "reflection",
+    "rotation",
+    "scale",
+    "translation_q16"
+  ],
+  "title": "Exact global transform",
+  "type": "object"
+}

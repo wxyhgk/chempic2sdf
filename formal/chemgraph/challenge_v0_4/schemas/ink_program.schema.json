@@ -1,0 +1,166 @@
+{
+  "$id": "ink_program.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "background_rgb": {
+      "$ref": "common.schema.json#/$defs/rgb8"
+    },
+    "canvas": {
+      "additionalProperties": false,
+      "properties": {
+        "height": {
+          "const": 768
+        },
+        "origin": {
+          "const": "top_left"
+        },
+        "q_format": {
+          "const": "Q16.16"
+        },
+        "width": {
+          "const": 768
+        },
+        "x_axis": {
+          "const": "right"
+        },
+        "y_axis": {
+          "const": "down"
+        }
+      },
+      "required": [
+        "width",
+        "height",
+        "origin",
+        "x_axis",
+        "y_axis",
+        "q_format"
+      ],
+      "type": "object"
+    },
+    "ink_program_id": {
+      "pattern": "^ink-[0-9]{8}$",
+      "type": "string"
+    },
+    "primitives": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "closed": {
+            "type": "boolean"
+          },
+          "glyph_template_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "points_q16": {
+            "items": {
+              "$ref": "common.schema.json#/$defs/point_q16"
+            },
+            "minItems": 2,
+            "type": "array"
+          },
+          "primitive_id": {
+            "pattern": "^p-[0-9]{6}$",
+            "type": "string"
+          },
+          "primitive_type": {
+            "enum": [
+              "line",
+              "polyline",
+              "polygon",
+              "glyph_template"
+            ]
+          },
+          "style_id": {
+            "pattern": "^s-[0-9]{4}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "primitive_id",
+          "primitive_type",
+          "style_id",
+          "points_q16",
+          "closed",
+          "glyph_template_id"
+        ],
+        "type": "object"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "hidden-ink-program-0.4"
+    },
+    "styles": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "alpha": {
+            "maximum": 255,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "antialias_profile": {
+            "enum": [
+              "binary_1x",
+              "box_2x2",
+              "box_4x4"
+            ]
+          },
+          "cap": {
+            "enum": [
+              "butt",
+              "round",
+              "square"
+            ]
+          },
+          "join": {
+            "const": "round"
+          },
+          "rgb": {
+            "$ref": "common.schema.json#/$defs/rgb8"
+          },
+          "style_id": {
+            "pattern": "^s-[0-9]{4}$",
+            "type": "string"
+          },
+          "width_q16": {
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "style_id",
+          "width_q16",
+          "cap",
+          "join",
+          "rgb",
+          "alpha",
+          "antialias_profile"
+        ],
+        "type": "object"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "transform_id": {
+      "pattern": "^tr-[0-9]{8}$",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "ink_program_id",
+    "transform_id",
+    "canvas",
+    "background_rgb",
+    "styles",
+    "primitives"
+  ],
+  "title": "Semantics-free visible ink program",
+  "type": "object"
+}

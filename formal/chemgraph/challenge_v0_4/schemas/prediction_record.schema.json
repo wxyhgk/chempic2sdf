@@ -1,0 +1,76 @@
+{
+  "$id": "prediction_record.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "candidate_set_artifact": {
+      "$ref": "common.schema.json#/$defs/artifact_ref"
+    },
+    "decode_result": {
+      "additionalProperties": false,
+      "properties": {
+        "ambiguity_kind": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "graph_artifact": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/artifact_ref"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "kind": {
+          "enum": [
+            "Graph",
+            "Ambiguous",
+            "Reject"
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "ambiguity_kind",
+        "graph_artifact"
+      ],
+      "type": "object"
+    },
+    "delivery_id": {
+      "pattern": "^img-[0-9]{8}$",
+      "type": "string"
+    },
+    "evidence_artifact": {
+      "$ref": "common.schema.json#/$defs/artifact_ref"
+    },
+    "exit_code": {
+      "type": "integer"
+    },
+    "input_png_sha256": {
+      "$ref": "common.schema.json#/$defs/sha256"
+    },
+    "schema_version": {
+      "const": "hidden-prediction-record-0.4"
+    },
+    "stderr_byte_length": {
+      "minimum": 0,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "schema_version",
+    "delivery_id",
+    "input_png_sha256",
+    "exit_code",
+    "stderr_byte_length",
+    "evidence_artifact",
+    "candidate_set_artifact",
+    "decode_result"
+  ],
+  "title": "One frozen pre-reveal prediction",
+  "type": "object"
+}

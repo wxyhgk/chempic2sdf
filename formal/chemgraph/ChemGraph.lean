@@ -5,6 +5,7 @@ import ChemGraph.Stability
 import ChemGraph.Grammar
 import ChemGraph.ObservationRecovery
 import ChemGraph.RasterEvidence
+import ChemGraph.HiddenChallenge
 import ChemGraph.Counterexamples
 import ChemGraph.Multiplicity
 import ChemGraph.Recovery

@@ -1,0 +1,30 @@
+{
+  "$id": "sealed_gt_index.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "challenge_id": {"const": "chemgraph-hidden-v0-4"},
+    "files": {
+      "additionalProperties": false,
+      "properties": {
+        "graph_sets.jsonl": {"$ref": "common.schema.json#/$defs/artifact_ref"},
+        "ink_programs.jsonl": {"$ref": "common.schema.json#/$defs/artifact_ref"},
+        "interpretations.jsonl": {"$ref": "common.schema.json#/$defs/artifact_ref"},
+        "observations.jsonl": {"$ref": "common.schema.json#/$defs/artifact_ref"},
+        "rejection_log.jsonl": {"$ref": "common.schema.json#/$defs/artifact_ref"},
+        "transforms.jsonl": {"$ref": "common.schema.json#/$defs/artifact_ref"}
+      },
+      "required": [
+        "ink_programs.jsonl", "transforms.jsonl", "interpretations.jsonl",
+        "graph_sets.jsonl", "observations.jsonl", "rejection_log.jsonl"
+      ],
+      "type": "object"
+    },
+    "pack_id": {"pattern": "^pack-[ab]$", "type": "string"},
+    "schema_version": {"const": "chemgraph-hidden-gt-index-v0.4"},
+    "visibility": {"const": "custodian-only-until-reveal"}
+  },
+  "required": ["schema_version", "visibility", "challenge_id", "pack_id", "files"],
+  "title": "Generated sealed GT artifact index",
+  "type": "object"
+}

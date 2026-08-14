@@ -1,0 +1,35 @@
+{
+  "$id": "rejection_log.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "accepted": {"type": "boolean"},
+    "attempt_ordinal": {"minimum": 0, "type": "integer"},
+    "family_id": {"pattern": "^(s[1-8]|c[1-4])$", "type": "string"},
+    "quartet_ordinal": {"minimum": 0, "type": "integer"},
+    "rejection_reasons": {
+      "items": {
+        "enum": [
+          "out_of_bounds", "carrier_too_short", "duplicate_observation",
+          "historical_observation_overlap", "invalid_exact_collision",
+          "candidate_set_not_expected_cardinality", "style_bucket_full",
+          "transform_invalid", "rasterization_failure", "maximum_complexity_exceeded"
+        ]
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "sample_ordinal": {"minimum": 0, "type": "integer"},
+    "stream_counter": {"minimum": 0, "type": "integer"},
+    "terminal_observation_id": {
+      "type": ["string", "null"]
+    },
+    "variant": {"maximum": 3, "minimum": 0, "type": "integer"}
+  },
+  "required": [
+    "family_id", "sample_ordinal", "quartet_ordinal", "variant", "attempt_ordinal",
+    "stream_counter", "accepted", "rejection_reasons", "terminal_observation_id"
+  ],
+  "title": "One deterministic rejection-attempt record",
+  "type": "object"
+}

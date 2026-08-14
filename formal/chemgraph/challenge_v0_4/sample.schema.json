@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "chemgraph-hidden-sample-v0.4",
+  "title": "Extractor-visible invocation record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "invocation_id", "image_relpath", "png_sha256", "byte_size"],
+  "properties": {
+    "schema_version": {"const": "chemgraph-hidden-sample-v0.4"},
+    "invocation_id": {"type": "string", "pattern": "^inv-[0-9]{8}$"},
+    "image_relpath": {"type": "string", "pattern": "^images/img-[0-9]{8}\\.png$"},
+    "png_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "byte_size": {"type": "integer", "minimum": 1}
+  }
+}
+

@@ -1,0 +1,110 @@
+{
+  "$id": "reveal.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "challenge_id": {
+      "$ref": "common.schema.json#/$defs/canonical_id"
+    },
+    "commitment_id": {
+      "pattern": "^commit-[0-9]{4}$",
+      "type": "string"
+    },
+    "decryption_material": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "material_hex": {
+            "pattern": "^[0-9a-f]+$",
+            "type": "string"
+          },
+          "recipient_fingerprint": {
+            "$ref": "common.schema.json#/$defs/sha256"
+          }
+        },
+        "required": [
+          "recipient_fingerprint",
+          "material_hex"
+        ],
+        "type": "object"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "prediction_freezes": {
+      "items": {
+        "$ref": "common.schema.json#/$defs/artifact_ref"
+      },
+      "minItems": 2,
+      "type": "array"
+    },
+    "revealed_artifacts": {
+      "items": {
+        "$ref": "common.schema.json#/$defs/artifact_ref"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "hidden-reveal-0.4"
+    },
+    "seed_derivation": {
+      "additionalProperties": false,
+      "properties": {
+        "algorithm": {
+          "const": "hkdf-sha256-v1"
+        },
+        "info": {
+          "const": "chemgraph-hidden-generator-v0.4"
+        },
+        "salt_hex": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "algorithm",
+        "salt_hex",
+        "info"
+      ],
+      "type": "object"
+    },
+    "seed_shares": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "custodian_id": {
+            "$ref": "common.schema.json#/$defs/canonical_id"
+          },
+          "share_hex": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "custodian_id",
+          "share_hex"
+        ],
+        "type": "object"
+      },
+      "minItems": 2,
+      "type": "array"
+    },
+    "visibility": {
+      "const": "post_prediction_reveal"
+    }
+  },
+  "required": [
+    "schema_version",
+    "visibility",
+    "challenge_id",
+    "commitment_id",
+    "prediction_freezes",
+    "seed_shares",
+    "seed_derivation",
+    "decryption_material",
+    "revealed_artifacts"
+  ],
+  "title": "Post-prediction seed and GT reveal",
+  "type": "object"
+}

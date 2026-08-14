@@ -1,0 +1,350 @@
+{
+  "$id": "audit_validation.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "bucket_metrics": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "ambiguous_correct_count": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "candidate_set_exact_count": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "decode_exact_count": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "family_id": {
+            "$ref": "common.schema.json#/$defs/canonical_id"
+          },
+          "observation_count": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "pack_id": {
+            "pattern": "^pack-[ab]$",
+            "type": "string"
+          },
+          "strict_correct_count": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "style_bucket_id": {
+            "$ref": "common.schema.json#/$defs/canonical_id"
+          },
+          "transform_bucket_id": {
+            "$ref": "common.schema.json#/$defs/canonical_id"
+          }
+        },
+        "required": [
+          "pack_id",
+          "family_id",
+          "style_bucket_id",
+          "transform_bucket_id",
+          "observation_count",
+          "candidate_set_exact_count",
+          "decode_exact_count",
+          "strict_correct_count",
+          "ambiguous_correct_count"
+        ],
+        "type": "object"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "challenge_id": {
+      "$ref": "common.schema.json#/$defs/canonical_id"
+    },
+    "failure_counts": {
+      "additionalProperties": false,
+      "properties": {
+        "ambiguous_graph_or_reject_count": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "collision_evidence_mismatch_count": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "collision_png_mismatch_count": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "commitment_mismatch_count": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "duplicate_isomorphic_candidate_count": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "extra_graph_count": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "missing_graph_count": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "prediction_replay_mismatch_count": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "quota_mismatch_count": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "rebuild_byte_mismatch_count": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "rejection_log_mismatch_count": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "schema_failure_count": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "stability_bucket_failure_count": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "strict_wrong_or_abstain_count": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "wrong_graph_count": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "schema_failure_count",
+        "commitment_mismatch_count",
+        "rebuild_byte_mismatch_count",
+        "quota_mismatch_count",
+        "rejection_log_mismatch_count",
+        "prediction_replay_mismatch_count",
+        "missing_graph_count",
+        "extra_graph_count",
+        "duplicate_isomorphic_candidate_count",
+        "strict_wrong_or_abstain_count",
+        "ambiguous_graph_or_reject_count",
+        "wrong_graph_count",
+        "collision_png_mismatch_count",
+        "collision_evidence_mismatch_count",
+        "stability_bucket_failure_count"
+      ],
+      "type": "object"
+    },
+    "gates": {
+      "additionalProperties": false,
+      "properties": {
+        "ab_each_pack_passed": {
+          "type": "boolean"
+        },
+        "candidate_set_exact_100_percent": {
+          "type": "boolean"
+        },
+        "commitment_and_reveal_valid": {
+          "type": "boolean"
+        },
+        "conservative_decode_exact_100_percent": {
+          "type": "boolean"
+        },
+        "exact_collision_evidence_equal_100_percent": {
+          "type": "boolean"
+        },
+        "generator_rebuild_byte_exact_100_percent": {
+          "type": "boolean"
+        },
+        "hidden_pack_quota_exact": {
+          "type": "boolean"
+        },
+        "independent_verifier_passed": {
+          "type": "boolean"
+        },
+        "prediction_frozen_before_reveal": {
+          "type": "boolean"
+        },
+        "rejection_log_exact": {
+          "type": "boolean"
+        },
+        "replay_byte_exact_100_percent": {
+          "type": "boolean"
+        },
+        "schema_bundle_valid": {
+          "type": "boolean"
+        },
+        "stability_all_buckets_strict": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "schema_bundle_valid",
+        "commitment_and_reveal_valid",
+        "prediction_frozen_before_reveal",
+        "generator_rebuild_byte_exact_100_percent",
+        "hidden_pack_quota_exact",
+        "rejection_log_exact",
+        "replay_byte_exact_100_percent",
+        "exact_collision_evidence_equal_100_percent",
+        "candidate_set_exact_100_percent",
+        "conservative_decode_exact_100_percent",
+        "stability_all_buckets_strict",
+        "ab_each_pack_passed",
+        "independent_verifier_passed"
+      ],
+      "type": "object"
+    },
+    "overall_gate_status": {
+      "enum": [
+        "go_limited_hidden_profile_only",
+        "no_go"
+      ]
+    },
+    "pack_metrics": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "ambiguous_correct_count": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "ambiguous_observation_count": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "candidate_set_exact_count": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "observation_count": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "pack_id": {
+            "pattern": "^pack-[ab]$",
+            "type": "string"
+          },
+          "replay_mismatch_count": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "strict_correct_count": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "strict_observation_count": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "wrong_graph_count": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "pack_id",
+          "observation_count",
+          "candidate_set_exact_count",
+          "strict_observation_count",
+          "strict_correct_count",
+          "ambiguous_observation_count",
+          "ambiguous_correct_count",
+          "wrong_graph_count",
+          "replay_mismatch_count"
+        ],
+        "type": "object"
+      },
+      "maxItems": 2,
+      "minItems": 2,
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "hidden-audit-validation-0.4"
+    },
+    "stability_buckets": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "bucket_id": {
+            "$ref": "common.schema.json#/$defs/canonical_id"
+          },
+          "delta_l1": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "delta_witness_delivery_ids": {
+            "items": {
+              "pattern": "^img-[0-9]{8}$",
+              "type": "string"
+            },
+            "maxItems": 2,
+            "minItems": 2,
+            "type": "array"
+          },
+          "epsilon_l1": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "epsilon_witness_delivery_id": {
+            "pattern": "^img-[0-9]{8}$",
+            "type": "string"
+          },
+          "nonisomorphic_pair_count": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "nuisance_render_count": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "strict_scene_count": {
+            "minimum": 2,
+            "type": "integer"
+          },
+          "twice_epsilon_lt_delta": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "bucket_id",
+          "strict_scene_count",
+          "nuisance_render_count",
+          "nonisomorphic_pair_count",
+          "epsilon_l1",
+          "delta_l1",
+          "epsilon_witness_delivery_id",
+          "delta_witness_delivery_ids",
+          "twice_epsilon_lt_delta"
+        ],
+        "type": "object"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "training_authorized": {
+      "const": false
+    }
+  },
+  "required": [
+    "schema_version",
+    "challenge_id",
+    "pack_metrics",
+    "bucket_metrics",
+    "stability_buckets",
+    "failure_counts",
+    "gates",
+    "overall_gate_status",
+    "training_authorized"
+  ],
+  "title": "Final conjunctive hidden challenge validation",
+  "type": "object"
+}
