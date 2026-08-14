@@ -1,10 +1,10 @@
 # ChemVector 训练档案
 
-当前已预注册：[v1 P2-D1 Listwise Pair Scorer Pilot](20260814-v1p2d1-listwise-pair-scorer-pilot.md)：
-冻结 P1-A/P2-B 与 line-score top8 partner 候选，只训练 25,089 参数 MLP 判断 pair existence。
-输入完整 ribbon 序列、端点分数、长度和 blocker，使用不平衡 BCE + 每根 GT 键对整图最难负例
-的 listwise loss。7,656 fit、400 calibration 训练三轮，winner 冻结后一次性读取 P2-B 的
-400 holdout；目标 known recall 90%、predicted F1 80%，不混入键级、OCR 或 SDF。
+当前已完成：[v1 P2-D1 Listwise Pair Scorer Pilot](20260814-v1p2d1-listwise-pair-scorer-pilot.md)：
+25,089 参数独立 pair MLP 三轮后，一次性 holdout 的 known recall 73.04%、predicted F1
+66.85%、count exact 0.50%、image exact 0，stress/crossed 67.61%/57.41%，严格 NO-GO。
+候选 Oracle 为 95.91%，22.87pp 差距来自独立 pair 排序看不到共享 endpoint、重复候选和整图
+cardinality。下一步改为 top8 candidate graph 的集合消息传递与 node/edge/count 联合目标。
 
 当前已完成：[v1 P2-D0 局部 Partner Oracle](20260814-v1p2d0-local-partner-oracle.md)：每端
 top8 partner union 在平均 1,019.10 pair/图下达到 overall 95.91%、image exact 57.00%、

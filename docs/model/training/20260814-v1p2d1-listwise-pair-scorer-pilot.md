@@ -2,7 +2,7 @@
 
 > 日期：2026-08-14
 >
-> 状态：已预注册，等待训练
+> 状态：已完成，严格 NO-GO
 >
 > 模型：`chemvector-v1p2d1-listwise-pair-scorer-pilot`
 
@@ -91,3 +91,65 @@ P2-B holdout。
 
 GO 仍只是键存在性组件成立。下一周期才能在冻结 pair 上增加 display/chemical type，并最终聚类
 ports 生成 AtomObject；不能用 GT 键数或 GT 类型编译结果冒充端到端模型。
+
+## 实际执行
+
+- pair fit：1,914 个分子、7,656 张图；
+- pair calibration：100 个分子、400 张图；
+- P2-B holdout：100 个分子、400 张图；
+- 三轮共呈现 22,968 个训练样本；
+- scorer 参数量：25,089；
+- 总耗时：674.79 秒；
+- validation/internal test 读取数均为 0。
+
+三轮 calibration 如下：
+
+| Epoch | Train loss | 阈值 | Known recall | Known exact | Predicted F1 | Count exact | Predicted exact |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 0.5895 | 0.95 | 72.16% | 0% | 66.61% | 0.25% | 0% |
+| 2 | 0.5177 | 0.95 | 72.05% | 0% | 63.42% | 0.50% | 0% |
+| 3 | 0.4993 | 0.95 | 71.45% | 0% | 63.02% | 0.25% | 0% |
+
+loss 持续下降，但 known-count 排序和 predicted F1 同时回退。按预注册规则，epoch 1 是正式
+winner；不能用更低训练 loss 选择后两轮。
+
+## 一次性 Holdout
+
+冻结 epoch 1 和阈值 0.95 后，一次性读取 400 张 P2-B holdout，共 14,016 个 GT BondObject：
+
+| 指标 | 结果 | 门槛 | 判定 |
+| --- | ---: | ---: | --- |
+| Known pair recall | 73.04% | 90% | 失败 |
+| Known image exact | 0% | 20% | 失败 |
+| Predicted pair F1 | 66.85% | 80% | 失败 |
+| Predicted count accuracy | 0.50% | 20% | 失败 |
+| Predicted image exact | 0% | 10% | 失败 |
+| Stress known pair recall | 67.61% | 85% | 失败 |
+| Crossed-bonds known pair recall | 57.41% | 75% | 失败 |
+
+predicted precision/recall 为 53.91%/87.95%。每图 top8 原始候选均值 1,013.49，经 4px 量化
+segment NMS 后仍有 357.15 个。全部预注册能力门失败，最终判定
+`listwise_pair_scorer_no_go`。
+
+## 结论
+
+P2-D0 在相同候选协议上的 Oracle recall 为 95.91%，P2-D1 winner 的 known-count recall 只有
+73.04%，相差 22.87pp。说明真 pair 大多仍在输入中，失败发生在学习式排序，而不是候选生成。
+三轮曝光增加没有收窄差距，因此不支持扩大同一 MLP 的层数、数据或轮数。
+
+根因是每个 pair 被独立编码和打分。即使 listwise loss 让每根 GT 键的最佳候选超过最难负例，
+模型仍看不到多个 pair 共享 endpoint、多个近似正候选代表同一 GT 键，以及整图需要同时覆盖
+不同键而不能重复占用同一区域。阈值只能在高 recall 和大量额外 pair 之间移动，无法学出稳定
+cardinality。
+
+下一周期停止独立 pair MLP。P2-D2 应把 top8 candidate graph 作为一个集合：pair 通过共享
+endpoint 做消息传递，显式预测 endpoint keep/incident degree 和 edge existence，并加入整图
+cardinality/coverage 目标。先做一个小型 graph-set capacity 实验，验证它能否在固定候选上逼近
+P2-D0 Oracle；未达到 known recall 90% 前，不增加键级或接 SDF。
+
+## 产物
+
+- checkpoint：`outputs/checkpoints/chemvector-v1p2d1-listwise-pair-scorer-pilot/best.pt`；
+- checkpoint SHA256：`37e0fe8227d0f226c5476cdbec391a814ce634daf1f62c4e4316cd4073567935`；
+- result：`outputs/checkpoints/chemvector-v1p2d1-listwise-pair-scorer-pilot/result.json`；
+- result SHA256：`c4c85400325fb9dbe4d59c2417cd881e665741e142e9d9b6bcdcc6d822cdaa63`。
