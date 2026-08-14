@@ -66,6 +66,33 @@ Grammar v0.1 全量审计还会生成 `scene_manifest.jsonl`。它逐场景记�
 simple-domain 单答案候选。`passed_full_audit` 只表示枚举与产物完整；是否满足唯一恢复必须另看
 `validation.json` 的 `identifiability_gate_status`，训练权限始终为 `false`。
 
+## Observation Recovery v0.2
+
+v0.2 从冻结 v0.1 manifest/certificate 构造 observation class，分别审计保守 `Ambiguous`
+策略与 Evidence-only 全局 prior：
+
+```bash
+python -m formal.chemgraph.audit.run_observation_recovery_v0_2 \
+  --output formal/chemgraph/audit/results/observation_recovery_v0_2/final_a
+```
+
+当前 `visible_lanes` 来自有限 Scene physical member 的审计重建，不是 PNG/tensor extractor。
+因此产物即使通过语义字段左逆，也固定写
+`audit_oracle_only=true`、`deployable_from_opaque_observation=false` 和
+`training_authorized=false`。完整边界见
+`docs/model/formal/OBSERVATION_RECOVERY_V0_2.md`。
+
+全局 crossing prior 的外部风险诊断使用 SDF 定点坐标的精确有理数几何：
+
+```bash
+python -m formal.chemgraph.audit.audit_crossing_prior_risk_v0_2 \
+  Data/MR-TADF_SDF \
+  --output formal/chemgraph/audit/results/observation_recovery_v0_2/crossing_prior_risk.json
+```
+
+该诊断只判断 prior 是否会排除合法 degree-4 junction，不参与阈值、checkpoint 或 benchmark
+选择。
+
 ## 当前边界
 
 v0.1 核心只使用黑色、3 px 实线和固定 3x3 几何点阵。它验证有限状态枚举、真实 production

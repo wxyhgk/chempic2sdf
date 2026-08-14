@@ -31,6 +31,7 @@
 - `ChemGraph/Identifiability.lean`：可辨识性、先验消歧、左逆充分条件和碰撞不可能定理。
 - `ChemGraph/Stability.lean`：异图最小间隔、噪声半径与唯一解码定理。
 - `ChemGraph/Grammar.lean`：精确线段几何、三层 grammar 信号与分类定理。
+- `ChemGraph/ObservationRecovery.lean`：Graph/Ambiguous/Reject 解码协议、strict/ambiguity soundness、先验唯一性和 Oracle field 左逆边界。
 - `ChemGraph/Counterexamples.lean`：crossing 与 junction 的机器检查反例。
 - `ChemGraph/Multiplicity.lean`：双键与两根平行单键的墨迹分组反例。
 - `ChemGraph/Recovery.lean`：受限十字语法上的恢复定理。
@@ -56,6 +57,38 @@ lake build
 4. 在 strict 集上证明 Oracle 中间表示到 production decoder 为左逆。
 5. 对端口交换、Bond 顺序、平移、旋转和缩放验证不变性或等变性。
 6. 由未参与实现的 reviewer 使用未知 seed 连续审批两轮。
+
+Grammar v0.2 还明确区分两类“prior”。`ResolvedByPrior` 中的 scene predicate
+可以筛掉同一 observation 的某些候选解释；但 Lean 已证明，如果这个 predicate
+在整个 observation class 内恒定且仍覆盖每个 base observation，它就不可能恢复
+原本不可辨识的域。因此生产协议中的 prior 必须是对候选解释执行统一规则的
+observation 级解析器，不能是按 Scene ID 或 GT 图查表的标签。对逻辑碰撞类，未激活
+这种公开规则时只能输出 `Ambiguous` 或 `Reject`。
+
+只满足 `AbstainingDecoderSound` 仍允许“全部 Reject”真空通过，因此策略 A 的实际门是
+`ConservativeAbstainingDecoderCorrect`：strict class 必须输出其唯一 Graph，ambiguity
+class 必须输出 `Ambiguous(kind)`，且 `kind` 必须满足单独给出的 taxonomy relation。
+
+`ObservationPriorResolver := Observation -> Graph -> Prop` 是本轮采用的 class-level
+抽象：相同 observation 必然得到相同候选规则；`ResolvedByObservationPrior` 另外要求
+每个支持 observation 至少保留一个真实候选，并且只保留一个图签名。它仍然只是数学
+协议，不意味着可以用 observation hash 查 GT，也不证明具体 lane/bundle/port 字段已可预测。
+
+`ProductionPriorChooser` 进一步冻结生产接口为
+`extract(observation) + candidates(evidence) + choose(evidence, candidates)`；其类型
+不接收 Scene ID 或 `meaning`。`KeptByProductionChooser` 仅在事后用
+`meaning(scene) = choose(...)` 检验保留了哪个解释。Lean 同时证明 factorization 门：若
+两个碰撞场景要求不同 Oracle evidence，就不存在任何 `extract : Observation -> Evidence`
+满足 `oracleEvidence = extract ∘ render`。这类字段不能作为“可学习真值”直接送入训练。
+但函数类型本身仍无法禁止 `extract` 的实现内部按 observation hash 查 GT；这一禁止项必须
+由可执行代码、数据依赖和独立 reviewer 审计，而不能声称已由 Lean 单独证明。
+`ProductionCandidateSetExact` 还要求 evidence 派生的候选集合与该 observation 的真实图
+候选恰好相等，防止 chooser 通过遗漏候选制造“唯一性”；这仍是待可执行审计验证的规格。
+
+`ObservableOracleField` 把 factorization 与 field strict 串联起来：只有存在统一
+`extract : Observation -> Field`，fieldStrict 才能推出 production observation 上的
+strict（up to graph equivalence）。生产中的 `Observation` 必须实例化为完整 tensor/raster
+对象，不能只用 SHA digest 代替；从 digest 提取字段除了查表没有可验证的视觉含义。
 
 ## 稳定恢复条件
 
