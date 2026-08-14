@@ -1,5 +1,10 @@
 # ChemVector 训练档案
 
+当前已完成：[v1 P2-D2-E5 Slots4 Local Partner Oracle](20260814-v1p2d2e5-slots4-local-partner-oracle.md)：
+冻结 E4 后，fresh max256/top8 pair recall 92.83%→95.53%，image exact 35.75%→59.50%，
+stress/crossed/long-bond 为 91.67%/86.24%/97.04%，全部门通过。下一步可正式训练共享 endpoint
+的 candidate graph/set scorer；这些仍是 Oracle 指标。
+
 当前已完成：[v1 P2-D2-E4 Style Endpoint Slots4](20260814-v1p2d2e4-style-endpoint-slots4.md)：
 357,004 参数模型固定一轮读完 91,740 张；style holdout max512 port/pairable 为
 99.71%/99.62%，fresh calibration 为 99.74%/99.69%，fresh stress pairable 99.30%，全部门

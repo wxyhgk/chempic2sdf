@@ -2,7 +2,7 @@
 
 > 日期：2026-08-14
 >
-> 状态：已预注册，等待执行
+> 状态：已完成，正式 GO
 >
 > 审计：`chemvector-v1p2d2e5-slots4-fresh-local-partner-oracle`
 
@@ -37,7 +37,31 @@ crossed-bonds 至少 85%。全部通过才允许训练 candidate graph/set score
   chemvector.evaluation.audits.bonds.audit_v1p2d2e5_slots4_local_partner_oracle
 ```
 
+## 实际结果
+
+400 张、16,656 个 GT BondObject：
+
+| 候选预算 | Pair recall | Image exact | 平均 pair/图 |
+| --- | ---: | ---: | ---: |
+| 每端 top2 | 87.64% | 10.75% | 353.83 |
+| 每端 top4 | 92.96% | 33.25% | 625.77 |
+| 每端 top8 | **95.53%** | **59.50%** | 1,125.98 |
+| 每端 top16 | 96.45% | 68.00% | 2,125.09 |
+
+top8 coordgen/original/rdkit/stress 分别为 96.40%/97.02%/97.02%/91.67%；crossed-bonds、
+crowded、long-bond、near-nonbonded 为 86.24%/94.58%/97.04%/92.18%。相对旧 E0 top8
+提高 2.70pp，image exact 提高 23.75pp。
+
+全部门通过，判定 `slots4_local_partner_oracle_go`。candidate graph/set scorer 的输入前提恢复；
+下一步冻结 P1-A、E4 与 max256/top8 协议，训练共享 endpoint 的 node/edge/count 模型。该结果
+仍是 Oracle，不是最终键预测准确率。
+
 ## 产物
 
 - audit：`outputs/audits/chemvector-v1p2d2e5-slots4-fresh-local-partner-oracle/audit.json`；
 - 逐图明细：同目录 `rows.jsonl`。
+
+SHA256：
+
+- `audit.json`：`dcbd21adb0c296f5c39c68578b5961625fe197b872ab759aeb5d4905ee51e0e7`；
+- `rows.jsonl`：`af5d9de27782a40b2008c3c42eb7e37f9a26b498bbe0b83b767cf149f9b2c25b`。
