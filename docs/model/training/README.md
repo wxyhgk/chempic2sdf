@@ -1,9 +1,9 @@
 # ChemVector 训练档案
 
-当前已预注册：[v1 P1-R 语义墨迹阈值确认](20260814-v1p1r-semantic-ink-threshold-confirm.md)：
-不重训 P1，validation 固定扫描 26 个 soft-alpha 阈值，bond/text 各按 IoU 冻结唯一阈值；
-只有先通过 P1 原五项能力门才一次性读取 496 张 internal test，并要求同门确认。用于区分固定
-0.5 校准不匹配与真实模型容量不足。
+当前已完成：[v1 P1-R 语义墨迹阈值确认](20260814-v1p1r-semantic-ink-threshold-confirm.md)：
+validation 固定 26 点扫描在阈值 0.01 得到 bond/text IoU 90.09%/80.90%，stress bond
+90.30%，但联合前景 89.46% 比 90% 门低 0.54pp，严格 NO-GO；internal test 未读。下一版
+不扩阈值网格，改用与评测一致的二值前景 target 继续一轮。
 
 当前已完成：[v1 P1 语义墨迹分离 Pilot](20260814-v1p1-semantic-ink-separation-pilot.md)：
 1.34M 参数双通道 U-Net 完成两轮 8,856 train。固定 0.5 下 bond/text IoU 为

@@ -25,6 +25,11 @@ precision 达 99.60%/99.78%，bond-on-text-only 仅 1.68%，没有复现“文�
 旧错误，当前更像 soft-alpha 边缘与二值阈值不匹配。先做冻结 PR 校准和一次性 internal-test
 确认，再决定是否扩大模型或改损失。
 
+[v1 P1-R](training/20260814-v1p1r-semantic-ink-threshold-confirm.md) 固定扫描后在 0.01 得到
+bond/text IoU 90.09%/80.90%，但联合前景 89.46% 比门低 0.54pp，仍为 NO-GO；按协议没有
+读取 internal test。下一版不继续向下搜索阈值，而把 soft alpha 改为与评测一致的二值前景
+监督，再以固定 0.5 验证。
+
 2026-08-10 的 P19-E11 首次把 P19 risk router 接到部署 predicted AtomObject。Atom matched
 recall 为 97.36%，但整图 Atom exact 仅 59.30%，stress 仅 153/500、crossed 仅 1/126。
 GT Atom router 在预测分布得到 6 rescue/3 harmful，`1101->1104`，正式 NO-GO；old/new 相对
