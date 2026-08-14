@@ -198,6 +198,16 @@ def _collision_class(
     return "cross_layer_graph_collision"
 
 
+def _scene_domain_collision_class(
+    bucket: ObservationBucket,
+    scene_layer: str,
+    allowed_layers: frozenset[str],
+) -> str:
+    if scene_layer not in allowed_layers:
+        return "excluded"
+    return _collision_class(bucket, allowed_layers)
+
+
 def _exclusive_layer_statistics(
     buckets: dict[str, ObservationBucket],
     layer: str,
@@ -452,8 +462,10 @@ def run_audit(
         )
         row["global_collision_class"] = global_class
         for domain, allowed_layers in sorted(DOMAIN_LAYERS.items()):
-            row[f"{domain}_collision_class"] = _collision_class(
-                bucket, allowed_layers
+            row[f"{domain}_collision_class"] = _scene_domain_collision_class(
+                bucket,
+                row["exclusive_grammar_layer"],
+                allowed_layers,
             )
         row["single_answer_candidate"] = (
             row["exclusive_grammar_layer"] == SIMPLE_LINE_ANGLE_VALID
@@ -500,6 +512,16 @@ def run_audit(
         and row["exclusive_grammar_layer"] == ADVERSARIAL_INVALID
         for row in manifest_rows
     )
+    manifest_domain_classes_match_scope = all(
+        row[f"{domain}_collision_class"]
+        == _scene_domain_collision_class(
+            buckets[row["production_observation_sha256"]],
+            row["exclusive_grammar_layer"],
+            allowed_layers,
+        )
+        for row in manifest_rows
+        for domain, allowed_layers in DOMAIN_LAYERS.items()
+    )
     checks = {
         "core_edge_catalog_is_36": len(GRID_EDGES) == 36,
         "core_formula_is_66712": EXPECTED_CORE_SCENES == 66_712,
@@ -515,6 +537,9 @@ def run_audit(
         "manifest_covers_every_processed_scene": len(manifest_rows)
         == sum(source_counts.values()),
         "manifest_scene_ids_are_unique": len(scene_ids) == len(set(scene_ids)),
+        "manifest_domain_collision_classes_match_scene_scope": (
+            manifest_domain_classes_match_scope
+        ),
         "every_scene_has_exactly_one_known_layer": sum(layer_scene_counts.values())
         == len(manifest_rows)
         and set(layer_scene_counts).issubset(GRAMMAR_LAYERS),

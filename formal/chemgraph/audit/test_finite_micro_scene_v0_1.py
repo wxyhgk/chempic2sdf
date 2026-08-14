@@ -10,6 +10,7 @@ from formal.chemgraph.audit.finite_geometry_grammar_v0_1 import (
     ADVERSARIAL_INVALID,
     BOND_THROUGH_ACTIVE_NONINCIDENT_ATOM,
     CROSSING_ALLOWED,
+    DOMAIN_LAYERS,
     NONSEMANTIC_T_TOUCH,
     PHYSICAL_MEMBER_SEMANTIC_MISMATCH,
     POSITIVE_LENGTH_COLLINEAR_OVERLAP,
@@ -279,10 +280,10 @@ class FiniteMicroSceneV01Tests(unittest.TestCase):
 
     def test_smoke_audit_writes_reports(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
-            result = run_audit(Path(directory), core_limit=12)
+            result = run_audit(Path(directory), core_limit=100)
             self.assertEqual(result["validation"]["status"], "passed_smoke_audit")
             self.assertFalse(result["validation"]["training_authorized"])
-            self.assertEqual(result["summary"]["processed_core_scene_count"], 12)
+            self.assertEqual(result["summary"]["processed_core_scene_count"], 100)
             self.assertEqual(result["summary"]["processed_fixture_scene_count"], 4)
             self.assertGreaterEqual(
                 result["summary"]["graph_collision_class_count"], 2
@@ -295,7 +296,7 @@ class FiniteMicroSceneV01Tests(unittest.TestCase):
                 "scene_manifest.jsonl",
             ):
                 self.assertTrue((Path(directory) / name).is_file())
-            self.assertEqual(len(result["manifest_rows"]), 16)
+            self.assertEqual(len(result["manifest_rows"]), 104)
             self.assertIn(
                 "canonical_graph_signature_full", result["manifest_rows"][0]
             )
@@ -306,11 +307,18 @@ class FiniteMicroSceneV01Tests(unittest.TestCase):
             self.assertEqual(
                 result["validation"]["identifiability_gate_status"], "no_go"
             )
+            for row in result["manifest_rows"]:
+                for domain, allowed_layers in DOMAIN_LAYERS.items():
+                    collision_class = row[f"{domain}_collision_class"]
+                    if row["exclusive_grammar_layer"] not in allowed_layers:
+                        self.assertEqual(collision_class, "excluded")
+                    else:
+                        self.assertNotEqual(collision_class, "excluded")
             review = verify_certificates(
                 Path(directory) / "collision_certificates.json"
             )
             self.assertEqual(review["status"], "passed")
-            self.assertEqual(
+            self.assertGreaterEqual(
                 review["different_signature_pairs_checked"],
                 2,
             )
