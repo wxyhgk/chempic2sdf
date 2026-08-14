@@ -18,6 +18,7 @@ from formal.chemgraph.audit.finite_micro_scene_v0_1 import (
     relabel_scene,
 )
 from formal.chemgraph.audit.run_finite_micro_scene_v0_1 import run_audit
+from formal.chemgraph.audit.verify_finite_micro_scene_v0_1 import verify_certificates
 
 
 class FiniteMicroSceneV01Tests(unittest.TestCase):
@@ -78,6 +79,18 @@ class FiniteMicroSceneV01Tests(unittest.TestCase):
                 "runtime.json",
             ):
                 self.assertTrue((Path(directory) / name).is_file())
+            review = verify_certificates(
+                Path(directory) / "collision_certificates.json"
+            )
+            self.assertEqual(review["status"], "passed")
+            self.assertEqual(
+                review["different_signature_pairs_checked"],
+                2,
+            )
+            self.assertEqual(
+                review["isomorphic_pairs_misclassified_as_different"],
+                0,
+            )
 
 
 if __name__ == "__main__":

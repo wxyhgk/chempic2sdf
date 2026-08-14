@@ -46,6 +46,18 @@ python -m formal.chemgraph.audit.run_finite_micro_scene_v0_1 \
 - `collision_certificates.json`：每个同输入异图等价类的代表场景与规范图签名。
 - `runtime.json`：非承诺的耗时信息，不参与其他产物的 SHA256。
 
+独立图同构复核：
+
+```bash
+python -m formal.chemgraph.audit.verify_finite_micro_scene_v0_1 \
+  --certificates formal/chemgraph/audit/results/finite_micro_scene_v0_1/collision_certificates.json \
+  --expected-sha256 <collision-certificates-sha256> \
+  --output formal/chemgraph/audit/results/finite_micro_scene_v0_1/independent_review.json
+```
+
+verifier 不导入 generator 的规范签名函数；它用 NetworkX 重新构图，并同时匹配 Node
+`color`、Edge `order` 和 Edge `display_type`。
+
 `--image-is-prepared` 会先生成与默认路径相同的 768x768 prepared image，再走
 `image_tensor`，用于验证 prepared-input 分支与默认分支等价。它不跳过或替换生产预处理。
 

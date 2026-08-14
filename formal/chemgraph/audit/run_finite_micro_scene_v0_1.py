@@ -261,6 +261,10 @@ def run_audit(
         "unique_observation_count": len(buckets),
         "graph_collision_class_count": len(collision_certificates),
         "graph_collision_scene_count": graph_collision_scene_count,
+        "maximum_graph_signatures_per_observation": max(
+            (len(bucket.witnesses) for bucket in buckets.values()),
+            default=0,
+        ),
         "preprocessing_collision_class_count": preprocessing_collision_classes,
         "graph_strict_observation_count": len(buckets) - len(collision_certificates),
         "fixture_results": fixture_results,
