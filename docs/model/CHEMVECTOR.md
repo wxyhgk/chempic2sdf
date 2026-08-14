@@ -98,6 +98,11 @@ style_train_100k，发现 339 张坐标重合异常、涉及 166 个分子；整
 张安全样本：最大 occupancy 为 1/2/3/4 的图分别有 97,170/2,071/92/3 张，最大值严格为 4。
 正式路由到 slots=4，保留三张合法超容量图；无证据需要动态 cell set。
 
+[v1 P2-D2-E4](training/20260814-v1p2d2e4-style-endpoint-slots4.md) 用四 slot、357,004 参数固定
+一轮读完 91,740 张。style holdout max512 port/pairable 为 99.71%/99.62%，fresh calibration
+为 99.74%/99.69%，fresh stress pairable 99.30%，全部门通过；相对旧 endpoint 提升
+2.82pp/3.15pp。下一步冻结 checkpoint，在 max256 下重跑 fresh top8 pair Oracle。
+
 2026-08-10 的 P19-E11 首次把 P19 risk router 接到部署 predicted AtomObject。Atom matched
 recall 为 97.36%，但整图 Atom exact 仅 59.30%，stress 仅 153/500、crossed 仅 1/126。
 GT Atom router 在预测分布得到 6 rescue/3 harmful，`1101->1104`，正式 NO-GO；old/new 相对

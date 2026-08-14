@@ -1,5 +1,10 @@
 # ChemVector 训练档案
 
+当前已完成：[v1 P2-D2-E4 Style Endpoint Slots4](20260814-v1p2d2e4-style-endpoint-slots4.md)：
+357,004 参数模型固定一轮读完 91,740 张；style holdout max512 port/pairable 为
+99.71%/99.62%，fresh calibration 为 99.74%/99.69%，fresh stress pairable 99.30%，全部门
+通过。相对旧 endpoint 提升 2.82pp/3.15pp，下一步冻结 checkpoint 重跑 max256 top8 Oracle。
+
 当前已完成：[v1 P2-D2-E3B Style Endpoint Slot 容量审计](20260814-v1p2d2e3b-style-endpoint-slot-capacity.md)：
 99,336 张中最大 cell occupancy 为 1/2/3/4 的图片分别有 97,170/2,071/92/3 张，最大值严格
 为 4。三张合法超容量图保留，正式路由到 slots=4；没有 5+，无需动态 cell set。
