@@ -166,6 +166,9 @@ def evaluate(
     model: SemanticInkSeparator,
     loader: DataLoader,
     device: torch.device,
+    *,
+    bond_threshold: float = 0.5,
+    text_threshold: float = 0.5,
 ) -> dict[str, Any]:
     model.eval()
     channel_counts = [_new_binary_counts(), _new_binary_counts()]
@@ -183,7 +186,10 @@ def evaluate(
             output = model(pixels)
             losses = semantic_ink_loss(output, targets, model.config)
         probabilities = output["logits"].float().sigmoid()
-        predicted = probabilities >= 0.5
+        thresholds = probabilities.new_tensor(
+            (bond_threshold, text_threshold)
+        ).view(1, 2, 1, 1)
+        predicted = probabilities >= thresholds
         expected = targets >= (8.0 / 255.0)
         batch_size = predicted.size(0)
         samples += batch_size
