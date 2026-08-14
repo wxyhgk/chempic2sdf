@@ -1,10 +1,10 @@
 # ChemVector 训练档案
 
-当前已预注册：[v1 P2-C 端点对候选 Oracle](20260814-v1p2c-endpoint-pair-oracle.md)：冻结
-P1-A 与 P2-B winner，以 0.05 宽 endpoint 候选枚举所有无序 pair，不设最大键长裁剪；比较
-endpoint、整段 ribbon、直接 blocker 和 gated blocker 四条固定路线，并按真实键数的
-`1x/2x/4x/8x` 稀疏预算报告 Oracle。只读取已暴露的 400 张 route-select calibration，
-P2-B holdout/validation/internal test 不读；`4x` recall 95% 才允许准备新 scaffold confirm。
+当前已完成：[v1 P2-C 端点对候选 Oracle](20260814-v1p2c-endpoint-pair-oracle.md)：宽候选
+port recall 98.68%、exhaustive pair recall 97.86%，可达性通过；但最佳 line score 的 4x/8x
+recall 只有 77.47%/87.67%，4x image exact 1.75%，stress/crossed 仅 70.88%/61.39%，严格
+NO-GO。直接 blocker 进一步降到 56.30%。下一步先审计 per-endpoint top-K partner Oracle，
+通过 95% 后再训练 listwise pair scorer；不能扩大到平均 18,340 个全量 pair/图。
 
 当前已完成：[v1 P2-B 语义键端点场 Pilot](20260814-v1p2b-semantic-endpoint-field-pilot.md)：
 356,713 参数的局部 endpoint 场训练三轮，一次性 holdout 的 known port recall 59.73%、

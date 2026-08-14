@@ -53,10 +53,11 @@ bond 39.85%、predicted F1 61.10%、count exact 0.75%，严格 NO-GO；validatio
 未读。calibration 的宽候选却覆盖 98.68% port 和 98.15% 可配对键，说明真端点大多存在，
 独立峰排序/定基数才是断点。下一步以沿线成对证据联合选择宽候选，先审计 pair Oracle。
 
-[v1 P2-C](training/20260814-v1p2c-endpoint-pair-oracle.md) 已预注册：冻结 P1-A/P2-B，保留
-0.05 宽 endpoint 候选并枚举所有无序 pair，不设最大键长裁剪。比较 endpoint、整段 ribbon、
-直接 blocker 和 gated blocker 四种排序，在 `1x/2x/4x/8x` 预算下审计真实 BondObject
-候选召回。本轮只做已暴露 calibration 的 route select，任何 GO 都必须经过新 scaffold confirm。
+[v1 P2-C](training/20260814-v1p2c-endpoint-pair-oracle.md) 的宽候选 port/exhaustive pair recall
+为 98.68%/97.86%，证明几何可达；但最佳 line score 在 4x/8x 预算只有 77.47%/87.67%，
+stress/crossed 4x 仅 70.88%/61.39%，严格 NO-GO。直接 blocker 更差，说明简单中间点规则会
+被假端点污染。下一步先做不限制键长的 per-endpoint top-K partner Oracle，通过后再训练
+listwise pair scorer，不能保留平均 18,340 个全量 pair/图。
 
 2026-08-10 的 P19-E11 首次把 P19 risk router 接到部署 predicted AtomObject。Atom matched
 recall 为 97.36%，但整图 Atom exact 仅 59.30%，stress 仅 153/500、crossed 仅 1/126。

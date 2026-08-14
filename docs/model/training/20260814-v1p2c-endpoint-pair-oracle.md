@@ -2,7 +2,7 @@
 
 > 日期：2026-08-14
 >
-> 状态：已预注册，等待审计
+> 状态：已完成，严格 NO-GO
 >
 > 审计：`chemvector-v1p2c-endpoint-pair-oracle`
 
@@ -79,3 +79,52 @@ evidence 有信号，同时直接 blocker 会被宽候选中的假端点污染�
 若只有 exhaustive 通过而 `4x` 不通过，说明端点候选可达但当前确定性 line ranking 不够，下一步
 应训练 pair scorer 或集合选择器；不能通过扩大到全部二次 pair 宣称 GO。若 wide endpoint 或
 exhaustive 也不通过，则停止该候选源，不训练配对头。
+
+## 实际执行
+
+- route-select：100 个分子、400 张图；
+- GT BondObject：13,860；
+- 唯一 GT port：15,528；
+- 平均 endpoint 候选 185.67，p95/最大值均为 256；
+- 平均无序 pair 18,340.09，p95/最大值均为 32,640；
+- 总耗时 9.02 秒；
+- P2-B holdout、validation、internal test 读取数均为 0。
+
+宽候选的 unique-port recall 为 98.68%，两个 port 同时可达的 BondObject recall 为 98.15%。
+删除小于 4px 的近重复 pair 后，exhaustive pair recall 仍为 97.86%，image exact 77.50%。前两项
+可达性门通过，说明 P2-B 宽候选可以作为下一阶段输入。
+
+## 稀疏排序结果
+
+| 路线 | 1x recall | 2x recall | 4x recall | 4x exact | 8x recall | 8x exact |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Endpoint score | 4.55% | 8.07% | 14.44% | 0% | 23.90% | 0% |
+| Line score | 39.94% | 58.72% | 77.47% | 1.75% | 87.67% | 19.75% |
+| Line + direct blocker | 32.07% | 44.06% | 56.30% | 0% | 71.35% | 1.50% |
+| Line + gated blocker | 39.93% | 58.72% | 77.47% | 1.75% | 87.67% | 19.75% |
+
+`line_score` 是预注册排序下的 winner，但 4x recall 比 95% 门低 17.53pp。stress 4x recall
+为 70.88%，crossed-bonds 为 61.39%，分别低于 90%/85% 门；所有稀疏能力门失败。gated
+blocker 与不加 blocker 几乎相同，direct blocker 则显著有害，说明宽候选中的假端点会污染
+简单的“线段中间有点就删除”规则。
+
+最终判定为 `pair_candidate_route_select_no_go`。这个结果不能通过把预算从 4x 增加到全量
+18,340 pair/图来改写，因为那会恢复二次复杂度，也没有给后续分类留下可用 precision。
+
+## 下一步
+
+P2-D 不再手调 ribbon 权重或 blocker 阈值。先在已暴露 route-select 上审计“每个 endpoint
+保留 top-K partner”的局部邻接候选，因为它不设最大键长，又能避免全局 top-K 被少数高分区域
+占满。只有可控 pair 数下 Oracle recall 至少 95%，才训练一个读取完整 ribbon 序列、端点分数、
+长度和 blocker 特征的轻量 pair scorer。
+
+训练应使用 P2-B fit 内新的分子级 fit/calibration；P2-B 的 100 分子 holdout 继续保留，在
+pair scorer 和阈值完全冻结后只读取一次。pair scorer 需要 listwise/hard-negative 目标，不能
+继续用本轮手工线条总分冒充学习模型。
+
+## 产物
+
+- audit：`outputs/audits/chemvector-v1p2c-endpoint-pair-oracle/audit.json`；
+- audit SHA256：`4188f36a408bd1f7595195571f6893add4d21d89772005dc2f23f60af1e4ee49`；
+- rows：`outputs/audits/chemvector-v1p2c-endpoint-pair-oracle/rows.jsonl`；
+- rows SHA256：`d7a2cee4bb7b7bb22847df9a8309b36f04a4b016a415dd53822fd9a92a2866f3`。
