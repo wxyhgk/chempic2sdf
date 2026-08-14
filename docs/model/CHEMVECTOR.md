@@ -14,6 +14,11 @@ NO-GO。53 张异常来自 38 个分子，主要是 stress 几何与源立体标
 MR-TADF 用于训练或选参。详见
 [v1 P0](training/20260814-v1p0-edge-centric-oracle10k.md)。
 
+[v1 P0-R](training/20260814-v1p0r-edge-centric-safe-manifest.md) 随后按分子整组排除 38 个
+异常分子，冻结 2,462 个分子、9,848 张完整四布局安全清单。全部 9,848 张重新通过
+ChemScene/SDF 往返，train/validation/internal test 为 8,856/496/496，安全输入正式 GO。
+该结果只解除数据协议阻塞，不代表视觉模型已经有效；下一步从 train split 做小型容量实验。
+
 2026-08-10 的 P19-E11 首次把 P19 risk router 接到部署 predicted AtomObject。Atom matched
 recall 为 97.36%，但整图 Atom exact 仅 59.30%，stress 仅 153/500、crossed 仅 1/126。
 GT Atom router 在预测分布得到 6 rescue/3 harmful，`1101->1104`，正式 NO-GO；old/new 相对

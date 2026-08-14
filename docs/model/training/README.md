@@ -1,9 +1,9 @@
 # ChemVector 训练档案
 
-当前已预注册：[v1 P0-R Edge-centric 安全清单](20260814-v1p0r-edge-centric-safe-manifest.md)：
-按分子整组排除 P0 的 38 个异常分子，预计保留 2,462 个分子、9,848 张完整四布局图片；逐张
-重新验证 ChemScene/SDF 往返必须 100% 通过。只生成原 tar 成员 allowlist，不补图、不降低
-P0 门槛，也不使用任何模型或 benchmark 做筛选。
+当前已完成：[v1 P0-R Edge-centric 安全清单](20260814-v1p0r-edge-centric-safe-manifest.md)：
+按分子整组排除 P0 的 38 个异常分子，保留 2,462 个分子、9,848 张完整四布局图片；9,848 张
+重新执行 ChemScene/SDF 往返全部通过，端口所有权严格一致。只生成原 tar 成员 allowlist，
+未补图、未降低 P0 门槛，也未使用模型或 benchmark 筛选。安全训练输入正式 GO。
 
 当前已完成：[v1 P0 Edge-centric Oracle10k](20260814-v1p0-edge-centric-oracle10k.md)：
 9,947/10,000（99.47%）通过一原子一 AtomObject、一键一 BondObject、端口所有权和 SDF

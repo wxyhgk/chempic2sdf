@@ -2,7 +2,7 @@
 
 > 日期：2026-08-14
 >
-> 状态：已预注册，等待运行
+> 状态：GO；安全训练输入清单已冻结
 >
 > 审计：`chemvector-v1p0r-edge-centric-safe-manifest`
 
@@ -46,3 +46,32 @@ v1 P0 的 10,000 张中有 9,947 张完整通过，但覆盖率 99.47% 低于预
 
 全部通过后，P0-R 只说明“训练输入清单可用”，不说明视觉模型有效。下一周期才能在 train split
 上做 Text/Bond/Endpoint 小型容量实验；validation/internal test 只能按原 split 评估。
+
+## 实际结果
+
+预注册提交为 `203f6f1`。全量执行耗时 87.11 秒，12 项门全部通过：
+
+| 指标 | 结果 |
+|---|---:|
+| 原始分子 / 图片 | 2,500 / 10,000 |
+| 排除分子 / 图片 | 38 / 152 |
+| 安全分子 / 图片 | 2,462 / 9,848 |
+| train / validation / internal test | 8,856 / 496 / 496 |
+| 每种布局 | 2,462 |
+| 安全 Oracle 往返 | 9,848 / 9,848 |
+| AtomObject / BondObject | 324,808 / 352,264 |
+| incident ports | 704,528 |
+
+四类 stress 仍完整覆盖：crossed-bonds 616、crowded-subgraph 608、long-bond 617、
+near-nonbonded 621。清单构建未读取任何模型输出，没有补图或重渲染，P0 原始 10k 仍保持
+NO-GO。
+
+冻结产物：
+
+- `manifest.jsonl`：9,848 行，SHA256
+  `eb9da30c85aaede01b635294f53dca4454825f13db55002cb2df843edb49f11b`；
+- `result.json`：SHA256
+  `b497e3c9d0abaca99621d79c02398845f79a183409550c958fb7f1d55cf647e0`。
+
+决策：安全清单 GO。下一周期只能使用 8,856 张 train 图片做容量训练；496 张 validation
+用于固定评估，496 张 internal test 继续保留，不能参与 checkpoint、阈值或超参数选择。
