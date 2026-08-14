@@ -32,7 +32,8 @@ lake build
 
 当前 `training_authorized=false`。
 
-正式 supervisor 使用未注册且启动前无进程的冻结数值身份 `61184:61184` 运行 worker。
+正式 supervisor 使用专用系统身份 `chemgraph-pilot`（`61184:61184`、home `/nonexistent`、
+shell `/usr/sbin/nologin`）运行 worker，并要求启动前该 UID 没有任何进程。
 worker 与 supervisor 分别受 78 GiB 和 1 GiB sibling cgroup 硬限制；二者上限之和为冻结的
 79 GiB。迁移前 `VmSize` 必须不超过剩余 1 GiB，并与两个 cgroup peak 相加，作为整个流程
 聚合 RSS 的保守上界；发布后还会重新检查两组 OOM 事件。

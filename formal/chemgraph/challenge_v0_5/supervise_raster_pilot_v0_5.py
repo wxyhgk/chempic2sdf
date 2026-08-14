@@ -38,6 +38,7 @@ RECORD_DOMAIN = b"chemgraph-v0.5/tuple-raster-membership"
 RESULT_ROOT = Path("/opt/chemgraph/results")
 PRIVATE_RUN_UID = 61_184
 PRIVATE_RUN_GID = 61_184
+PRIVATE_RUN_NAME = "chemgraph-pilot"
 REQUIRED_EXTERNAL_ROLES = {"apptainer", "mount", "runtime_sif", "umount"}
 OOM_EVENT_KEYS = ("oom", "oom_kill", "oom_group_kill")
 REQUIRED_SOURCE_ARTIFACTS = {
@@ -207,17 +208,18 @@ def verify_private_run_identity(uid: int, gid: int) -> None:
     if uid != PRIVATE_RUN_UID or gid != PRIVATE_RUN_GID:
         raise SupervisorError(f"run_identity_not_frozen:{uid}:{gid}")
     try:
-        pwd.getpwuid(uid)
-    except KeyError:
-        pass
-    else:
-        raise SupervisorError(f"run_uid_registered:{uid}")
-    try:
-        grp.getgrgid(gid)
-    except KeyError:
-        pass
-    else:
-        raise SupervisorError(f"run_gid_registered:{gid}")
+        account = pwd.getpwuid(uid)
+        group = grp.getgrgid(gid)
+    except KeyError as error:
+        raise SupervisorError("private_run_account_missing") from error
+    if (
+        account.pw_name != PRIVATE_RUN_NAME
+        or account.pw_gid != gid
+        or account.pw_dir != "/nonexistent"
+        or account.pw_shell != "/usr/sbin/nologin"
+        or group.gr_name != PRIVATE_RUN_NAME
+    ):
+        raise SupervisorError(f"private_run_account_mismatch:{account}:{group}")
     for status_path in Path("/proc").glob("[0-9]*/status"):
         try:
             lines = status_path.read_text(encoding="ascii").splitlines()
