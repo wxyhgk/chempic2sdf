@@ -2,7 +2,7 @@
 
 > 日期：2026-08-14
 >
-> 状态：已预注册，等待训练
+> 状态：Validation GO；等待一次性 internal-test 确认
 >
 > 模型：`chemvector-v1p1a-binary-ink-finetune`
 
@@ -34,3 +34,34 @@ bond IoU 88%、bond-on-text-only 不超过 10%。同时要求固定阈值确为 
 
 GO 后冻结 P1-A，再以同一个固定 checkpoint 和 0.5 阈值一次性读取 internal test。NO-GO
 则说明仅修改 soft/binary target 不足，应改变模型容量或目标结构，不能继续搜索阈值。
+
+## 结果
+
+预注册提交为 `e45aab9`。固定一轮完整读取 8,856 张，耗时 169.03 秒，终点就是唯一
+checkpoint：
+
+`outputs/checkpoints/chemvector-v1p1a-binary-ink-finetune/best.pt`
+
+SHA256：`490b5daae3a2059c3d335785a69e0c2a41eed32f0237ef77fc3556c36d134a74`。
+
+固定 0.5 的 496 张 validation 结果：
+
+| 指标 | P1 soft target | P1-A binary target | 门 |
+|---|---:|---:|---:|
+| Bond IoU | 71.73% | 97.72% | 90%，通过 |
+| Bond precision / recall | 99.60% / 71.94% | 98.07% / 99.64% | - |
+| Text IoU | 65.09% | 91.85% | 75%，通过 |
+| Text precision / recall | 99.78% / 65.18% | 99.15% / 92.59% | - |
+| 联合前景 IoU | 71.23% | 99.21% | 90%，通过 |
+| Stress bond IoU | 72.11% | 97.56% | 88%，通过 |
+| Bond-on-text-only | 1.68% | 9.36% | 10%，通过 |
+
+8 项门全部通过，validation 决策 GO。`result.json` SHA256：
+`ce17cfe8fb0e41b877d3a0ece8d0f6f1de3f082404135b49f67394c21a647612`。
+
+## 判断
+
+相同结构、相同数据只对齐监督定义后，bond/text IoU 分别提高 26.0pp/26.8pp，说明 P1 的
+主要失败不是数据不足或模型太小，而是 soft-alpha 概率目标与二值结构任务不一致。当前
+bond-on-text-only 9.36% 只比 10% 门低 0.64pp，是唯一紧门；因此 checkpoint 暂不接
+BondObject，必须保持模型和 0.5 阈值不变，一次性读取 internal test 确认。

@@ -30,6 +30,11 @@ bond/text IoU 90.09%/80.90%，但联合前景 89.46% 比门低 0.54pp，仍为 N
 读取 internal test。下一版不继续向下搜索阈值，而把 soft alpha 改为与评测一致的二值前景
 监督，再以固定 0.5 验证。
 
+[v1 P1-A](training/20260814-v1p1a-binary-ink-finetune.md) 保持相同模型和数据，只用二值
+前景继续一轮，固定 0.5 validation 的 bond/text/联合 IoU 达
+97.72%/91.85%/99.21%，stress bond 97.56%，正式通过能力门。这证明前一轮瓶颈是目标定义
+错位而非模型容量。bond-on-text-only 9.36% 接近 10% 门，需冻结后做 internal-test 确认。
+
 2026-08-10 的 P19-E11 首次把 P19 risk router 接到部署 predicted AtomObject。Atom matched
 recall 为 97.36%，但整图 Atom exact 仅 59.30%，stress 仅 153/500、crossed 仅 1/126。
 GT Atom router 在预测分布得到 6 rescue/3 harmful，`1101->1104`，正式 NO-GO；old/new 相对

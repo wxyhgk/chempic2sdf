@@ -1,9 +1,10 @@
 # ChemVector 训练档案
 
-当前已预注册：[v1 P1-A 二值墨迹微调](20260814-v1p1a-binary-ink-finetune.md)：
-从 P1 best 固定继续一轮，只把监督改为与评测一致的 `alpha >= 8/255` 二值 mask；8,856
-train、学习率 1e-4、固定 0.5 validation，不搜 step 或阈值，internal test 不读取。用于验证
-P1-R 的低置信度边缘是否来自 soft-alpha 目标不匹配。
+当前已完成：[v1 P1-A 二值墨迹微调](20260814-v1p1a-binary-ink-finetune.md)：
+相同 1.34M 模型只把 target 对齐为 `alpha >= 8/255`，一轮后固定 0.5 validation 的
+bond/text/联合 IoU 达 97.72%/91.85%/99.21%，stress bond 97.56%，全部能力门通过。
+bond-on-text-only 为 9.36%，接近 10% 门；checkpoint 已冻结，下一步一次性 internal-test
+确认，不再训练或调阈值。
 
 当前已完成：[v1 P1-R 语义墨迹阈值确认](20260814-v1p1r-semantic-ink-threshold-confirm.md)：
 validation 固定 26 点扫描在阈值 0.01 得到 bond/text IoU 90.09%/80.90%，stress bond
