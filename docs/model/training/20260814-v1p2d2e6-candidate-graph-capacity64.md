@@ -2,7 +2,7 @@
 
 > 日期：2026-08-14
 >
-> 状态：已预注册，训练中
+> 状态：已完成，正式 NO-GO
 >
 > 模型：`chemvector-v1p2d2e6-candidate-graph-capacity64`
 
@@ -82,13 +82,47 @@ junction 周围的竞争边不再彼此独立。
   chemvector.training.bonds.objects.train_v1p2d2e6_candidate_graph_capacity64
 ```
 
-## 产物
+## 实际结果
 
-计划写入：
+554,388 参数，训练 4,800 step、耗时 55.79 秒。严格按预注册的
+`predicted exact -> count accuracy -> known exact -> F1` 顺序选择 step 800：
+
+| 指标 | 冻结 step 800 | 训练后期最好值 |
+| --- | ---: | ---: |
+| known-count pair precision | 98.57% | 99.59%（step 4600） |
+| known-count pair recall | 59.70% | 80.39%（step 4600） |
+| known-count image exact | 0/64 | 2/64（step 4600） |
+| predicted count accuracy | 10/64 | 6/64（step 4600） |
+| predicted pair F1 | 69.10% | 83.93%（step 4600） |
+| predicted image exact | 0/64 | 0/64 |
+
+三个核心门全部失败，判定 `candidate_graph_capacity_no_go`，不得进入 style 规模训练。后期
+precision 已接近 100%，但 unique Bond recall 明显更低，说明 top-K 名额仍被同一真实键的近重复
+候选占用；独立 graph count 头的 MAE 仍约 5。继续增加同构训练步数不能消除这种输出表示问题。
+
+一次不参与选模的诊断显示，真正的无序端点距离 NMS 能把冻结 checkpoint 的 known recall 从
+59.70% 提高到约 94%，但仍只有 14/64 exact，而且依赖固定像素半径；它不能满足项目对风格
+鲁棒性的要求。下一周期改为固定 Bond query set：query 对整组 edge memory 做 cross-attention，
+以 Hungarian 集合匹配直接产生无重复 Bond 槽，并让 no-object 槽承担 cardinality；不再把
+“全部候选边的独立二分类 + top-K”作为最终输出协议。
+
+## 产物
 
 ```text
 outputs/checkpoints/chemvector-v1p2d2e6-candidate-graph-capacity64/
 ```
 
-训练完成后补记实际 step、指标、checkpoint SHA256 和正式 GO/NO-GO，并创建与模型名完全相同
-的 annotated tag。
+- `final.pt` SHA256：
+  `cd746b200976a86680a6f0f446df41198d5653771ce3a801344fa706e230de6a`；
+- `result.json` SHA256：
+  `9f0a6884f3623adcd76640b70e01aede8b53759886cf3baf161f0bc5b8f72bdd`；
+- cache audit SHA256：
+  `c084aff62e886b9f4c4daf56480aa5d97cc94e53314d15539acfc39f941eb47e`。
+
+所有 style/fresh 保留组、sealed test、MR-TADF 和 USPTO 读取数均为 0；生成 PNG 数为 0。
+
+模型 tag：
+
+```text
+chemvector-v1p2d2e6-candidate-graph-capacity64
+```

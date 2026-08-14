@@ -1,9 +1,9 @@
 # ChemVector 训练档案
 
-当前进行中：[v1 P2-D2-E6 Candidate Graph Capacity64](20260814-v1p2d2e6-candidate-graph-capacity64.md)：
-已冻结 64 张组级候选 Oracle exact 100% 的图，四种布局各 16 张，共 1,958 条 GT 键与 59,625
-条候选边；新增共享 endpoint 的 node/edge/count 两层消息传递模型。预注册门要求 known-count、
-模型 count 和端到端候选选择三者都达到 64/64，未通过前不扩到 style 全量。
+当前已完成：[v1 P2-D2-E6 Candidate Graph Capacity64](20260814-v1p2d2e6-candidate-graph-capacity64.md)：
+共享 endpoint 图模型后期把 known-count recall 提到 80.39%，但 exact 仅 2/64；冻结模型的
+count 为 10/64、端到端 exact 为 0，正式 NO-GO。错误集中在同一 Bond 的近重复候选占用
+top-K；下一步改为 Hungarian 匹配的固定 Bond query set，不扩量同构 edge classifier。
 
 当前已完成：[v1 P2-D2-E5 Slots4 Local Partner Oracle](20260814-v1p2d2e5-slots4-local-partner-oracle.md)：
 冻结 E4 后，fresh max256/top8 pair recall 92.83%→95.53%，image exact 35.75%→59.50%，
