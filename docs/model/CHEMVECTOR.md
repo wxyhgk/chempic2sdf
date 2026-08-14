@@ -85,6 +85,11 @@ recall 95.88%、exhaustive pair recall 95.15%，而 top8 为 92.83%。主要损�
 平台；threshold 0.05→0.01 也无额外收益。正确 endpoint 峰本身缺失，正式路由到 endpoint
 model retrain。下一步在全量安全预检后用 style_train_100k 扩量，架构与 separator 保持不变。
 
+[v1 P2-D2-E3A](training/20260814-v1p2d2e3a-style-endpoint-safe-manifest.md) 全量编译预检
+style_train_100k，发现 339 张坐标重合异常、涉及 166 个分子；整分子排除后保留 99,336 张。
+按 scaffold 隔离得到 fit/calibration/holdout 91,740/3,588/4,008 张，跨组重叠为 0，未生成
+新 PNG。数据门通过，允许固定一轮重训 endpoint 场。
+
 2026-08-10 的 P19-E11 首次把 P19 risk router 接到部署 predicted AtomObject。Atom matched
 recall 为 97.36%，但整图 Atom exact 仅 59.30%，stress 仅 153/500、crossed 仅 1/126。
 GT Atom router 在预测分布得到 6 rescue/3 harmful，`1101->1104`，正式 NO-GO；old/new 相对

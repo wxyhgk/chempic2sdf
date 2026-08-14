@@ -1,5 +1,10 @@
 # ChemVector 训练档案
 
+当前已完成：[v1 P2-D2-E3A Style Endpoint 安全清单](20260814-v1p2d2e3a-style-endpoint-safe-manifest.md)：
+全量预检 style_train_100k 后发现 339 张坐标重合异常，涉及 166 个分子；按整分子排除后保留
+99,336 张。scaffold 隔离得到 fit/calibration/holdout 91,740/3,588/4,008 张，跨组重叠为 0，
+无新 PNG。数据门通过，允许开始固定一轮 endpoint 扩量训练。
+
 当前已完成：[v1 P2-D2-E2 Endpoint Budget Ladder](20260814-v1p2d2e2-endpoint-budget-ladder.md)：
 256→512 将 fresh port/pairable recall 从 95.88%/95.16% 提至 96.93%/96.55%，384→512 已
 基本平台；阈值 0.05→0.01 无额外收益。九组均未过 97%，正式路由到 endpoint model retrain；

@@ -2,7 +2,7 @@
 
 > 日期：2026-08-14
 >
-> 状态：已预注册，等待执行
+> 状态：已完成，通过
 >
 > 审计：`chemvector-v1p2d2e3a-style-endpoint-safe-manifest`
 
@@ -42,8 +42,28 @@ scaffold 为 holdout，其余为 fit。molecule 与 scaffold 跨 split 重叠必
   chemvector.evaluation.audits.bonds.build_v1p2d2e3a_style_endpoint_manifest
 ```
 
+## 实际结果
+
+- 100,000 张源标签全部完成 ChemScene v0.2 编译预检；
+- 339 张失败，涉及 166 个分子，异常全部为原子可视坐标重合；
+- 按整分子排除 664 张，保留 24,834 个分子、99,336 张；
+- fit：22,935 分子、91,740 张、18,786 scaffold；
+- calibration：897 分子、3,588 张、750 scaffold；
+- holdout：1,002 分子、4,008 张、750 scaffold；
+- molecule/scaffold 跨 split 重叠均为 0；
+- 新生成 PNG 为 0；fresh_dev 与 sealed_test 读取数均为 0。
+
+数据侧原 validation 的 `rejected=3` 没有覆盖 ChemScene 坐标唯一性；本轮发现的 166 个分子
+不能进入 endpoint 训练。安全清单正式通过，下一步允许启动 style endpoint 一轮扩量训练。
+
 ## 产物
 
 - manifest：`outputs/audits/chemvector-v1p2d2e3a-style-endpoint-safe-manifest/manifest.jsonl`；
 - audit：同目录 `audit.json`；
 - 异常清单：同目录 `rejections.json`。
+
+SHA256：
+
+- `audit.json`：`39054cf355040abf619fb7add9a66130bec80f5c83a2e0fc632b4d374fe01bfa`；
+- `manifest.jsonl`：`ee41d57275d8c48ebe9461b69eeef5bbb90abaa10de9319b746f8274024686e6`；
+- `rejections.json`：`90fd21bae8d8df24ae77728026e470d3048cd1ee3c549a0fe36eac4d6cfa6d51`。
