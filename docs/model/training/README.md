@@ -1,10 +1,11 @@
 # ChemVector 训练档案
 
-当前已预注册：[v1 P2-B 语义键端点场 Pilot](20260814-v1p2b-semantic-endpoint-field-pilot.md)：
-冻结 P1-A，只用 stride-4 局部 presence + offset 预测唯一 visible port 集合，不回归另一端、
-键长或键级。8,056 fit 训练三轮，400 calibration 选 checkpoint/阈值，再一次性读取 400 张
-train-only holdout；validation/internal test 均不读。GO 要求 known port recall 95%、两个
-port 同时可恢复的 bond recall 90% 和 predicted port F1 88%，不把配对上限冒充完整 BondObject。
+当前已完成：[v1 P2-B 语义键端点场 Pilot](20260814-v1p2b-semantic-endpoint-field-pilot.md)：
+356,713 参数的局部 endpoint 场训练三轮，一次性 holdout 的 known port recall 59.73%、
+known pairable bond 39.85%、predicted F1 61.10%、count exact 0.75%，严格 NO-GO；
+validation/internal test 均未读。宽候选在 calibration 可达 98.68% port recall 和 98.15%
+pairable 上限，但 precision 仅 20.63%，说明断点是独立峰排序/定基数。下一步用成对沿线证据
+联合选择宽 endpoint 候选，先做 pair-candidate Oracle，不继续扩大独立 endpoint 头。
 
 当前已完成：[v1 P2 Semantic BondObject Pilot](20260814-v1p2-semantic-bondobject-pilot.md)：
 冻结 P1-A，只从预测 bond probability 直接检测完整 BondObject。三轮后 validation 的 known
