@@ -218,7 +218,7 @@ def _components(scene: Scene) -> list[tuple[int, ...]]:
 def _canonical_component(scene: Scene, atom_ids: tuple[int, ...], *, erase_text: bool) -> str:
     node_by_id = {node.atom_id: node for node in scene.nodes}
     edge_labels = {
-        bond.endpoints: f"{bond.order}:{bond.display_type}"
+        bond.endpoints: str(bond.order)
         for bond in scene.bonds
         if bond.begin_atom in atom_ids and bond.end_atom in atom_ids
     }

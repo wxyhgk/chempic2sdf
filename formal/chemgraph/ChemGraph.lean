@@ -2,6 +2,7 @@ import ChemGraph.Scene
 import ChemGraph.Render
 import ChemGraph.Identifiability
 import ChemGraph.Stability
+import ChemGraph.Grammar
 import ChemGraph.Counterexamples
 import ChemGraph.Multiplicity
 import ChemGraph.Recovery

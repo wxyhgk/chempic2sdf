@@ -55,11 +55,16 @@ python -m formal.chemgraph.audit.verify_finite_micro_scene_v0_1 \
   --output formal/chemgraph/audit/results/finite_micro_scene_v0_1/independent_review.json
 ```
 
-verifier 不导入 generator 的规范签名函数；它用 NetworkX 重新构图，并同时匹配 Node
-`color`、Edge `order` 和 Edge `display_type`。
+verifier 不导入 generator 的规范签名函数；它用 NetworkX 重新构图，并匹配 Node `color`
+与化学 Edge `order`。`display_type` 是受 grammar 映射约束的渲染字段，不进入化学图同构。
 
 `--image-is-prepared` 会先生成与默认路径相同的 768x768 prepared image，再走
 `image_tensor`，用于验证 prepared-input 分支与默认分支等价。它不跳过或替换生产预处理。
+
+Grammar v0.1 全量审计还会生成 `scene_manifest.jsonl`。它逐场景记录 raw/production hash、
+两种规范图签名、互斥 grammar 层、三个累计域中的 collision class、未激活的 prior 和是否可作
+simple-domain 单答案候选。`passed_full_audit` 只表示枚举与产物完整；是否满足唯一恢复必须另看
+`validation.json` 的 `identifiability_gate_status`，训练权限始终为 `false`。
 
 ## 当前边界
 

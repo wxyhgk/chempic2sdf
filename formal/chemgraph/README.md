@@ -30,6 +30,7 @@
 - `ChemGraph/Render.lean`：丢弃所有权的普通渲染，以及保留 Bond 分组的观测规格。
 - `ChemGraph/Identifiability.lean`：可辨识性、先验消歧、左逆充分条件和碰撞不可能定理。
 - `ChemGraph/Stability.lean`：异图最小间隔、噪声半径与唯一解码定理。
+- `ChemGraph/Grammar.lean`：精确线段几何、三层 grammar 信号与分类定理。
 - `ChemGraph/Counterexamples.lean`：crossing 与 junction 的机器检查反例。
 - `ChemGraph/Multiplicity.lean`：双键与两根平行单键的墨迹分组反例。
 - `ChemGraph/Recovery.lean`：受限十字语法上的恢复定理。

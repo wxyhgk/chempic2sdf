@@ -34,7 +34,6 @@ def _graph(scene: dict[str, Any]) -> nx.Graph:
             int(bond["begin_atom"]),
             int(bond["end_atom"]),
             order=int(bond["order"]),
-            display_type=str(bond["display_type"]),
         )
     return graph
 
@@ -57,10 +56,7 @@ def verify_certificates(
         raise ValueError("Collision certificate count does not match the payload")
 
     node_match = nx.algorithms.isomorphism.categorical_node_match("color", None)
-    edge_match = nx.algorithms.isomorphism.categorical_edge_match(
-        ["order", "display_type"],
-        [None, None],
-    )
+    edge_match = nx.algorithms.isomorphism.categorical_edge_match("order", None)
     pair_count = 0
     false_differences = []
     for certificate in certificates:
@@ -72,6 +68,8 @@ def verify_certificates(
                 f"{certificate['observation_sha256']}"
             )
         for left, right in combinations(witnesses, 2):
+            if left["graph_signature"] == right["graph_signature"]:
+                continue
             pair_count += 1
             if nx.is_isomorphic(
                 _graph(left["scene"]),
@@ -101,7 +99,7 @@ def verify_certificates(
             "engine": "networkx.is_isomorphic",
             "networkx_version": nx.__version__,
             "node_attributes": ["color"],
-            "edge_attributes": ["order", "display_type"],
+            "edge_attributes": ["order"],
         },
         "reviewer_script_sha256": _sha256(script_path.read_bytes()),
     }
