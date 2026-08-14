@@ -82,6 +82,18 @@ python -m formal.chemgraph.audit.run_observation_recovery_v0_2 \
 `training_authorized=false`。完整边界见
 `docs/model/formal/OBSERVATION_RECOVERY_V0_2.md`。
 
+独立 verifier 只用 Python 标准库，不导入 recovery、runner、Scene generator 或 graph
+canonicalizer：
+
+```bash
+python -m formal.chemgraph.audit.verify_observation_recovery_v0_2 \
+  --result-dir formal/chemgraph/audit/results/observation_recovery_v0_2/final_a \
+  --output formal/chemgraph/audit/results/observation_recovery_v0_2/final_a/independent_review.json
+```
+
+它从冻结 v0.1 manifest 独立重组每个 domain 的 graph candidate set，验证 A 的 strict/ambiguity、
+B 的 choice/survivor/Reject、summary/validation 统计和全部安全边界。
+
 全局 crossing prior 的外部风险诊断使用 SDF 定点坐标的精确有理数几何：
 
 ```bash
