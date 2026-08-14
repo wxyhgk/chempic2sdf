@@ -122,7 +122,7 @@ def _loader(
         raise ValueError(f"v1 P1 cannot construct loader for split {split!r}")
     dataset = ChemVectorIterableDataset(
         shards,
-        shardshuffle=shuffle,
+        shardshuffle=False,
         sample_shuffle_buffer=512 if shuffle else 0,
         sample_shuffle_seed=seed,
         include_keys=keys,
@@ -295,7 +295,7 @@ def main() -> None:
     if not train_rows or not validation_rows:
         raise ValueError("v1 P1 train and validation rows must be nonempty")
 
-    args.output_dir.mkdir(parents=True, exist_ok=False)
+    args.output_dir.mkdir(parents=True, exist_ok=True)
     device = torch.device("cuda")
     model = SemanticInkSeparator().to(device)
     optimizer = torch.optim.AdamW(

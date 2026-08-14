@@ -138,9 +138,11 @@ def semantic_ink_loss(
         1.0 - probabilities[:, 1]
     )
     target_union = targets.amax(dim=1)
-    reconstruction = F.binary_cross_entropy(
-        predicted_union.clamp(1e-5, 1.0 - 1e-5), target_union
-    )
+    predicted_union = predicted_union.clamp(1e-5, 1.0 - 1e-5)
+    reconstruction = -(
+        target_union * predicted_union.log()
+        + (1.0 - target_union) * torch.log1p(-predicted_union)
+    ).mean()
     total = (
         weighted_bce
         + config.dice_weight * dice
