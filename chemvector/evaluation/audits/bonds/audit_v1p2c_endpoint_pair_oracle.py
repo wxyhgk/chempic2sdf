@@ -10,7 +10,7 @@ import json
 import math
 from pathlib import Path
 import time
-from typing import Any
+from typing import Any, Callable
 
 from scipy.optimize import linear_sum_assignment
 import torch
@@ -173,6 +173,7 @@ def run_audit(
     *,
     workers: int,
     log_every: int,
+    loader_factory: Callable[..., Any] = _loader,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     pair_config = SemanticEndpointPairConfig()
     route_totals = {route: _new_route_totals() for route in ROUTES}
@@ -187,7 +188,7 @@ def run_audit(
     pair_counts = []
     output_rows = []
     detector.eval()
-    loader = _loader(
+    loader = loader_factory(
         rows, batch_size=1, shuffle=False, seed=20260818, workers=workers
     )
     for sample_index, batch in enumerate(loader, 1):
