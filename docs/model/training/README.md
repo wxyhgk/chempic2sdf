@@ -1,5 +1,10 @@
 # ChemVector 训练档案
 
+当前已预注册：[v1 P2-D0 局部 Partner Oracle](20260814-v1p2d0-local-partner-oracle.md)：
+冻结宽 endpoint 和 line evidence，对每个 endpoint 从全图保留 top2/4/8/16 partner 后取无序
+并集，不使用半径、最近邻或最大键长裁剪。只读取已暴露的 400 张 route-select；top8 必须达到
+overall/stress/crossed 95%/90%/85% 和 image exact 30%，才允许训练 listwise pair scorer。
+
 当前已完成：[v1 P2-C 端点对候选 Oracle](20260814-v1p2c-endpoint-pair-oracle.md)：宽候选
 port recall 98.68%、exhaustive pair recall 97.86%，可达性通过；但最佳 line score 的 4x/8x
 recall 只有 77.47%/87.67%，4x image exact 1.75%，stress/crossed 仅 70.88%/61.39%，严格

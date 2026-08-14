@@ -4,6 +4,7 @@ from chemvector.components.bonds.objects.semantic_endpoint_pair import (
     SemanticEndpointPairConfig,
     enumerate_endpoint_pairs,
     score_endpoint_pairs,
+    select_local_partner_pairs,
 )
 
 
@@ -63,3 +64,15 @@ def test_near_duplicate_endpoint_pair_is_invalidated() -> None:
         ),
     )
     assert float(output["line_score"][0]) < -1e5
+
+
+def test_local_partner_union_keeps_long_high_scoring_pair() -> None:
+    points = torch.tensor(((0.01, 0.5), (0.5, 0.5), (0.99, 0.5), (0.5, 0.9)))
+    pairs = enumerate_endpoint_pairs(points)
+    scores = torch.tensor((0.1, 0.9, 0.2, 0.3, 0.4, 0.5))
+    selected = select_local_partner_pairs(
+        pairs, scores, point_count=4, partners_per_point=1
+    )
+    selected_pairs = {tuple(pair) for pair in pairs[selected].tolist()}
+    assert (0, 2) in selected_pairs
+    assert len(selected_pairs) <= 4

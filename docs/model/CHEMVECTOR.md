@@ -59,6 +59,10 @@ stress/crossed 4x 仅 70.88%/61.39%，严格 NO-GO。直接 blocker 更差，说
 被假端点污染。下一步先做不限制键长的 per-endpoint top-K partner Oracle，通过后再训练
 listwise pair scorer，不能保留平均 18,340 个全量 pair/图。
 
+[v1 P2-D0](training/20260814-v1p2d0-local-partner-oracle.md) 已预注册：不再做全图 top-K，
+而是给每个 endpoint 从全图保留 top2/4/8/16 partner 后取无序并集。该协议不使用半径、最近邻
+或最大键长裁剪；先在已暴露 route-select 上验证 top8 Oracle，未过 95% 前不训练 pair scorer。
+
 2026-08-10 的 P19-E11 首次把 P19 risk router 接到部署 predicted AtomObject。Atom matched
 recall 为 97.36%，但整图 Atom exact 仅 59.30%，stress 仅 153/500、crossed 仅 1/126。
 GT Atom router 在预测分布得到 6 rescue/3 harmful，`1101->1104`，正式 NO-GO；old/new 相对

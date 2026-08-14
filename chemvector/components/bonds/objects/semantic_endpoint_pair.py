@@ -42,6 +42,47 @@ def enumerate_endpoint_pairs(points: torch.Tensor) -> torch.Tensor:
     )
 
 
+def select_local_partner_pairs(
+    pairs: torch.Tensor,
+    scores: torch.Tensor,
+    *,
+    point_count: int,
+    partners_per_point: int,
+) -> torch.Tensor:
+    """Take the union of each endpoint's top-scoring partners without a radius cut."""
+
+    if pairs.ndim != 2 or pairs.size(-1) != 2:
+        raise ValueError("Endpoint pair indices must have shape [pairs, 2]")
+    if scores.shape != (len(pairs),):
+        raise ValueError("Endpoint pair scores differ from pair indices")
+    if point_count < 0 or partners_per_point < 1:
+        raise ValueError("Local partner dimensions are invalid")
+    if point_count == 0:
+        if len(pairs):
+            raise ValueError("Empty endpoint set cannot have pair indices")
+        return torch.empty(0, device=pairs.device, dtype=torch.long)
+    if not len(pairs):
+        return torch.empty(0, device=pairs.device, dtype=torch.long)
+    score_matrix = scores.new_full((point_count, point_count), -float("inf"))
+    index_matrix = torch.full(
+        (point_count, point_count), -1, device=pairs.device, dtype=torch.long
+    )
+    pair_rows = torch.arange(len(pairs), device=pairs.device)
+    valid = scores > -1e5
+    valid_pairs = pairs[valid]
+    valid_scores = scores[valid]
+    valid_rows = pair_rows[valid]
+    score_matrix[valid_pairs[:, 0], valid_pairs[:, 1]] = valid_scores
+    score_matrix[valid_pairs[:, 1], valid_pairs[:, 0]] = valid_scores
+    index_matrix[valid_pairs[:, 0], valid_pairs[:, 1]] = valid_rows
+    index_matrix[valid_pairs[:, 1], valid_pairs[:, 0]] = valid_rows
+    count = min(partners_per_point, max(point_count - 1, 1))
+    partners = score_matrix.topk(count, dim=1).indices
+    rows = torch.arange(point_count, device=pairs.device)[:, None].expand_as(partners)
+    selected = index_matrix[rows, partners].flatten()
+    return torch.unique(selected[selected >= 0], sorted=True)
+
+
 def _sample_pair_ribbons(
     bond_probability: torch.Tensor,
     points: torch.Tensor,
@@ -211,5 +252,6 @@ def score_endpoint_pairs(
 __all__ = [
     "SemanticEndpointPairConfig",
     "enumerate_endpoint_pairs",
+    "select_local_partner_pairs",
     "score_endpoint_pairs",
 ]
