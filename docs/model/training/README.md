@@ -1,5 +1,9 @@
 # ChemVector 训练档案
 
+当前已预注册：[v1 P1-A-C 二值墨迹内部确认](20260814-v1p1ac-binary-ink-internal-confirm.md)：
+冻结 P1-A checkpoint 和 0.5 阈值，一次性读取此前未用的 496 张 internal test；零训练、
+不重读 validation，要求原五项能力门全部独立通过后，才允许进入 BondObject 阶段。
+
 当前已完成：[v1 P1-A 二值墨迹微调](20260814-v1p1a-binary-ink-finetune.md)：
 相同 1.34M 模型只把 target 对齐为 `alpha >= 8/255`，一轮后固定 0.5 validation 的
 bond/text/联合 IoU 达 97.72%/91.85%/99.21%，stress bond 97.56%，全部能力门通过。
