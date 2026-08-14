@@ -1,0 +1,21 @@
+{
+  "$id": "raster_pilot_record.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "canonical_bbox": {"items": {"maximum": 767, "minimum": 0, "type": "integer"}, "maxItems": 4, "minItems": 4, "type": "array"},
+    "canonical_gray_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+    "crop_height": {"maximum": 768, "minimum": 1, "type": "integer"},
+    "crop_width": {"maximum": 768, "minimum": 1, "type": "integer"},
+    "interpretation_count": {"maximum": 2, "minimum": 1, "type": "integer"},
+    "raw_bbox": {"items": {"maximum": 767, "minimum": 0, "type": "integer"}, "maxItems": 4, "minItems": 4, "type": "array"},
+    "raw_gray_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+    "schema_version": {"const": "chemgraph-raster-pilot-record-v0.5"},
+    "tuple_id": {"maximum": 36088415, "minimum": 0, "type": "integer"}
+  },
+  "required": [
+    "schema_version", "tuple_id", "raw_gray_sha256", "canonical_gray_sha256",
+    "crop_width", "crop_height", "raw_bbox", "canonical_bbox", "interpretation_count"
+  ],
+  "type": "object"
+}

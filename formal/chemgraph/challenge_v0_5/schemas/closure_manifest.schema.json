@@ -1,0 +1,102 @@
+{
+  "$defs": {
+    "artifact": {
+      "additionalProperties": false,
+      "properties": {
+        "byte_length": {"minimum": 0, "type": "integer"},
+        "relative_path": {"const": "domain_tuples.jsonl"},
+        "sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"}
+      },
+      "required": ["relative_path", "byte_length", "sha256"],
+      "type": "object"
+    },
+    "coverage": {
+      "additionalProperties": false,
+      "properties": {
+        "antialias_profile": {
+          "items": {"enum": ["binary_1x", "box_2x2", "box_4x4"]},
+          "type": "array",
+          "uniqueItems": true
+        },
+        "cap": {
+          "items": {"enum": ["butt", "round", "square"]},
+          "type": "array",
+          "uniqueItems": true
+        },
+        "half_length": {
+          "items": {"maximum": 110, "minimum": 60, "type": "integer"},
+          "type": "array",
+          "uniqueItems": true
+        },
+        "motif_ordinal": {
+          "items": {"maximum": 51, "minimum": 0, "type": "integer"},
+          "type": "array",
+          "uniqueItems": true
+        },
+        "reflection": {
+          "items": {"enum": ["none", "x", "y"]},
+          "type": "array",
+          "uniqueItems": true
+        },
+        "rotation_index": {
+          "items": {"maximum": 7, "minimum": 0, "type": "integer"},
+          "type": "array",
+          "uniqueItems": true
+        },
+        "scale_index": {
+          "items": {"maximum": 6, "minimum": 0, "type": "integer"},
+          "type": "array",
+          "uniqueItems": true
+        },
+        "width_px": {
+          "items": {"maximum": 9, "minimum": 1, "type": "integer"},
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "half_length", "motif_ordinal", "width_px", "cap", "antialias_profile",
+        "reflection", "rotation_index", "scale_index"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "closure_manifest.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "contract_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+    "coverage": {"$ref": "#/$defs/coverage"},
+    "coverage_root": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+    "expected_record_count": {"minimum": 0, "type": "integer"},
+    "mode": {"enum": ["census", "records"]},
+    "order": {"enum": ["forward", "reverse", "shuffled"]},
+    "record_count": {"minimum": 0, "type": "integer"},
+    "records_artifact": {
+      "additionalProperties": false,
+      "properties": {
+        "byte_length": {"minimum": 0, "type": "integer"},
+        "relative_path": {"const": "domain_tuples.jsonl"},
+        "sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"}
+      },
+      "required": ["relative_path", "byte_length", "sha256"],
+      "type": ["object", "null"]
+    },
+    "records_root": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+    "schema_version": {"const": "chemgraph-domain-census-manifest-v0.5"},
+    "shard_count": {"minimum": 1, "type": "integer"},
+    "shard_index": {"minimum": 0, "type": "integer"},
+    "status": {"const": "passed"},
+    "tuple_id_max": {"maximum": 36088415, "minimum": 0, "type": ["integer", "null"]},
+    "tuple_id_min": {"maximum": 36088415, "minimum": 0, "type": ["integer", "null"]},
+    "workers": {"const": 16}
+  },
+  "required": [
+    "schema_version", "status", "contract_sha256", "mode", "order", "workers",
+    "shard_index", "shard_count", "record_count", "expected_record_count",
+    "tuple_id_min", "tuple_id_max", "coverage", "records_root", "coverage_root",
+    "records_artifact"
+  ],
+  "title": "Domain census output manifest for Enumerator A",
+  "type": "object"
+}

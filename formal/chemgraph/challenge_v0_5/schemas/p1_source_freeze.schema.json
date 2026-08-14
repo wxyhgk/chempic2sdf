@@ -1,0 +1,40 @@
+{
+  "$id": "p1_source_freeze.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "artifact": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {"minLength": 1, "type": "string"},
+        "sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"}
+      },
+      "required": ["path", "sha256"],
+      "type": "object"
+    },
+    "dependency": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {"pattern": "^/.*$", "type": "string"},
+        "role": {"enum": ["apptainer", "mount", "runtime_sif", "umount"]},
+        "sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"}
+      },
+      "required": ["role", "path", "sha256"],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "artifacts": {"items": {"$ref": "#/$defs/artifact"}, "minItems": 1, "type": "array"},
+    "external_dependencies": {"items": {"$ref": "#/$defs/dependency"}, "maxItems": 4, "minItems": 4, "type": "array"},
+    "p0_contract_sha256": {"const": "55ddcaacdf851166554ccd586b2a924c0e793f86cc7a6319f98132ef0ffb6b65"},
+    "p1_source_commit": {"pattern": "^[0-9a-f]{40}$", "type": "string"},
+    "schema_version": {"const": "chemgraph-observation-closure-p1-source-freeze-v0.5"},
+    "status": {"const": "p1_source_frozen"},
+    "training_authorized": {"const": false}
+  },
+  "required": [
+    "schema_version", "status", "p0_contract_sha256", "p1_source_commit",
+    "artifacts", "external_dependencies", "training_authorized"
+  ],
+  "type": "object"
+}

@@ -1,0 +1,345 @@
+{
+  "$defs": {
+    "commitment": {
+      "additionalProperties": false,
+      "properties": {
+        "commit_formula": {"type": "string"},
+        "frame_bytes": {"type": "string"},
+        "hash": {"const": "SHA256"},
+        "hex_encoding": {"type": "string"},
+        "hkdf": {"const": "HKDF-SHA256 per RFC5869"},
+        "hkdf_ikm": {"type": "string"},
+        "hkdf_info_u": {"type": "string"},
+        "hkdf_info_x": {"type": "string"},
+        "hkdf_output_bytes": {"const": 32},
+        "hkdf_salt": {"type": "string"},
+        "hmac": {"const": "HMAC-SHA256"},
+        "integer_encoding": {"type": "string"},
+        "required_order": {"items": {"type": "string"}, "minItems": 1, "type": "array"},
+        "sealed_gt_commitment": {"type": "string"},
+        "share_bytes": {"const": 32},
+        "share_commit_labels": {"items": {"type": "string"}, "maxItems": 2, "minItems": 2, "type": "array"}
+      },
+      "required": [
+        "hash", "hmac", "share_bytes", "frame_bytes", "hex_encoding", "integer_encoding",
+        "commit_formula", "share_commit_labels", "hkdf", "hkdf_output_bytes", "hkdf_ikm",
+        "hkdf_salt", "hkdf_info_u", "hkdf_info_x", "sealed_gt_commitment", "required_order"
+      ],
+      "type": "object"
+    },
+    "domain": {
+      "additionalProperties": false,
+      "properties": {
+        "absolute_translation_pixels": {"type": "string"},
+        "antialias_profile": {"const": ["binary_1x", "box_2x2", "box_4x4"]},
+        "axes_fastest_last": {"const": ["half_length", "motif_ordinal", "width_px", "cap", "antialias_profile", "reflection", "rotation", "scale"]},
+        "cap": {"const": ["butt", "round", "square"]},
+        "delivery_lift_count": {"const": 152473557600},
+        "delivery_translation_count": {"const": 4225},
+        "delivery_translation_pixels": {
+          "additionalProperties": false,
+          "properties": {
+            "x_max": {"const": 32}, "x_min": {"const": -32},
+            "y_max": {"const": 32}, "y_min": {"const": -32}
+          },
+          "required": ["x_min", "x_max", "y_min", "y_max"],
+          "type": "object"
+        },
+        "failure_policy": {"type": "string"},
+        "half_length": {
+          "additionalProperties": false,
+          "properties": {"maximum": {"const": 110}, "minimum": {"const": 60}, "step": {"const": 1}},
+          "required": ["minimum", "maximum", "step"],
+          "type": "object"
+        },
+        "join": {"const": "round"},
+        "kind": {"const": "tagged_cartesian_product_without_translation"},
+        "motif_ordinal": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "family": {"pattern": "^(s[1-8]|c[1-4])$", "type": "string"},
+              "ordinal_begin": {"maximum": 51, "minimum": 0, "type": "integer"},
+              "ordinal_end": {"maximum": 51, "minimum": 0, "type": "integer"},
+              "variant": {"type": "string"}
+            },
+            "required": ["family", "ordinal_begin", "ordinal_end", "variant"],
+            "type": "object"
+          },
+          "maxItems": 12,
+          "minItems": 12,
+          "type": "array"
+        },
+        "official_delivery_render": {"type": "string"},
+        "quotient_tuple_count": {"const": 36088416},
+        "reflection": {"const": ["none", "x", "y"]},
+        "rotation": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "cos": {"items": {"type": "integer"}, "maxItems": 2, "minItems": 2, "type": "array"},
+              "sin": {"items": {"type": "integer"}, "maxItems": 2, "minItems": 2, "type": "array"}
+            },
+            "required": ["cos", "sin"],
+            "type": "object"
+          },
+          "maxItems": 8,
+          "minItems": 8,
+          "type": "array"
+        },
+        "scale": {
+          "items": {"items": {"type": "integer"}, "maxItems": 2, "minItems": 2, "type": "array"},
+          "maxItems": 7,
+          "minItems": 7,
+          "type": "array"
+        },
+        "translation_reduction": {"type": "string"},
+        "tuple_id_formula": {"type": "string"},
+        "tuple_id_maximum": {"const": 36088415},
+        "tuple_id_minimum": {"const": 0},
+        "validity": {"type": "string"},
+        "width_px": {"const": [1, 2, 3, 4, 5, 6, 7, 8, 9]}
+      },
+      "required": [
+        "kind", "quotient_tuple_count", "delivery_translation_count", "delivery_lift_count",
+        "axes_fastest_last", "half_length", "motif_ordinal", "width_px", "cap", "join",
+        "antialias_profile", "reflection", "rotation", "scale", "delivery_translation_pixels",
+        "absolute_translation_pixels", "tuple_id_formula", "tuple_id_minimum", "tuple_id_maximum",
+        "validity", "official_delivery_render", "translation_reduction", "failure_policy"
+      ],
+      "type": "object"
+    },
+    "graph": {
+      "additionalProperties": false,
+      "properties": {
+        "canonical_bytes": {"type": "string"},
+        "chemical_label": {"type": "string"},
+        "coordinates_in_equivalence": {"type": "boolean"},
+        "disconnected_components_in_equivalence": {"type": "boolean"},
+        "duplicate_nodes": {"type": "string"},
+        "edge_order": {"items": {"enum": [1, 2, 3]}, "type": "array"},
+        "equivalence": {"type": "string"},
+        "formal_charge_maximum": {"type": "integer"},
+        "formal_charge_minimum": {"type": "integer"},
+        "isolated_nodes_in_equivalence": {"type": "boolean"},
+        "kind": {"type": "string"},
+        "node_fields": {"items": {"type": "string"}, "type": "array"},
+        "parallel_edges_same_unordered_pair": {"type": "string"},
+        "self_loops": {"type": "string"},
+        "source_ids_in_equivalence": {"type": "boolean"}
+      },
+      "required": [
+        "kind", "node_fields", "chemical_label", "formal_charge_minimum",
+        "formal_charge_maximum", "edge_order", "coordinates_in_equivalence",
+        "source_ids_in_equivalence", "isolated_nodes_in_equivalence",
+        "disconnected_components_in_equivalence", "self_loops",
+        "parallel_edges_same_unordered_pair", "duplicate_nodes", "equivalence",
+        "canonical_bytes"
+      ],
+      "type": "object"
+    },
+    "motif_rules": {
+      "additionalProperties": false,
+      "properties": {
+        "binding": {"type": "string"},
+        "c2_c3_spacing": {"type": "string"},
+        "c4_glyphs_by_index": {"items": {"type": "string"}, "type": "array"},
+        "interpretation_function": {"type": "string"},
+        "rounding": {"type": "string"},
+        "transform_order": {"type": "string"}
+      },
+      "required": ["binding", "interpretation_function", "c2_c3_spacing", "c4_glyphs_by_index", "transform_order", "rounding"],
+      "type": "object"
+    },
+    "pack": {
+      "additionalProperties": false,
+      "properties": {
+        "cardinality_buckets": {"items": {"items": {"type": "integer"}, "type": "array"}, "type": "array"},
+        "class_seed_rank": {"type": "string"},
+        "delivered_raster_member": {"type": "string"},
+        "delivered_tuple_witness": {"type": "string"},
+        "delivery_id": {"type": "string"},
+        "delivery_order": {"type": "string"},
+        "largest_observed_cardinality_minimum": {"type": "integer"},
+        "manifest_prediction_denominator_rule": {"type": "string"},
+        "nonempty_cardinality_bucket_minimum": {"type": "integer"},
+        "per_pack_each_style_bucket_minimum": {"type": "integer"},
+        "per_pack_each_transform_bucket_minimum": {"type": "integer"},
+        "per_pack_multiple": {"type": "integer"},
+        "per_pack_singleton": {"type": "integer"},
+        "per_pack_taxonomy_minimum": {
+          "additionalProperties": false,
+          "properties": {
+            "crossing_junction": {"type": "integer"},
+            "parallel_multiplicity": {"type": "integer"},
+            "text_or_lane": {"type": "integer"}
+          },
+          "required": ["crossing_junction", "parallel_multiplicity", "text_or_lane"],
+          "type": "object"
+        },
+        "provenance_tie_break": {"type": "string"},
+        "replays_per_pack": {"type": "integer"},
+        "selection": {"type": "string"},
+        "transform_bucket": {"type": "string"},
+        "translation_prng": {"type": "string"},
+        "u_evidence_classes": {"type": "integer"},
+        "u_x_overlap": {"type": "integer"},
+        "x_evidence_classes": {"type": "integer"}
+      },
+      "required": [
+        "u_evidence_classes", "x_evidence_classes", "per_pack_singleton",
+        "per_pack_multiple", "per_pack_taxonomy_minimum",
+        "per_pack_each_style_bucket_minimum", "per_pack_each_transform_bucket_minimum",
+        "transform_bucket", "cardinality_buckets", "nonempty_cardinality_bucket_minimum",
+        "largest_observed_cardinality_minimum", "provenance_tie_break",
+        "delivered_raster_member", "delivered_tuple_witness", "class_seed_rank",
+        "translation_prng", "delivery_order", "delivery_id", "selection", "u_x_overlap",
+        "manifest_prediction_denominator_rule", "replays_per_pack"
+      ],
+      "type": "object"
+    },
+    "pilot": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence_projection_formula": {"type": "string"},
+        "evidence_selection": {"type": "string"},
+        "failure_policy": {"type": "string"},
+        "maximum_peak_rss_bytes": {"type": "integer"},
+        "maximum_projected_full_evidence_wall_seconds": {"type": "integer"},
+        "maximum_projected_full_raster_wall_seconds": {"type": "integer"},
+        "maximum_temporary_bytes": {"type": "integer"},
+        "maximum_wall_seconds": {"type": "integer"},
+        "projection_safety_factor": {"items": {"type": "integer"}, "type": "array"},
+        "raster_selection": {"type": "string"},
+        "required_axis_coverage": {"type": "string"},
+        "rss_definition": {"type": "string"},
+        "temporary_definition": {"type": "string"},
+        "temporary_projection_formula": {"type": "string"},
+        "wall_projection_formula": {"type": "string"},
+        "wall_time_definition": {"type": "string"},
+        "worker_definition": {"type": "string"},
+        "workers": {"const": 16}
+      },
+      "required": [
+        "raster_selection", "required_axis_coverage", "workers", "worker_definition",
+        "wall_time_definition", "rss_definition", "temporary_definition",
+        "maximum_wall_seconds", "maximum_peak_rss_bytes", "maximum_temporary_bytes",
+        "projection_safety_factor", "wall_projection_formula", "temporary_projection_formula",
+        "evidence_selection", "evidence_projection_formula",
+        "maximum_projected_full_raster_wall_seconds",
+        "maximum_projected_full_evidence_wall_seconds", "failure_policy"
+      ],
+      "type": "object"
+    },
+    "raster": {
+      "additionalProperties": false,
+      "properties": {
+        "background_value": {"type": "integer"},
+        "canonical_canvas": {"items": {"type": "integer"}, "type": "array"},
+        "canonical_embedding": {"type": "string"},
+        "canonical_equality": {"type": "string"},
+        "canonical_fill": {"type": "integer"},
+        "clipping_certificate": {"type": "string"},
+        "crop_height": {"type": "string"},
+        "crop_width": {"type": "string"},
+        "empty_foreground": {"type": "string"},
+        "extractor_visible_metadata": {"items": {}, "maxItems": 0, "type": "array"},
+        "foreground_predicate": {"type": "string"},
+        "minimum_centered_white_border_pixels": {"type": "integer"},
+        "minimum_raw_white_border_pixels": {"type": "integer"},
+        "oversize_border_or_clipping_failure": {"type": "string"},
+        "paste_left": {"type": "string"},
+        "paste_top": {"type": "string"},
+        "raw_shape": {"items": {"type": "integer"}, "type": "array"},
+        "raw_type": {"type": "string"},
+        "runtime_path": {"type": "string"},
+        "storage_png": {"type": "string"},
+        "tight_bbox": {"type": "string"}
+      },
+      "required": [
+        "raw_shape", "raw_type", "background_value", "foreground_predicate",
+        "empty_foreground", "tight_bbox", "crop_width", "crop_height",
+        "canonical_canvas", "canonical_fill", "paste_left", "paste_top",
+        "minimum_raw_white_border_pixels", "minimum_centered_white_border_pixels",
+        "clipping_certificate", "oversize_border_or_clipping_failure",
+        "canonical_equality", "storage_png", "runtime_path", "canonical_embedding",
+        "extractor_visible_metadata"
+      ],
+      "type": "object"
+    },
+    "roots": {
+      "additionalProperties": false,
+      "properties": {
+        "class_identity": {"type": "string"},
+        "digest_role": {"type": "string"},
+        "domain_separators": {
+          "additionalProperties": false,
+          "properties": {
+            "canonical_evidence": {"type": "string"}, "canonical_raster": {"type": "string"},
+            "contract": {"type": "string"}, "coverage_bitset": {"type": "string"},
+            "domain_tuple": {"type": "string"}, "evidence_graphset": {"type": "string"},
+            "exclusion_manifest": {"type": "string"}, "overflow_witness": {"type": "string"},
+            "pack_manifest": {"type": "string"}, "prediction": {"type": "string"},
+            "raster_evidence_membership": {"type": "string"}, "raster_graphset": {"type": "string"},
+            "sealed_gt": {"type": "string"}, "tuple_raster_membership": {"type": "string"}
+          },
+          "required": [
+            "contract", "domain_tuple", "coverage_bitset", "canonical_raster",
+            "tuple_raster_membership", "raster_graphset", "canonical_evidence",
+            "raster_evidence_membership", "evidence_graphset", "overflow_witness",
+            "exclusion_manifest", "pack_manifest", "sealed_gt", "prediction"
+          ],
+          "type": "object"
+        },
+        "evidence_class_id": {"type": "string"},
+        "graph_class_id": {"type": "string"},
+        "raster_class_id": {"type": "string"},
+        "record_bytes": {"type": "string"},
+        "record_framing": {"type": "string"},
+        "stream_root": {"type": "string"},
+        "third_verifier_witness": {"type": "string"}
+      },
+      "required": [
+        "record_framing", "stream_root", "digest_role", "class_identity",
+        "raster_class_id", "evidence_class_id", "graph_class_id", "domain_separators",
+        "record_bytes", "third_verifier_witness"
+      ],
+      "type": "object"
+    },
+    "source_baseline": {
+      "additionalProperties": false,
+      "properties": {
+        "generator_path": {"const": "formal/chemgraph/challenge_v0_4/generate_pack_v0_4.py"},
+        "generator_sha256": {"const": "193309ef6feb4521931b1446233c0cba7fa716a6d883e99903d053bf034a0775"},
+        "git_commit": {"const": "43898a4cfababbc1ba210e3a640667dfa0065079"},
+        "rasterizer_path": {"const": "formal/chemgraph/challenge_v0_4/rasterizer_v0_4.py"},
+        "rasterizer_sha256": {"const": "5d673ae1c33648b5498b4ebacfc1b91136fee5abdbae4fa1503a144a59816943"}
+      },
+      "required": ["git_commit", "generator_path", "generator_sha256", "rasterizer_path", "rasterizer_sha256"],
+      "type": "object"
+    }
+  },
+  "$id": "p0_contract.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "commitment": {"$ref": "#/$defs/commitment"},
+    "contract_format": {"type": "string"},
+    "domain": {"$ref": "#/$defs/domain"},
+    "graph": {"$ref": "#/$defs/graph"},
+    "motif_rules": {"$ref": "#/$defs/motif_rules"},
+    "pack": {"$ref": "#/$defs/pack"},
+    "pilot": {"$ref": "#/$defs/pilot"},
+    "raster": {"$ref": "#/$defs/raster"},
+    "roots": {"$ref": "#/$defs/roots"},
+    "schema_version": {"const": "chemgraph-observation-closure-p0-v0.5"},
+    "source_baseline": {"$ref": "#/$defs/source_baseline"},
+    "training_authorized": {"const": false}
+  },
+  "required": [
+    "contract_format", "schema_version", "training_authorized", "source_baseline", "domain",
+    "motif_rules", "graph", "raster", "roots", "pilot", "pack", "commitment"
+  ],
+  "title": "Frozen machine-readable Observation Closure v0.5 P0 contract",
+  "type": "object"
+}

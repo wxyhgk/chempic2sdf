@@ -1,0 +1,57 @@
+{
+  "$defs": {
+    "edge": {
+      "items": false,
+      "prefixItems": [
+        {"minimum": 0, "type": "integer"},
+        {"minimum": 0, "type": "integer"},
+        {"enum": [1, 2, 3]}
+      ],
+      "maxItems": 3,
+      "minItems": 3,
+      "type": "array"
+    },
+    "graph": {
+      "additionalProperties": false,
+      "properties": {
+        "edges": {"items": {"$ref": "#/$defs/edge"}, "type": "array"},
+        "nodes": {
+          "items": {
+            "items": false,
+            "prefixItems": [
+              {"minLength": 1, "pattern": "^[\\x20-\\x7e]+$", "type": "string"},
+              {"maximum": 8, "minimum": -8, "type": "integer"}
+            ],
+            "maxItems": 2,
+            "minItems": 2,
+            "type": "array"
+          },
+          "type": "array"
+        }
+      },
+      "required": ["nodes", "edges"],
+      "type": "object"
+    }
+  },
+  "$id": "evidence_class.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "canonical_evidence_byte_length": {"maximum": 65536, "minimum": 1, "type": "integer"},
+    "canonical_evidence_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+    "evidence_class_id": {"minimum": 0, "type": "integer"},
+    "graph_set": {"items": {"$ref": "#/$defs/graph"}, "minItems": 1, "type": "array"},
+    "graph_set_root": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+    "member_root": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+    "raster_class_count": {"minimum": 1, "type": "integer"},
+    "representative_raster_class_id": {"minimum": 0, "type": "integer"},
+    "schema_version": {"const": "chemgraph-evidence-class-v0.5"}
+  },
+  "required": [
+    "schema_version", "evidence_class_id", "canonical_evidence_sha256",
+    "canonical_evidence_byte_length", "raster_class_count", "member_root",
+    "representative_raster_class_id", "graph_set", "graph_set_root"
+  ],
+  "title": "One exact EvidenceClass and the union of member RasterGraphSets",
+  "type": "object"
+}

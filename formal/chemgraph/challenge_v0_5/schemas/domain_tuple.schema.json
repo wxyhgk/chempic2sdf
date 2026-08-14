@@ -1,0 +1,23 @@
+{
+  "$id": "domain_tuple.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "antialias_profile": {"enum": ["binary_1x", "box_2x2", "box_4x4"]},
+    "cap": {"enum": ["butt", "round", "square"]},
+    "half_length": {"maximum": 110, "minimum": 60, "type": "integer"},
+    "motif_ordinal": {"maximum": 51, "minimum": 0, "type": "integer"},
+    "reflection": {"enum": ["none", "x", "y"]},
+    "rotation_index": {"maximum": 7, "minimum": 0, "type": "integer"},
+    "scale_index": {"maximum": 6, "minimum": 0, "type": "integer"},
+    "schema_version": {"const": "chemgraph-domain-tuple-v0.5"},
+    "tuple_id": {"maximum": 36088415, "minimum": 0, "type": "integer"},
+    "width_px": {"maximum": 9, "minimum": 1, "type": "integer"}
+  },
+  "required": [
+    "schema_version", "tuple_id", "half_length", "motif_ordinal", "width_px",
+    "cap", "antialias_profile", "reflection", "rotation_index", "scale_index"
+  ],
+  "title": "One frozen Observation Closure v0.5 quotient tuple",
+  "type": "object"
+}

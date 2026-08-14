@@ -1,0 +1,58 @@
+{
+  "$defs": {
+    "edge": {
+      "items": false,
+      "prefixItems": [
+        {"minimum": 0, "type": "integer"},
+        {"minimum": 0, "type": "integer"},
+        {"enum": [1, 2, 3]}
+      ],
+      "maxItems": 3,
+      "minItems": 3,
+      "type": "array"
+    },
+    "graph": {
+      "additionalProperties": false,
+      "properties": {
+        "edges": {"items": {"$ref": "#/$defs/edge"}, "type": "array"},
+        "nodes": {
+          "items": {
+            "items": false,
+            "prefixItems": [
+              {"minLength": 1, "pattern": "^[\\x20-\\x7e]+$", "type": "string"},
+              {"maximum": 8, "minimum": -8, "type": "integer"}
+            ],
+            "maxItems": 2,
+            "minItems": 2,
+            "type": "array"
+          },
+          "type": "array"
+        }
+      },
+      "required": ["nodes", "edges"],
+      "type": "object"
+    }
+  },
+  "$id": "raster_class.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "canonical_raster_byte_length": {"const": 589824},
+    "canonical_raster_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+    "graph_set": {"items": {"$ref": "#/$defs/graph"}, "minItems": 1, "type": "array"},
+    "graph_set_root": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+    "member_count": {"minimum": 1, "type": "integer"},
+    "member_root": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+    "minimum_tuple_id": {"maximum": 36088415, "minimum": 0, "type": "integer"},
+    "raster_class_id": {"minimum": 0, "type": "integer"},
+    "representative_tuple_id": {"maximum": 36088415, "minimum": 0, "type": "integer"},
+    "schema_version": {"const": "chemgraph-raster-class-v0.5"}
+  },
+  "required": [
+    "schema_version", "raster_class_id", "canonical_raster_sha256",
+    "canonical_raster_byte_length", "member_count", "member_root", "minimum_tuple_id",
+    "representative_tuple_id", "graph_set", "graph_set_root"
+  ],
+  "title": "One full-byte RasterClass and its interpretation union",
+  "type": "object"
+}

@@ -1,0 +1,58 @@
+{
+  "$id": "raster_pilot_validation.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "histogram": {
+      "items": {
+        "items": false,
+        "prefixItems": [
+          {"minimum": 0, "type": "integer"},
+          {"minimum": 0, "type": "integer"}
+        ],
+        "maxItems": 2,
+        "minItems": 2,
+        "type": "array"
+      },
+      "type": "array"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "canonical_frame_count": {"const": 360885},
+    "contract_sha256": {"const": "55ddcaacdf851166554ccd586b2a924c0e793f86cc7a6319f98132ef0ffb6b65"},
+    "crop_height_histogram": {"$ref": "#/$defs/histogram"},
+    "crop_width_histogram": {"$ref": "#/$defs/histogram"},
+    "deterministic_replay_count": {"const": 360885},
+    "distinct_raster_classes": {"maximum": 360885, "minimum": 1, "type": "integer"},
+    "duplicate_full_bytes_verified": {"maximum": 360885, "minimum": 0, "type": "integer"},
+    "duplicate_member_count": {"maximum": 360885, "minimum": 0, "type": "integer"},
+    "interpretation_count_histogram": {"$ref": "#/$defs/histogram"},
+    "maximum_raster_class_members": {"maximum": 360885, "minimum": 1, "type": "integer"},
+    "p1_source_commit": {"pattern": "^[0-9a-f]{40}$", "type": "string"},
+    "p1_source_freeze_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+    "padded_clipping_certificates": {"const": 360885},
+    "records_byte_length": {"minimum": 1, "type": "integer"},
+    "records_framed_root": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+    "records_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+    "schema_version": {"const": "chemgraph-raster-pilot-v0.5"},
+    "selection": {"const": "tuple_id mod 100 == 0"},
+    "status": {"const": "completed_pending_resource_gate"},
+    "training_authorized": {"const": false},
+    "tuple_count": {"const": 360885},
+    "worker_render_wall_nanoseconds": {"minimum": 1, "type": "integer"},
+    "worker_replay_wall_nanoseconds": {"minimum": 1, "type": "integer"},
+    "workers": {"const": 16}
+  },
+  "required": [
+    "schema_version", "status", "contract_sha256", "p1_source_commit",
+    "p1_source_freeze_sha256", "selection", "tuple_count", "workers",
+    "worker_render_wall_nanoseconds", "worker_replay_wall_nanoseconds",
+    "padded_clipping_certificates", "records_byte_length", "records_sha256",
+    "records_framed_root", "canonical_frame_count", "distinct_raster_classes",
+    "duplicate_member_count", "duplicate_full_bytes_verified",
+    "deterministic_replay_count", "maximum_raster_class_members",
+    "crop_width_histogram", "crop_height_histogram", "interpretation_count_histogram",
+    "training_authorized"
+  ],
+  "type": "object"
+}

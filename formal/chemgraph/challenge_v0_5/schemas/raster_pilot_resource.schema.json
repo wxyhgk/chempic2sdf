@@ -1,0 +1,73 @@
+{
+  "$id": "raster_pilot_resource.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "artifact_publication_wall_upper_bound_seconds": {"minimum": 1, "type": "integer"},
+    "contract_sha256": {"const": "55ddcaacdf851166554ccd586b2a924c0e793f86cc7a6319f98132ef0ffb6b65"},
+    "gates": {
+      "additionalProperties": false,
+      "properties": {
+        "deterministic_replay_exact": {"type": "boolean"},
+        "memory_hard_upper_bound_within_80gib": {"type": "boolean"},
+        "memory_oom_zero": {"type": "boolean"},
+        "memory_peak_before_receipt_within_80gib": {"type": "boolean"},
+        "padded_certificates_exact": {"type": "boolean"},
+        "pilot_wall_within_4h": {"type": "boolean"},
+        "projected_full_wall_within_96h": {"type": "boolean"},
+        "projected_temporary_within_2tib": {"type": "boolean"},
+        "runner_exit_zero": {"type": "boolean"},
+        "temporary_peak_upper_within_2tib": {"type": "boolean"},
+        "tuple_count_exact": {"type": "boolean"}
+      },
+      "required": [
+        "runner_exit_zero", "pilot_wall_within_4h",
+        "memory_peak_before_receipt_within_80gib",
+        "memory_hard_upper_bound_within_80gib", "memory_oom_zero",
+        "temporary_peak_upper_within_2tib", "projected_temporary_within_2tib",
+        "projected_full_wall_within_96h", "tuple_count_exact",
+        "padded_certificates_exact", "deterministic_replay_exact"
+      ],
+      "type": "object"
+    },
+    "memory_cgroup_max_bytes": {"const": 84825604096},
+    "memory_events_before_receipt": {
+      "additionalProperties": false,
+      "properties": {
+        "high": {"minimum": 0, "type": "integer"},
+        "low": {"minimum": 0, "type": "integer"},
+        "max": {"minimum": 0, "type": "integer"},
+        "oom": {"minimum": 0, "type": "integer"},
+        "oom_group_kill": {"minimum": 0, "type": "integer"},
+        "oom_kill": {"minimum": 0, "type": "integer"}
+      },
+      "required": ["low", "high", "max", "oom", "oom_kill", "oom_group_kill"],
+      "type": "object"
+    },
+    "memory_peak_before_receipt_bytes": {"minimum": 0, "type": "integer"},
+    "memory_peak_recorded_upper_bound_bytes": {"const": 85899345920},
+    "p1_source_commit": {"pattern": "^[0-9a-f]{40}$", "type": "string"},
+    "p1_source_freeze_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+    "physical_cpus": {"const": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]},
+    "projected_full_wall_upper_bound_seconds": {"minimum": 1, "type": "integer"},
+    "projected_temporary_upper_bound_bytes": {"minimum": 1, "type": "integer"},
+    "runner_artifact_tree_root": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+    "schema_version": {"const": "chemgraph-raster-pilot-resource-v0.5"},
+    "status": {"enum": ["passed", "no_go"]},
+    "temporary_limit_bytes": {"const": 2199023255552},
+    "temporary_peak_hard_upper_bound_bytes": {"const": 8589934592},
+    "temporary_peak_observed_allocated_bytes": {"minimum": 0, "type": "integer"},
+    "training_authorized": {"const": false}
+  },
+  "required": [
+    "schema_version", "status", "contract_sha256", "p1_source_commit",
+    "p1_source_freeze_sha256", "runner_artifact_tree_root", "physical_cpus",
+    "artifact_publication_wall_upper_bound_seconds",
+    "projected_full_wall_upper_bound_seconds", "memory_peak_before_receipt_bytes",
+    "memory_cgroup_max_bytes", "memory_peak_recorded_upper_bound_bytes",
+    "memory_events_before_receipt", "temporary_peak_observed_allocated_bytes",
+    "temporary_peak_hard_upper_bound_bytes", "projected_temporary_upper_bound_bytes",
+    "temporary_limit_bytes", "gates", "training_authorized"
+  ],
+  "type": "object"
+}
