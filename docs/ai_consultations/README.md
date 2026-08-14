@@ -53,3 +53,4 @@ YYYYMMDD-提供方-主题.md
 | 2026-07-17 | Kimi Code | [v0.7.36 模型路线评审](20260717-kimi-v0736-model-review.md) | 顶点集合优先于环级键型、OCR 和扩量；72 万暂缓 | 待实验验证 |
 | 2026-07-18 | 多 AI + Kimi Code | [v0.7.44 Patch 路线评审](20260718-multi-ai-v0744-patch-review.md) | 受控比较 feature/pixel patch，并拆分候选覆盖错误 | 已回填，Pixel NO-GO |
 | 2026-07-20 | Kimi Code | [顶点与键主线评审](20260720-kimi-vertex-bond-roadmap.md) | 评审 Bond-first、文字区域 anchor 和集合级图训练 | 等待项目验证 |
+| 2026-08-15 | Kimi Code | [v0.5 Observation Closure 评审](20260815-kimi-v05-observation-closure-review.md) | 标签必须按完整 Evidence fiber 闭包；sampled Graph 不可信 | 已纳入 v0.5 预注册 |

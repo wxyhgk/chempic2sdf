@@ -9,6 +9,7 @@
 - [Hidden Generator v0.4 P1 结果](20260815-hidden-generator-v0_4-p1-results.md)
 - [EvidenceCore v0.4 P3 预注册](20260815-evidence-core-v0_4-p3-preregistration.md)
 - [EvidenceCore v0.4 P3 NO-GO 结果](20260815-evidence-core-v0_4-p3-results.md)
+- [Observation Closure v0.5 预注册](20260815-observation-closure-v0_5-preregistration.md)
 - Lean 工程：`formal/chemgraph/`
 
 状态：训练暂停，形式化验证进行中。
