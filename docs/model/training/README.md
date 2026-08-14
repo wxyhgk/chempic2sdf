@@ -1,9 +1,11 @@
 # ChemVector 训练档案
 
-当前已预注册：[v1 P2 Semantic BondObject Pilot](20260814-v1p2-semantic-bondobject-pilot.md)：
-冻结 P1-A，只从预测 bond probability 直接检测完整 BondObject；8,456 train 训练三轮，400
-张 train-only calibration 选择 checkpoint/阈值，随后一次性运行 496 validation。目标是
-known geometry 90%、typed 85%、predicted typed exact 15%，不输入 Atom 或混合 RGB feature。
+当前已完成：[v1 P2 Semantic BondObject Pilot](20260814-v1p2-semantic-bondobject-pilot.md)：
+冻结 P1-A，只从预测 bond probability 直接检测完整 BondObject。三轮后 validation 的 known
+geometry 45.58%、known typed 35.43%、predicted geometry F1 56.48%、predicted count
+0.20%，全部整图 exact 为 0，严格 NO-GO；internal test 未读。语义分离没有失败，失败的是
+中心格同时回归整根 visible BondObject 的参数化。下一步先做 endpoint 表示的 train-only
+Oracle 上限审计，不追加同一中心回归头的轮数或数据。
 
 当前已完成：[v1 P1-A-C 二值墨迹内部确认](20260814-v1p1ac-binary-ink-internal-confirm.md)：
 冻结 P1-A 与 0.5 阈值一次性运行 496 张 internal test，bond/text/联合 IoU 为

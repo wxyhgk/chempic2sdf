@@ -40,6 +40,13 @@ internal test，bond/text/联合 IoU 为 98.09%/91.13%/99.21%，stress bond 98.0
 通过，语义前端正式可交给 BondObject 阶段。bond-on-text-only 9.70% 仍是紧门，下游必须
 单独报告文字邻域假键；internal test 已消费，不再用于任何选择。
 
+[v1 P2](training/20260814-v1p2-semantic-bondobject-pilot.md) 冻结 P1-A，只读取预测 bond
+probability，用中心格和固定 slot 回归完整 BondObject。三轮后一次性 validation 的 known
+geometry 45.58%、known typed 35.43%、predicted geometry F1 56.48%、predicted count
+0.20%，全部整图 exact 为 0，严格 NO-GO；internal test 未读。结果否定 Dense center
+regression 参数化，不否定 bond-first：下一步先审计 endpoint heatmap/向量场加沿线配对的
+表示上限，不再追加同一头的训练量。
+
 2026-08-10 的 P19-E11 首次把 P19 risk router 接到部署 predicted AtomObject。Atom matched
 recall 为 97.36%，但整图 Atom exact 仅 59.30%，stress 仅 153/500、crossed 仅 1/126。
 GT Atom router 在预测分布得到 6 rescue/3 harmful，`1101->1104`，正式 NO-GO；old/new 相对
