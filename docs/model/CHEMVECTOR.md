@@ -35,6 +35,11 @@ bond/text IoU 90.09%/80.90%，但联合前景 89.46% 比门低 0.54pp，仍为 N
 97.72%/91.85%/99.21%，stress bond 97.56%，正式通过能力门。这证明前一轮瓶颈是目标定义
 错位而非模型容量。bond-on-text-only 9.36% 接近 10% 门，需冻结后做 internal-test 确认。
 
+[v1 P1-A-C](training/20260814-v1p1ac-binary-ink-internal-confirm.md) 冻结后一次性运行 496 张
+internal test，bond/text/联合 IoU 为 98.09%/91.13%/99.21%，stress bond 98.09%，全部门
+通过，语义前端正式可交给 BondObject 阶段。bond-on-text-only 9.70% 仍是紧门，下游必须
+单独报告文字邻域假键；internal test 已消费，不再用于任何选择。
+
 2026-08-10 的 P19-E11 首次把 P19 risk router 接到部署 predicted AtomObject。Atom matched
 recall 为 97.36%，但整图 Atom exact 仅 59.30%，stress 仅 153/500、crossed 仅 1/126。
 GT Atom router 在预测分布得到 6 rescue/3 harmful，`1101->1104`，正式 NO-GO；old/new 相对
