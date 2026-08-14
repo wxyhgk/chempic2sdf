@@ -8,7 +8,7 @@ from collections import Counter, defaultdict
 import json
 from pathlib import Path
 import time
-from typing import Any
+from typing import Any, Callable
 
 import torch
 
@@ -118,6 +118,7 @@ def run_audit(
     *,
     workers: int,
     log_every: int,
+    loader_factory: Callable[..., Any] = _loader,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     totals = {route: _new_totals() for route in ROUTES}
     variants: dict[str, dict[str, dict[str, Counter[str]]]] = defaultdict(
@@ -128,7 +129,7 @@ def run_audit(
     )
     output_rows = []
     pair_config = SemanticEndpointPairConfig()
-    loader = _loader(
+    loader = loader_factory(
         rows, batch_size=1, shuffle=False, seed=20260819, workers=workers
     )
     for sample_index, batch in enumerate(loader, 1):
