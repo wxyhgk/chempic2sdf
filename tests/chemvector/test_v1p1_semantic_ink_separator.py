@@ -34,3 +34,12 @@ def test_semantic_ink_channels_allow_true_overlap():
     loss = semantic_ink_loss({"logits": logits}, targets, config)["loss"]
     assert torch.isfinite(loss)
     assert float(loss) < 0.01
+
+
+def test_semantic_ink_reconstruction_is_finite_for_bfloat16_logits():
+    config = SemanticInkSeparatorConfig(base_channels=8)
+    targets = torch.zeros(1, 2, 8, 8)
+    logits = torch.full((1, 2, 8, 8), -8.0, dtype=torch.bfloat16)
+    loss = semantic_ink_loss({"logits": logits}, targets, config)["loss"]
+    assert loss.dtype == torch.float32
+    assert torch.isfinite(loss)

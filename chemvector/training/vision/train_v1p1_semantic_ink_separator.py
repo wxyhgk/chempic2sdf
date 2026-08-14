@@ -324,13 +324,17 @@ def main() -> None:
             with torch.autocast(device_type="cuda", dtype=torch.bfloat16):
                 output = model(pixels)
                 losses = semantic_ink_loss(output, targets, model.config)
+            if not torch.isfinite(losses["loss"]):
+                raise FloatingPointError(
+                    f"v1 P1 non-finite loss at epoch={epoch}, step={step}"
+                )
             losses["loss"].backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()
             batch_samples = pixels.size(0)
             epoch_seen += batch_samples
             train_samples_seen += batch_samples
-            running += float(losses["loss"]) * batch_samples
+            running += float(losses["loss"].detach()) * batch_samples
             if step % args.log_every == 0:
                 print(
                     json.dumps(

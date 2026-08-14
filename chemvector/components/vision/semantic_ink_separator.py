@@ -124,7 +124,8 @@ def semantic_ink_loss(
     logits = output["logits"]
     if logits.shape != targets.shape:
         raise ValueError("Semantic ink output and target shapes differ")
-    targets = targets.to(dtype=logits.dtype).clamp(0.0, 1.0)
+    logits = logits.float()
+    targets = targets.float().clamp(0.0, 1.0)
     positive_weights = logits.new_tensor(
         (config.bond_positive_weight, config.text_positive_weight)
     ).view(1, 2, 1, 1)
