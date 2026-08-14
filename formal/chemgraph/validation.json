@@ -1,7 +1,7 @@
 {
-  "schema_version": "chemgraph-formal-validation-0.3",
+  "schema_version": "chemgraph-formal-validation-0.4",
   "validated_at": "2026-08-15",
-  "status": "passed_raster_evidence_interface_public_exhaustive_baseline_no_go",
+  "status": "evidence_core_v0_4_p3_public_no_go",
   "training_authorized": false,
   "toolchain": {
     "lean": "4.33.0",
@@ -11,12 +11,12 @@
   },
   "build": {
     "command": "lake build",
-    "jobs_passed": 14,
+    "jobs_passed": 16,
     "jobs_failed": 0,
     "sorry_admit_axiom_matches": 0
   },
   "source_tree_hash_method": "sha256 of sorted sha256sum lines for git-tracked formal/chemgraph files excluding validation.json",
-  "source_tree_sha256_excluding_validation": "9452a26a33806241b45eab652c322084f3d53a324c58f091759939a9159ad45f",
+  "source_tree_sha256_excluding_validation": "611229951cd96448d9217784464926cd4a942ce2d358d2e5b5c9b70a9c6f941f",
   "proved_boundaries": [
     "crossing 与中心 junction 在不透明四臂观测中发生同观测异图碰撞",
     "双键与两根平行单键在不透明 lane 观测中发生同观测异图碰撞",
@@ -37,7 +37,11 @@
     "exact singleton candidate 与 correct decoder 推出整 observation class 的 Graph soundness",
     "exact ambiguous observation 产生 multiple candidate，并由 correct decoder 输出 Ambiguous",
     "epsilon 加 epsilon 严格小于异图 separation 下界时推出稳定噪声球内图唯一",
-    "可审计稳定门另需非空合法域和至少一对异图 witness，不能真空通过"
+    "可审计稳定门另需非空合法域和至少一对异图 witness，不能真空通过",
+    "相同 Evidence 的 raster 必须得到相同 Evidence-only CandidateSet",
+    "按图等价类的 Candidate soundness 与 completeness 推出 strict singleton 和 ambiguity multiple class",
+    "correct decoder 的 Graph/Ambiguous/Reject 分别要求 singleton/multiple/empty CandidateSet",
+    "同 Evidence 上的 S8 Graph 要求与 C4 Ambiguous 要求不能由同一确定性 decoder 同时满足"
   ],
   "grammar_v0_1_audit": {
     "implementation_commit": "882bea848abf81c4fa34cadf024118b9eec036ff",
@@ -91,17 +95,58 @@
     "independent_evidence_causality_status": "no_go_not_recomputed",
     "overall_gate_status": "no_go"
   },
+  "hidden_generator_v0_4_audit": {
+    "p0_preregistration_commit": "55a4594",
+    "p1_freeze_commit": "b015d5d",
+    "p2_commitment_commit": "9636af0",
+    "p1_python_tests": "28/28",
+    "p1_lean_jobs": "15/15",
+    "p1_schema_count": "19/19",
+    "p1_support_vs_gray": "81/81",
+    "p1_support_certificates": "12/12",
+    "p1_status": "passed_generator_and_auditor_freeze",
+    "p2_custodian_commitments_present": 2,
+    "p2_commitment_binding_verified": false,
+    "formal_hidden_pack_generated": false
+  },
+  "evidence_core_v0_4_p3_audit": {
+    "preregistration_commit": "abacfe9",
+    "public_observations": 48,
+    "public_oracle_primitives": 116,
+    "geometry_exact": "48/48",
+    "primitive_precision": 1.0,
+    "primitive_recall": 1.0,
+    "corner_pixel_geometry_stable": "48/48",
+    "fresh_process_replay_byte_exact": "48/48",
+    "parallel_lane_redteam_probes": "216/216",
+    "candidate_set_exact": "44/48",
+    "decision_exact": "44/48",
+    "c4_candidate_set_exact": "0/4",
+    "s8_c4_exact_png_collision_styles": "8/8",
+    "s8_c4_semantic_conflict": true,
+    "extractor_sha256": "89598e8a19d2d550267c72c807fb67b6157ded41c96f57a7b366a452aa30e217",
+    "evidence_schema_sha256": "f4624ef3971373cad5ceb78562ab99fd549bacc7920472c93177da0a3ecd12ed",
+    "candidate_sha256": "7591d4d84530ac4668071669d4b78cf9e8932d18b1f1342f923b785531e20f5a",
+    "candidate_schema_sha256": "c57eee26cdc22a213b50c37aff169d7a0e4256e1a05efd56c24de492d4b6c43e",
+    "lean_evidence_core_sha256": "b68140599079ad286d7e5ff749ccaf72557084a27d91ff235d15094a1b78d360",
+    "public_geometry_validation_sha256": "25559d3ff943d7c98807b2a1c0d043cd33380092674753db45efc05bbd3f972a",
+    "public_candidate_validation_sha256": "a89bfbd8e7e9deef5315a3a8e5d81589135c8698927fe397e3b8bc235aed7337",
+    "public_stability_validation_sha256": "85658fd9308ed17cb50b5a80d997bb914ba2dbcd2928e57afc1748258f4e9e9e",
+    "s8_c4_collision_validation_sha256": "e9edd4b01d5ea6b8cef901f36f1ae7586f8272a19bd5a4f4746b659ec40ff12f",
+    "post_freeze_diagnostic_generated": false,
+    "formal_hidden_pack_generated": false,
+    "overall_gate_status": "no_go_cross_family_observation_class_not_closed"
+  },
   "independent_review": {
-    "lean_reviewer": "APPROVE conditional RasterEvidence.lean theorems; REJECT v0.3 artifact claims as preregistration-compliant factorization or isolation",
-    "implementation_reviewer": "REJECT engineering isolation and independent candidate certification; APPROVE narrow public finite table consistency only",
-    "red_team": "REJECT hidden eligibility and structured Evidence causality; APPROVE public finite exhaustive baseline only"
+    "lean_reviewer": "APPROVE conditional EvidenceCore theorems and executable S8/C4 parameter-space collision witness; Lean does not prove PNG equality",
+    "implementation_reviewer": "APPROVE extractor geometry and stability subgates; REJECT Candidate exactness because C4/S8 truth demands conflict",
+    "red_team": "APPROVE 48/48 geometry, 216 lane probes, angle seam and corner-pixel stability; P3 remains NO-GO"
   },
   "remaining_training_gates": [
-    "在 extractor 前冻结 hidden generator、固定点 rasterizer、metric、oracle、container 和两方 seed commitment",
-    "从 Candidate 输入删除完整 foreground RLE 与完整 skeleton pixels，只保留有界 EvidenceCore",
-    "candidate generator 只读 EvidenceCore 且不导入 Scene、generator 或现有 canonicalizer",
+    "按 canonical raster 等价类合并全部 scene 解释，不能用 seen_png 丢弃 duplicate observation",
+    "Extractor freeze 后按相同 EvidenceCore 再合并 RasterGraphSet，形成 EvidenceGraphSet",
+    "修订 C4/S8 真值：不可从最终像素稳定区分时必须输出 Ambiguous",
     "最小只读 rootfs、namespace、无网络、资源与 FD 限制的一图一进程 sandbox",
-    "独立 verifier 从 EvidenceCore 重算 CandidateSet，而非比较提交的 candidate 数组",
     "文字 mask、楔键、虚线、非整数坐标、线宽和抗锯齿支持",
     "未知坐标、旋转、反射、缩放和文字干扰的独立生成审计",
     "production tensor 扰动半径 epsilon 与异图最小间隔 Delta 满足 2 epsilon < Delta",

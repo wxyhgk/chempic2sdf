@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "chemgraph-evidence-core-v0.4",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "status", "image", "stroke_primitives", "event_regions", "residual"],
+      "properties": {
+        "schema_version": {"const": "chemgraph-evidence-core-v0.4"},
+        "status": {"const": "ok"},
+        "image": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["width", "height", "coordinate_format"],
+          "properties": {
+            "width": {"const": 768},
+            "height": {"const": 768},
+            "coordinate_format": {"const": "Q4-pixel"}
+          }
+        },
+        "stroke_primitives": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "begin_q4", "end_q4", "width_q4", "support_score", "local_residual_count", "orientation_bucket", "closed", "straight"],
+            "properties": {
+              "id": {"type": "integer", "minimum": 0, "maximum": 63},
+              "begin_q4": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "integer", "minimum": 0, "maximum": 12288}},
+              "end_q4": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "integer", "minimum": 0, "maximum": 12288}},
+              "width_q4": {"type": "integer", "minimum": 1, "maximum": 1024},
+              "support_score": {"type": "integer", "minimum": 0, "maximum": 10000},
+              "local_residual_count": {"type": "integer", "minimum": 0, "maximum": 589824},
+              "orientation_bucket": {"type": "integer", "minimum": 0, "maximum": 719},
+              "closed": {"type": "boolean"},
+              "straight": {"type": "boolean"}
+            }
+          }
+        },
+        "event_regions": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "centroid_q4", "bbox_q4", "incident_primitive_ids", "kind_hypothesis", "score"],
+            "properties": {
+              "id": {"type": "integer", "minimum": 0, "maximum": 63},
+              "centroid_q4": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "integer", "minimum": 0, "maximum": 12288}},
+              "bbox_q4": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"type": "integer", "minimum": 0, "maximum": 12288}},
+              "incident_primitive_ids": {"type": "array", "maxItems": 16, "uniqueItems": true, "items": {"type": "integer", "minimum": 0, "maximum": 63}},
+              "kind_hypothesis": {"enum": ["terminal", "junction", "intersection", "glyph_like", "unknown"]},
+              "score": {"type": "integer", "minimum": 0, "maximum": 10000}
+            }
+          }
+        },
+        "residual": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["foreground_pixel_count", "component_count", "bbox_q4"],
+          "properties": {
+            "foreground_pixel_count": {"type": "integer", "minimum": 0, "maximum": 589824},
+            "component_count": {"type": "integer", "minimum": 0, "maximum": 4096},
+            "bbox_q4": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"type": "integer", "minimum": 0, "maximum": 12288}}
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "status", "reject_reason"],
+      "properties": {
+        "schema_version": {"const": "chemgraph-evidence-core-v0.4"},
+        "status": {"const": "reject"},
+        "reject_reason": {"type": "string", "minLength": 1, "maxLength": 256}
+      }
+    }
+  ]
+}

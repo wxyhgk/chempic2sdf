@@ -1,0 +1,66 @@
+{
+  "$id": "candidate_set.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "graph": {
+      "additionalProperties": false,
+      "properties": {
+        "edges": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "begin": {"maximum": 127, "minimum": 0, "type": "integer"},
+              "end": {"maximum": 127, "minimum": 0, "type": "integer"},
+              "order": {"enum": [1, 2, 3]}
+            },
+            "required": ["begin", "end", "order"],
+            "type": "object"
+          },
+          "maxItems": 128,
+          "type": "array"
+        },
+        "nodes": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "id": {"maximum": 127, "minimum": 0, "type": "integer"},
+              "role": {"enum": ["implicit", "text_stroke"]}
+            },
+            "required": ["id", "role"],
+            "type": "object"
+          },
+          "maxItems": 128,
+          "type": "array"
+        },
+        "role_hypotheses": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "primitive_id": {"maximum": 63, "minimum": 0, "type": "integer"},
+              "role": {"enum": ["bond_lane", "text_stroke"]}
+            },
+            "required": ["primitive_id", "role"],
+            "type": "object"
+          },
+          "maxItems": 64,
+          "type": "array"
+        }
+      },
+      "required": ["nodes", "edges", "role_hypotheses"],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "candidates": {
+      "items": {"$ref": "#/$defs/graph"},
+      "maxItems": 64,
+      "type": "array"
+    },
+    "decode_kind": {"enum": ["Graph", "Ambiguous", "Reject"]},
+    "schema_version": {"const": "anonymous-candidate-set-v0.4"}
+  },
+  "required": ["schema_version", "decode_kind", "candidates"],
+  "title": "Anonymous CandidateGraphSet v0.4",
+  "type": "object"
+}

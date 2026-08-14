@@ -2,11 +2,11 @@
 
 这个目录用 Lean 4 检查“图片到化学图”路线中最基础的数学前提。它不是模型实现，也不以通过几个定理来替代真实 benchmark。
 
-本轮机器验收见 `validation.json`。当前状态是
-`passed_raster_evidence_interface_public_exhaustive_baseline_no_go`：v0.3 的条件式接口定理和公开
-有限域整图穷举基线有效，但结构化 Evidence 因果链、候选实现独立性、强隔离、hidden challenge 与
-稳定性均未通过，`training_authorized=false`。详细结果见
-`docs/model/formal/20260815-raster-evidence-v0_3-results.md`。
+本轮机器验收见 `validation.json`。当前状态是 `evidence_core_v0_4_p3_public_no_go`：v0.4 已实现
+有界中性 EvidenceCore、stdlib-only Candidate、独立图同构 verifier 和三态解码合同。公开 primitive
+geometry 为 48/48，但 CandidateSet 只有 44/48；C4 与 S8 存在同 raster 异标签反例，因此没有运行
+正式 hidden challenge，`training_authorized=false`。详细结果见
+`docs/model/formal/20260815-evidence-core-v0_4-p3-results.md`。
 
 ## 当前结论
 
@@ -37,6 +37,7 @@
 - `ChemGraph/Grammar.lean`：精确线段几何、三层 grammar 信号与分类定理。
 - `ChemGraph/ObservationRecovery.lean`：Graph/Ambiguous/Reject 解码协议、strict/ambiguity soundness、先验唯一性和 Oracle field 左逆边界。
 - `ChemGraph/RasterEvidence.lean`：raster factorization、candidate exactness、保守解码和 epsilon/Delta 的条件式接口定理。
+- `ChemGraph/EvidenceCore.lean`：P3 bounded Evidence、Evidence-only Candidate、图等价类 exactness 和三态 decoder 合同。
 - `ChemGraph/Counterexamples.lean`：crossing 与 junction 的机器检查反例。
 - `ChemGraph/Multiplicity.lean`：双键与两根平行单键的墨迹分组反例。
 - `ChemGraph/Recovery.lean`：受限十字语法上的恢复定理。
