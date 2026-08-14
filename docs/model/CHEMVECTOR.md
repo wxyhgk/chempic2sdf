@@ -64,6 +64,11 @@ pair 数从 18,340 降至 1,019，同时得到 overall 95.91%、image exact 57.0
 crossed 88.20%、long-bond 97.08%，全部门通过且没有最大键长裁剪。下一步冻结该候选协议训练
 listwise pair scorer；这些是候选 Oracle，不是最终键识别准确率。
 
+[v1 P2-D1](training/20260814-v1p2d1-listwise-pair-scorer-pilot.md) 已预注册：冻结 P1-A/P2-B
+和 line-score top8 partner 候选，以 64 维 ribbon/端点/长度/blocker 特征训练 25,089 参数
+existence MLP。使用 BCE + 每根 GT 键对整图最难负例的 listwise loss；一次性 P2-B holdout
+要求 known recall 90%、predicted F1 80%，本轮不混入键级、OCR、AtomObject 或 SDF。
+
 2026-08-10 的 P19-E11 首次把 P19 risk router 接到部署 predicted AtomObject。Atom matched
 recall 为 97.36%，但整图 Atom exact 仅 59.30%，stress 仅 153/500、crossed 仅 1/126。
 GT Atom router 在预测分布得到 6 rescue/3 harmful，`1101->1104`，正式 NO-GO；old/new 相对
