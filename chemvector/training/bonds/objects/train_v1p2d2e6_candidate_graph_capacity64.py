@@ -42,7 +42,7 @@ DEFAULT_OUTPUT = Path(f"outputs/checkpoints/{MODEL_NAME}")
 DEFAULT_CACHE = Path(
     "outputs/audits/chemvector-v1p2d2e6-candidate-graph-capacity64-cache/capacity64.pt"
 )
-CACHE_SHA256 = "6d80911067a60dc91ad4cf5f7716e7549122bdef8d2f46015a562ae896b2bcd8"
+CACHE_SHA256 = "422fda8a3b592a3e5659d47ea50d26d4782c930b02e7e0c3812192a45d8b89b9"
 CAPACITY_SAMPLES = 64
 SEED = 20260825
 GO_GATES = {
@@ -56,7 +56,7 @@ def load_capacity_cache(path: Path = DEFAULT_CACHE) -> dict[str, Any]:
     if file_sha256(path) != CACHE_SHA256:
         raise ValueError("P2-D2-E6 capacity cache SHA256 differs")
     payload = torch.load(path, map_location="cpu")
-    if payload.get("schema_version") != "chemvector-v1p2d2e6-candidate-graph-cache-0.1":
+    if payload.get("schema_version") != "chemvector-v1p2d2e6-candidate-graph-cache-0.2":
         raise ValueError("P2-D2-E6 capacity cache schema differs")
     if len(payload.get("graphs", ())) != CAPACITY_SAMPLES:
         raise ValueError("P2-D2-E6 capacity cache sample count differs")

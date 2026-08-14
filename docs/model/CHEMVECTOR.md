@@ -103,7 +103,7 @@ style_train_100k，发现 339 张坐标重合异常、涉及 166 个分子；整
 为 99.74%/99.69%，fresh stress pairable 99.30%，全部门通过；相对旧 endpoint 提升
 2.82pp/3.15pp。下一步冻结 checkpoint，在 max256 下重跑 fresh top8 pair Oracle。
 
-[v1 P2-D2-E6](training/20260814-v1p2d2e6-candidate-graph-capacity64.md) 已冻结 64 张规范候选
+[v1 P2-D2-E6](training/20260814-v1p2d2e6-candidate-graph-capacity64.md) 已冻结 64 张组级候选
 Oracle exact 100% 的图，并预注册共享 endpoint 的 node/edge/count 消息传递容量实验；只有
 known-count、模型 count 和候选选择都达到 64/64，才允许进入 style 规模训练。
 

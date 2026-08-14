@@ -2,7 +2,7 @@
 
 > 日期：2026-08-14
 >
-> 状态：已预注册，等待训练
+> 状态：已预注册，训练中
 >
 > 模型：`chemvector-v1p2d2e6-candidate-graph-capacity64`
 
@@ -28,9 +28,10 @@ E4/E5 已把 fresh max256/top8 候选 Oracle 恢复到 95.53% pair recall、59.5
 
 ## Capacity64 缓存
 
-先将预测 endpoint 与 GT 端口做 Hungarian 一对一集合匹配，再检查 top8 候选是否包含每条 GT
-Bond 的两个规范端点。只保留整图全部可达的样本，四种布局各 16 张；异常或不可达图不生成
-PNG，也不进入 capacity 集。
+每个落在 GT 端口 6 px 邻域内的 endpoint 都共享同一端口语义；每个落在 GT Bond 无序端点
+邻域内的 pair 都进入该 Bond 的等价候选集合。训练时每组只选择一个 latent winner，评测也
+要求每条 Bond 恰好恢复一次。只保留整图全部可达的样本，四种布局各 16 张；异常或不可达图
+不生成 PNG，也不进入 capacity 集。
 
 已生成缓存：
 
@@ -39,10 +40,10 @@ outputs/audits/chemvector-v1p2d2e6-candidate-graph-capacity64-cache/capacity64.p
 ```
 
 缓存 SHA256：
-`6d80911067a60dc91ad4cf5f7716e7549122bdef8d2f46015a562ae896b2bcd8`。
+`422fda8a3b592a3e5659d47ea50d26d4782c930b02e7e0c3812192a45d8b89b9`。
 
-实际扫描 784 张，从中固定 64 张；四种布局各 16 张，共 1,854 条 GT Bond、2,082 个 GT
-端口、10,424 个候选 endpoint 和 56,626 条候选 pair。64/64 图的规范候选 Oracle exact 为
+实际扫描 144 张，从中固定 64 张；四种布局各 16 张，共 1,958 条 GT Bond、2,206 个 GT
+端口、11,034 个候选 endpoint 和 59,625 条候选 pair。64/64 图的组级候选 Oracle exact 为
 100%，最大 GT 端点度为 4，生成 PNG 数为 0。
 
 ## 模型与损失

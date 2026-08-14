@@ -11,7 +11,7 @@ from chemvector.training.bonds.objects.train_v1p2d2e6_candidate_graph_capacity64
 
 
 def test_capacity_cache_hash_is_frozen() -> None:
-    assert CACHE_SHA256 == "6d80911067a60dc91ad4cf5f7716e7549122bdef8d2f46015a562ae896b2bcd8"
+    assert CACHE_SHA256 == "422fda8a3b592a3e5659d47ea50d26d4782c930b02e7e0c3812192a45d8b89b9"
 
 
 def test_capacity_selection_requires_one_correct_edge_per_bond() -> None:

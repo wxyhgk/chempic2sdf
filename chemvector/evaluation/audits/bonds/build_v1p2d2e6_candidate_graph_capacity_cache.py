@@ -11,7 +11,6 @@ from pathlib import Path
 import time
 from typing import Any
 
-from scipy.optimize import linear_sum_assignment
 import torch
 
 from chemvector.components.bonds.objects.semantic_bond_endpoint import (
@@ -77,7 +76,7 @@ SCAN_ROWS = 1_024
 SEED = 20260825
 
 
-def canonical_candidate_graph_targets(
+def candidate_graph_set_targets(
     points: torch.Tensor,
     pairs: torch.Tensor,
     expected_bonds: torch.Tensor,
@@ -85,7 +84,7 @@ def canonical_candidate_graph_targets(
     match_radius_pixels: float = MATCH_RADIUS_PIXELS,
     image_size: float = IMAGE_SIZE,
 ) -> dict[str, torch.Tensor | int]:
-    """Match nodes as a set, then label edges by their matched GT port pair."""
+    """Assign all geometrically equivalent nodes and edges to the same GT set."""
 
     if points.ndim != 2 or points.size(-1) != 2:
         raise ValueError("Candidate target points must have shape [nodes, 2]")
@@ -107,10 +106,10 @@ def canonical_candidate_graph_targets(
     node_port_ids = torch.full((len(points_cpu),), -1, dtype=torch.long)
     if len(points_cpu) and len(target_points):
         distances = torch.cdist(points_cpu, target_points.float()) * image_size
-        rows, columns = linear_sum_assignment(distances.numpy())
-        for row, column in zip(rows, columns):
-            if float(distances[row, column]) <= match_radius_pixels:
-                node_port_ids[int(row)] = int(column)
+        minimum, nearest = distances.min(dim=1)
+        node_port_ids = nearest.masked_fill(
+            minimum > match_radius_pixels, -1
+        ).long()
 
     target_degrees = torch.bincount(
         port_indices.reshape(-1), minlength=len(target_points)
@@ -122,21 +121,19 @@ def canonical_candidate_graph_targets(
             node_port_ids[matched_nodes]
         ]
 
-    bond_by_ports: dict[tuple[int, int], int] = {}
-    for bond_id, ports in enumerate(port_indices.tolist()):
-        key = tuple(sorted((int(ports[0]), int(ports[1]))))
-        if key in bond_by_ports:
-            raise ValueError("Candidate target contains duplicate GT port pairs")
-        bond_by_ports[key] = bond_id
     edge_target_bond_ids = torch.full((len(pairs_cpu),), -1, dtype=torch.long)
-    for edge_index, pair in enumerate(pairs_cpu.tolist()):
-        begin = int(node_port_ids[int(pair[0])])
-        end = int(node_port_ids[int(pair[1])])
-        if min(begin, end) < 0 or begin == end:
-            continue
-        edge_target_bond_ids[edge_index] = bond_by_ports.get(
-            tuple(sorted((begin, end))), -1
-        )
+    if len(pairs_cpu) and len(expected_cpu):
+        segments = points_cpu[pairs_cpu]
+        forward = torch.linalg.vector_norm(
+            (segments[:, None] - expected_cpu[None]) * image_size, dim=-1
+        ).amax(dim=-1)
+        reverse = torch.linalg.vector_norm(
+            (segments[:, None] - expected_cpu.flip(1)[None]) * image_size, dim=-1
+        ).amax(dim=-1)
+        minimum, nearest = torch.minimum(forward, reverse).min(dim=1)
+        edge_target_bond_ids = nearest.masked_fill(
+            minimum > match_radius_pixels, -1
+        ).long()
     reachable = len(set(edge_target_bond_ids[edge_target_bond_ids >= 0].tolist()))
     return {
         "node_port_ids": node_port_ids,
@@ -176,7 +173,7 @@ def build_candidate_graph(
         probability, points, point_scores, pairs, pair_config
     )
     node_features = candidate_graph_node_features(points, point_scores, pairs)
-    targets = canonical_candidate_graph_targets(points, pairs, expected_bonds)
+    targets = candidate_graph_set_targets(points, pairs, expected_bonds)
     return {
         "points": points.float().cpu(),
         "point_scores": point_scores.float().cpu(),
@@ -277,7 +274,7 @@ def main() -> None:
                 probability[index : index + 1], decoded, expected_bonds
             )
             if graph["reachable_bond_count"] != bond_count:
-                rejected["canonical_oracle_not_exact"] += 1
+                rejected["group_set_oracle_not_exact"] += 1
                 continue
             graph.update(
                 {
@@ -317,7 +314,7 @@ def main() -> None:
     args.output_dir.mkdir(parents=True, exist_ok=False)
     cache_path = args.output_dir / DEFAULT_CACHE.name
     cache = {
-        "schema_version": "chemvector-v1p2d2e6-candidate-graph-cache-0.1",
+        "schema_version": "chemvector-v1p2d2e6-candidate-graph-cache-0.2",
         "audit_name": AUDIT_NAME,
         "seed": args.seed,
         "separator_sha256": SEPARATOR_SHA256,
@@ -333,7 +330,7 @@ def main() -> None:
     _atomic_torch_save(cache_path, cache)
     sample_keys = [str(graph["sample_key"]) for graph in graphs]
     audit = {
-        "schema_version": "chemvector-v1p2d2e6-candidate-graph-cache-audit-0.1",
+        "schema_version": "chemvector-v1p2d2e6-candidate-graph-cache-audit-0.2",
         "audit_name": AUDIT_NAME,
         "status": "passed",
         "samples": len(graphs),
@@ -344,7 +341,7 @@ def main() -> None:
         "unique_ports": sum(int(graph["unique_port_count"]) for graph in graphs),
         "candidate_nodes": sum(len(graph["node_features"]) for graph in graphs),
         "candidate_edges": sum(len(graph["edge_features"]) for graph in graphs),
-        "canonical_oracle_image_exact": 1.0,
+        "group_set_oracle_image_exact": 1.0,
         "maximum_target_degree": maximum_degree,
         "sample_keys_sha256": hashlib.sha256(
             "".join(f"{key}\n" for key in sample_keys).encode()
