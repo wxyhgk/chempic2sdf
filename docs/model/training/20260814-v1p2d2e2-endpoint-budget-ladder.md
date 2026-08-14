@@ -2,7 +2,7 @@
 
 > 日期：2026-08-14
 >
-> 状态：已预注册，等待执行
+> 状态：已完成，路由到 endpoint model retrain
 >
 > 审计：`chemvector-v1p2d2e2-endpoint-budget-ladder`
 
@@ -42,7 +42,30 @@ P2-D2-E1 表明 fresh calibration 的 endpoint unique-port recall 只有 95.88%�
   chemvector.evaluation.audits.bonds.audit_v1p2d2e2_endpoint_budget_ladder
 ```
 
+## 实际结果
+
+| Threshold / 最大候选 | Unique-port recall | Pairable-Bond recall | 平均候选 | 饱和图 |
+| --- | ---: | ---: | ---: | ---: |
+| 0.05 / 256 | 95.88% | 95.16% | 213.53 | 36.25% |
+| 0.05 / 384 | 96.91% | 96.51% | 235.33 | 6.25% |
+| 0.05 / 512 | 96.93% | 96.55% | 239.11 | 0.75% |
+| 0.02 / 512 | 96.94% | 96.56% | 335.90 | 6.50% |
+| 0.01 / 512 | 96.94% | 96.56% | 512.00 | 100% |
+
+384 到 512 仅增加 0.02pp port recall 和 0.04pp pairable recall；降低阈值则几乎没有额外
+收益。九组配置均未同时达到 97%，按预注册规则判定 `endpoint_model_retrain`。crossed-bonds
+在最宽 0.01/512 下仍只有 96.15% port 和 95.35% pairable；困难布局的正确峰并未出现在场中。
+
+下一步保持 P1-A separator 与 endpoint 架构不变，先用 `style_train_100k` 扩量微调，验证问题
+是否来自 P2-B 仅 8,056 张 fit 图的训练覆盖。训练前必须全量预检 ChemScene，并按 scaffold
+拆分 fit/calibration/holdout；不能把异常布局带入训练。
+
 ## 产物
 
 - audit：`outputs/audits/chemvector-v1p2d2e2-endpoint-budget-ladder/audit.json`；
 - 逐图九配置明细：同目录 `rows.jsonl`。
+
+SHA256：
+
+- `audit.json`：`cfc3ba5551882c021b26d70c6ef2b5ecc25676a79ccb0f57edc0d22a221939f2`；
+- `rows.jsonl`：`b3f67f78e7314423e4bd2d48fc74353defbe07915dfc5db0fc1898a7ba1e240b`。

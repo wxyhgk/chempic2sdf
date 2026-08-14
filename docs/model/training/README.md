@@ -1,5 +1,10 @@
 # ChemVector 训练档案
 
+当前已完成：[v1 P2-D2-E2 Endpoint Budget Ladder](20260814-v1p2d2e2-endpoint-budget-ladder.md)：
+256→512 将 fresh port/pairable recall 从 95.88%/95.16% 提至 96.93%/96.55%，384→512 已
+基本平台；阈值 0.05→0.01 无额外收益。九组均未过 97%，正式路由到 endpoint model retrain；
+下一步用 style_train_100k 扩量，但先做全量 ChemScene 安全清单与 scaffold 隔离拆分。
+
 当前已完成：[v1 P2-D2-E1 Fresh Endpoint Reachability](20260814-v1p2d2e1-fresh-endpoint-reachability.md)：
 held-out 字体 fresh calibration 的 unique-port/exhaustive pair recall 只有 95.88%/95.15%，
 top8 为 92.83%；主要损失在 endpoint 候选进入配对之前。p95 候选已撞到 256，下一步先做

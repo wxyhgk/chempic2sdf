@@ -80,6 +80,11 @@ recall 95.88%、exhaustive pair recall 95.15%，而 top8 为 92.83%。主要损�
 阶段；p95 候选已撞到 256 上限。下一步先冻结审计 maximum-points/threshold 阶梯，再决定提高
 候选预算还是重训 endpoint 场，不训练下游 graph-set 掩盖不可达输入。
 
+[v1 P2-D2-E2](training/20260814-v1p2d2e2-endpoint-budget-ladder.md) 表明 maximum points
+256→512 只把 fresh port/pairable recall 从 95.88%/95.16% 提至 96.93%/96.55%，384 后已
+平台；threshold 0.05→0.01 也无额外收益。正确 endpoint 峰本身缺失，正式路由到 endpoint
+model retrain。下一步在全量安全预检后用 style_train_100k 扩量，架构与 separator 保持不变。
+
 2026-08-10 的 P19-E11 首次把 P19 risk router 接到部署 predicted AtomObject。Atom matched
 recall 为 97.36%，但整图 Atom exact 仅 59.30%，stress 仅 153/500、crossed 仅 1/126。
 GT Atom router 在预测分布得到 6 rescue/3 harmful，`1101->1104`，正式 NO-GO；old/new 相对
