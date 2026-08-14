@@ -1,7 +1,7 @@
 {
-  "schema_version": "chemgraph-formal-validation-0.2",
+  "schema_version": "chemgraph-formal-validation-0.3",
   "validated_at": "2026-08-15",
-  "status": "passed_formal_boundaries_observation_recovery_no_go",
+  "status": "passed_raster_evidence_interface_public_exhaustive_baseline_no_go",
   "training_authorized": false,
   "toolchain": {
     "lean": "4.33.0",
@@ -11,12 +11,12 @@
   },
   "build": {
     "command": "lake build",
-    "jobs_passed": 13,
+    "jobs_passed": 14,
     "jobs_failed": 0,
     "sorry_admit_axiom_matches": 0
   },
   "source_tree_hash_method": "sha256 of sorted sha256sum lines for git-tracked formal/chemgraph files excluding validation.json",
-  "source_tree_sha256_excluding_validation": "a9abcc458341faef83afe4d6404f297338a78bc36164fbb48267b0da1f5a088e",
+  "source_tree_sha256_excluding_validation": "9452a26a33806241b45eab652c322084f3d53a324c58f091759939a9159ad45f",
   "proved_boundaries": [
     "crossing 与中心 junction 在不透明四臂观测中发生同观测异图碰撞",
     "双键与两根平行单键在不透明 lane 观测中发生同观测异图碰撞",
@@ -30,7 +30,14 @@
     "同 observation 的确定性 production chooser 至多匹配一个异图真值",
     "Oracle evidence 不满足 extract 与 render 的 factorization 时不可由 observation 恢复",
     "observable Oracle field 与 FieldStrict 是推出 observation strict-up-to 的充分条件",
-    "全域 Oracle field 左逆会要求每个合法 Scene 均为 FieldStrict"
+    "全域 Oracle field 左逆会要求每个合法 Scene 均为 FieldStrict",
+    "同 raster 的确定性 extractor 必然输出相同 Evidence",
+    "Oracle evidence 在同 raster 碰撞对上不同时不存在 raster factorization",
+    "candidate soundness 与 completeness 的合取才构成 exact candidate set",
+    "exact singleton candidate 与 correct decoder 推出整 observation class 的 Graph soundness",
+    "exact ambiguous observation 产生 multiple candidate，并由 correct decoder 输出 Ambiguous",
+    "epsilon 加 epsilon 严格小于异图 separation 下界时推出稳定噪声球内图唯一",
+    "可审计稳定门另需非空合法域和至少一对异图 witness，不能真空通过"
   ],
   "grammar_v0_1_audit": {
     "implementation_commit": "882bea848abf81c4fa34cadf024118b9eec036ff",
@@ -63,14 +70,38 @@
     "crossing_prior_risk_sha256": "ecbf28654ba600f7fb739e7f7fb58ab95eb2d05320222aeb0f49e1a773dba7ca",
     "overall_gate_status": "no_go"
   },
+  "raster_evidence_v0_3_audit": {
+    "preregistration_commit": "caa8ad1f87c52243c4058ba8884510784db3c2c5",
+    "implementation_commit": "35a32ef6dc758bfc697795b5242c373c1649697a",
+    "full_runs": 2,
+    "domain_observation_rows": 56472,
+    "public_binary_foreground_exhaustive_baseline_status": "passed",
+    "public_candidate_array_consistency_status": "passed",
+    "exact_fixture_factorization_status": "passed_two_fixtures_only",
+    "structured_evidence_to_candidate_causality_status": "no_go_bypassed_by_complete_foreground_rle",
+    "candidate_implementation_independence_status": "no_go_imports_scene_generator_and_canonicalizer",
+    "strong_extractor_isolation_status": "no_go_partial_trace_only",
+    "lean_global_raster_factorization_status": "no_go_not_verified",
+    "hidden_challenge_status": "no_go_not_eligible_freeze_order_and_generator_missing",
+    "stability_status": "no_go_not_run",
+    "summary_sha256": "414afe9447af888882dd97e50fa9aabd7183ba0a62658cbc10966306d1e92ba9",
+    "validation_sha256": "6e93e2a915207489de446a31524c68f175ac109c02be1c9e34ccb5a9490c9b6e",
+    "manifest_sha256": "bec6e25df412f3a87670032e3080542689564e77cbc44b0903df5e43950d3221",
+    "independent_artifact_review_sha256": "b8a8f2a1c762994bdea9fa294c879fd09d640ed2126a1370415c9e50351da0a0",
+    "independent_evidence_causality_status": "no_go_not_recomputed",
+    "overall_gate_status": "no_go"
+  },
   "independent_review": {
-    "lean_reviewer": "APPROVE finite formal boundary and NO-GO claims only",
-    "implementation_reviewer": "APPROVE v0.2 audit as honest NO-GO; reject Strategy B and training",
-    "red_team": "APPROVE result record; reject global crossing prior, extractor and training"
+    "lean_reviewer": "APPROVE conditional RasterEvidence.lean theorems; REJECT v0.3 artifact claims as preregistration-compliant factorization or isolation",
+    "implementation_reviewer": "REJECT engineering isolation and independent candidate certification; APPROVE narrow public finite table consistency only",
+    "red_team": "REJECT hidden eligibility and structured Evidence causality; APPROVE public finite exhaustive baseline only"
   },
   "remaining_training_gates": [
-    "隔离的完整 PNG 或 tensor 到 neutral Evidence extractor",
-    "evidence-only 可枚举 candidate set 的 soundness 与 completeness",
+    "在 extractor 前冻结 hidden generator、固定点 rasterizer、metric、oracle、container 和两方 seed commitment",
+    "从 Candidate 输入删除完整 foreground RLE 与完整 skeleton pixels，只保留有界 EvidenceCore",
+    "candidate generator 只读 EvidenceCore 且不导入 Scene、generator 或现有 canonicalizer",
+    "最小只读 rootfs、namespace、无网络、资源与 FD 限制的一图一进程 sandbox",
+    "独立 verifier 从 EvidenceCore 重算 CandidateSet，而非比较提交的 candidate 数组",
     "文字 mask、楔键、虚线、非整数坐标、线宽和抗锯齿支持",
     "未知坐标、旋转、反射、缩放和文字干扰的独立生成审计",
     "production tensor 扰动半径 epsilon 与异图最小间隔 Delta 满足 2 epsilon < Delta",
