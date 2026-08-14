@@ -90,6 +90,14 @@ style_train_100k，发现 339 张坐标重合异常、涉及 166 个分子；整
 按 scaffold 隔离得到 fit/calibration/holdout 91,740/3,588/4,008 张，跨组重叠为 0，未生成
 新 PNG。数据门通过，允许固定一轮重训 endpoint 场。
 
+[v1 P2-D2-E3](training/20260814-v1p2d2e3-style-endpoint-field.md) 在 expandable allocator 下
+稳定训练超过 38,400 张后，发现合法 target 的 stride-4 cell occupancy=4 超过固定三 slot，
+按 fail-closed 中止且未保存 checkpoint。半轮 optimizer 状态不续用，不能删除合法拥挤样本。
+
+[v1 P2-D2-E3B](training/20260814-v1p2d2e3b-style-endpoint-slot-capacity.md) 全量统计 99,336
+张安全样本：最大 occupancy 为 1/2/3/4 的图分别有 97,170/2,071/92/3 张，最大值严格为 4。
+正式路由到 slots=4，保留三张合法超容量图；无证据需要动态 cell set。
+
 2026-08-10 的 P19-E11 首次把 P19 risk router 接到部署 predicted AtomObject。Atom matched
 recall 为 97.36%，但整图 Atom exact 仅 59.30%，stress 仅 153/500、crossed 仅 1/126。
 GT Atom router 在预测分布得到 6 rescue/3 harmful，`1101->1104`，正式 NO-GO；old/new 相对

@@ -2,7 +2,7 @@
 
 > 日期：2026-08-14
 >
-> 状态：已预注册，等待执行
+> 状态：已完成，路由到 slots=4
 >
 > 审计：`chemvector-v1p2d2e3b-style-endpoint-slot-capacity`
 
@@ -36,7 +36,25 @@ visible ports 并中止。本轮对 E3A 的 99,336 张安全样本全量统计 t
   chemvector.evaluation.audits.bonds.audit_v1p2d2e3b_style_endpoint_slot_capacity
 ```
 
+## 实际结果
+
+- 99,336 张全部完成统计，共 3,659,071 个 unique visible ports；
+- 97,170 张最大 occupancy=1，2,071 张为 2，92 张为 3，3 张为 4；
+- 最大 occupancy 严格为 4，没有 5+；
+- 超三 slot：fit 2 张、holdout 1 张、calibration 0 张；
+- 三张分别为两个 `crossed_bonds` stress 和一个 rdkit 布局；
+- 不生成 PNG，fresh_dev/sealed test 读取数均为 0。
+
+按预注册规则判定 `increase_slots_to_4`。下一模型保留全部三张合法样本，将 endpoint 输出从
+3 slot 扩为 4；共享 backbone 与前三个 slot 从 P2-B checkpoint 初始化，新增第四 slot 随机
+初始化。不能继续使用 slots=3，也没有证据支持改成动态 cell set。
+
 ## 产物
 
 - audit：`outputs/audits/chemvector-v1p2d2e3b-style-endpoint-slot-capacity/audit.json`；
 - 超容量样本：同目录 `over_capacity.jsonl`。
+
+SHA256：
+
+- `audit.json`：`90f3c5511382ddce2751d211dfdb335aa4caf0e40a073297707524be6dd3ab1c`；
+- `over_capacity.jsonl`：`cb584aed68326875f7a37285c35217325bb210d7fe860795225d47fe246f1da9`。

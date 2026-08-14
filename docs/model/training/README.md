@@ -1,5 +1,13 @@
 # ChemVector 训练档案
 
+当前已完成：[v1 P2-D2-E3B Style Endpoint Slot 容量审计](20260814-v1p2d2e3b-style-endpoint-slot-capacity.md)：
+99,336 张中最大 cell occupancy 为 1/2/3/4 的图片分别有 97,170/2,071/92/3 张，最大值严格
+为 4。三张合法超容量图保留，正式路由到 slots=4；没有 5+，无需动态 cell set。
+
+当前中止：[v1 P2-D2-E3 Style Endpoint Field](20260814-v1p2d2e3-style-endpoint-field.md)：
+expandable allocator 下稳定训练超过 38,400 张后，三 slot target 遇到 occupancy=4 并中止；
+无 checkpoint/result，半轮 optimizer 状态不续用。该失败触发 E3B 全量容量审计。
+
 当前已完成：[v1 P2-D2-E3A Style Endpoint 安全清单](20260814-v1p2d2e3a-style-endpoint-safe-manifest.md)：
 全量预检 style_train_100k 后发现 339 张坐标重合异常，涉及 166 个分子；按整分子排除后保留
 99,336 张。scaffold 隔离得到 fit/calibration/holdout 91,740/3,588/4,008 张，跨组重叠为 0，
