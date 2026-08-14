@@ -2,7 +2,7 @@
 
 > 日期：2026-08-14
 >
-> 状态：已预注册，等待运行
+> 状态：NO-GO；对象协议通过，原始数据覆盖门差 3 张
 >
 > 审计：`chemvector-v1p0-edge-centric-oracle10k`
 
@@ -59,3 +59,46 @@ ChemMol/Render/Layers JSON，不生成或复制 PNG。逐样本验证：
 
 GO 后下一周期直接构建 Text/Bond/Endpoint 语义张量和小型分层视觉头；NO-GO 则修协议，禁止
 训练模型。本轮不读取 USPTO、sealed test 或新的 MR-TADF 输出，不创建模型 checkpoint。
+
+## 实际结果
+
+预注册提交为 `5869008`。全量运行 10,000 张耗时 82.21 秒，结果为：
+
+| 指标 | 结果 |
+|---|---:|
+| 输入样本 | 10,000 |
+| 完整通过 | 9,947 |
+| Oracle 覆盖率 | 99.47% |
+| 坐标碰撞 skip | 28 |
+| depiction conflict skip | 25 |
+| 未知失败 | 0 |
+| AtomObject | 328,945 |
+| BondObject | 356,702 |
+| incident ports | 713,404 |
+| DOUBLE / TRIPLE / AROMATIC BondObject | 55,198 / 729 / 70,420 |
+
+所有 9,947 个 accepted 样本均通过对象数量、端口所有权、键类型和 SDF/InChIKey 往返；
+四种布局、四种 stress operation、双键和三键均有覆盖，也没有生成 PNG。唯一失败门为覆盖率：
+`99.47% < 99.50%`，即只差 3 张，但不得事后下调阈值。因此 P0 结论严格记为 NO-GO。
+
+结果文件：
+
+- `outputs/audits/chemvector-v1p0-edge-centric-oracle10k/result.json`，SHA256
+  `2061c375971eac10cee49018d1fffedf18d66e57a41e361833b09139ceeaf143`；
+- `outputs/audits/chemvector-v1p0-edge-centric-oracle10k/skip_diagnostics.json`，SHA256
+  `86268c54faf905d5e359befab45da0ab25da51a73b00441335d6c1eefb241ceb`。
+
+## 失败归因
+
+53 张 skip 来自 38 个分子，不是未知的 ChemScene 解析失败：
+
+- 33/53 是 stress 布局；其中 crossed-bonds 19、near-nonbonded 11、long-bond 2、
+  crowded-subgraph 1；
+- 坐标碰撞表示两个化学原子在 q1023 画布上落到同一坐标，图片无法提供两个独立端点；
+- depiction conflict 表示变形后的视觉几何与源 E/Z 或手性标签冲突，尤其集中于
+  crossed-bonds；
+- 38 个分子中，26 个只坏一个布局、9 个坏两个布局、3 个坏三个布局。
+
+这些图不应被模型学习，也不能靠直接使用源结构绕过视觉矛盾。下一周期建立分子级安全清单：
+一个布局异常就让该分子的四个布局全部退出。预计保留 `2,462 × 4 = 9,848` 张；不补图、不
+重新渲染，也不把原 P0 改判为 GO。安全清单 100% 往返通过后，才允许进入 v1 视觉容量实验。

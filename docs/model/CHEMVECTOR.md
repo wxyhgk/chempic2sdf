@@ -6,6 +6,14 @@ BondObject 和 TextObject，汇聚为 ChemScene，再由确定性编译器写出
 本页只维护当前状态、架构说明和训练档案索引。每次训练的完整命令、指标、失败
 配置和结论统一放在 [`training/`](training/README.md) 中，不再追加到本页。
 
+2026-08-14 已停止 P19 relation router 支线，转向以 TextObject、BondObject 和
+Endpoint/Junction 为一等对象的 edge-centric v1。首个 Oracle10k 中 9,947/10,000
+（99.47%）完整通过对象与 SDF 化学往返，零未知失败；但低于预注册 99.50% 门，严格
+NO-GO。53 张异常来自 38 个分子，主要是 stress 几何与源立体标签矛盾或原子坐标重合。
+下一步先建立分子级 9,848 张安全 allowlist，再训练 v1 视觉头；不继续调 P19，也不把
+MR-TADF 用于训练或选参。详见
+[v1 P0](training/20260814-v1p0-edge-centric-oracle10k.md)。
+
 2026-08-10 的 P19-E11 首次把 P19 risk router 接到部署 predicted AtomObject。Atom matched
 recall 为 97.36%，但整图 Atom exact 仅 59.30%，stress 仅 153/500、crossed 仅 1/126。
 GT Atom router 在预测分布得到 6 rescue/3 harmful，`1101->1104`，正式 NO-GO；old/new 相对

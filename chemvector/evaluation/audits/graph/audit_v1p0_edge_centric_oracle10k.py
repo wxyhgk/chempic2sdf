@@ -128,6 +128,7 @@ def audit_archive(path: Path, limit: int | None = None) -> dict[str, Any]:
     variants: Counter[str] = Counter()
     stress_operations: Counter[str] = Counter()
     failures: list[dict[str, str]] = []
+    skips: list[dict[str, str | None]] = []
     with tarfile.open(path) as archive:
         names = set(archive.getnames())
         keys = sorted(
@@ -165,10 +166,34 @@ def audit_archive(path: Path, limit: int | None = None) -> dict[str, Any]:
                 if operation is not None:
                     stress_operations[str(operation)] += 1
                 counts["passed"] += 1
-            except ChemSVGCoordinateCollisionError:
+            except ChemSVGCoordinateCollisionError as error:
                 counts["skipped_coordinate_collision"] += 1
-            except ChemSceneDepictionConflictError:
+                skips.append(
+                    {
+                        "sample_key": key,
+                        "molecule_id": str(chemmol["molecule_id"]),
+                        "variant": str(render["variant"]),
+                        "stress_operation": render.get("render_parameters", {}).get(
+                            "stress_operation"
+                        ),
+                        "error_type": type(error).__name__,
+                        "error": str(error),
+                    }
+                )
+            except ChemSceneDepictionConflictError as error:
                 counts["skipped_depiction_conflict"] += 1
+                skips.append(
+                    {
+                        "sample_key": key,
+                        "molecule_id": str(chemmol["molecule_id"]),
+                        "variant": str(render["variant"]),
+                        "stress_operation": render.get("render_parameters", {}).get(
+                            "stress_operation"
+                        ),
+                        "error_type": type(error).__name__,
+                        "error": str(error),
+                    }
+                )
             except Exception as error:
                 counts["failed"] += 1
                 if len(failures) < 100:
@@ -185,6 +210,7 @@ def audit_archive(path: Path, limit: int | None = None) -> dict[str, Any]:
         "object_totals": dict(totals),
         "variants": dict(sorted(variants.items())),
         "stress_operations": dict(sorted(stress_operations.items())),
+        "skips": skips,
         "failures": failures,
         "generated_png": False,
     }
@@ -196,11 +222,13 @@ def aggregate_archives(reports: list[dict[str, Any]]) -> dict[str, Any]:
     variants: Counter[str] = Counter()
     operations: Counter[str] = Counter()
     failures = []
+    skips = []
     for report in reports:
         counts.update(report["counts"])
         totals.update(report["object_totals"])
         variants.update(report["variants"])
         operations.update(report["stress_operations"])
+        skips.extend(report.get("skips", []))
         failures.extend(report["failures"])
     total = counts["total"]
     passed = counts["passed"]
@@ -210,6 +238,7 @@ def aggregate_archives(reports: list[dict[str, Any]]) -> dict[str, Any]:
         "object_totals": dict(totals),
         "variants": dict(sorted(variants.items())),
         "stress_operations": dict(sorted(operations.items())),
+        "skips": skips,
         "failures": failures,
         "generated_png": False,
     }

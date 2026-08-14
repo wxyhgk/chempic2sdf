@@ -1,9 +1,10 @@
 # ChemVector 训练档案
 
-当前已预注册：[v1 P0 Edge-centric Oracle10k](20260814-v1p0-edge-centric-oracle10k.md)：
-停止 P19 支线，冻结 MR-TADF v0.10.21 的 Skeleton 48.09% / Chemical 24.00% 为旧路线基线；
-全量审计 ChemVision 10k 的一原子一 AtomObject、一键一 BondObject、端口所有权和 SDF 化学
-往返。Oracle 覆盖至少 99.5% 且 accepted 100% 通过后，才训练 v1 语义视觉头。
+当前已完成：[v1 P0 Edge-centric Oracle10k](20260814-v1p0-edge-centric-oracle10k.md)：
+9,947/10,000（99.47%）通过一原子一 AtomObject、一键一 BondObject、端口所有权和 SDF
+化学往返，accepted 100% 正确且未知失败为 0；但预注册覆盖门为 99.50%，只差 3 张仍严格
+NO-GO。53 张异常来自 38 个分子，主要是 stress 几何与立体标签冲突或坐标重合；下一步按
+分子整组生成 9,848 张安全 allowlist，不下调门槛、不补画异常 PNG。
 
 当前已完成：[G3 P19-E11 Predicted Atom Route Bridge2k](20260810-g3-p19e11-predicted-atom-route-bridge2k.md)：
 部署 predicted AtomObject 协议已打通；Atom recall 97.36%，但整图 Atom exact 仅 59.30%。
