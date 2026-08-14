@@ -47,6 +47,11 @@ geometry 45.58%、known typed 35.43%、predicted geometry F1 56.48%、predicted 
 regression 参数化，不否定 bond-first：下一步先审计 endpoint heatmap/向量场加沿线配对的
 表示上限，不再追加同一头的训练量。
 
+[v1 P2-B](training/20260814-v1p2b-semantic-endpoint-field-pilot.md) 已预注册：冻结 P1-A，
+每个 stride-4 无序 slot 只预测 visible port 的 presence 和格内偏移，先验证 endpoint set
+及两个端点同时可恢复的配对上限。训练、calibration 和一次性 holdout 全部来自 train split，
+validation/internal test 不读；该阶段不输出键配对、键级、AtomObject 或 SDF。
+
 2026-08-10 的 P19-E11 首次把 P19 risk router 接到部署 predicted AtomObject。Atom matched
 recall 为 97.36%，但整图 Atom exact 仅 59.30%，stress 仅 153/500、crossed 仅 1/126。
 GT Atom router 在预测分布得到 6 rescue/3 harmful，`1101->1104`，正式 NO-GO；old/new 相对
