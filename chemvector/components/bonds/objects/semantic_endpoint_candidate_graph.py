@@ -104,9 +104,9 @@ class _CandidateGraphBlock(nn.Module):
         )
         edge_hidden = self.edge_norm(edge_hidden + edge_delta)
 
-        aggregate = torch.zeros_like(node_hidden)
-        degree = node_hidden.new_zeros((len(node_hidden), 1))
-        ones = node_hidden.new_ones((len(edge_hidden), 1))
+        aggregate = edge_hidden.new_zeros(node_hidden.shape)
+        degree = edge_hidden.new_zeros((len(node_hidden), 1))
+        ones = edge_hidden.new_ones((len(edge_hidden), 1))
         for endpoint in (pairs[:, 0], pairs[:, 1]):
             aggregate.index_add_(0, endpoint, edge_hidden)
             degree.index_add_(0, endpoint, ones)

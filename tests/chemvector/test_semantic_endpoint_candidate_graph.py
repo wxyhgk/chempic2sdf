@@ -95,3 +95,16 @@ def test_candidate_graph_rejects_out_of_range_pair_index() -> None:
         assert "outside the node set" in str(error)
     else:
         raise AssertionError("Candidate graph should reject an invalid pair index")
+
+
+def test_candidate_graph_supports_cuda_bfloat16_autocast() -> None:
+    if not torch.cuda.is_available():
+        return
+    model = _model().cuda()
+    node_features = torch.rand((5, NODE_FEATURE_DIM), device="cuda")
+    edge_features = torch.rand((4, PAIR_FEATURE_DIM), device="cuda")
+    pairs = torch.tensor(((0, 1), (1, 2), (1, 3), (3, 4)), device="cuda")
+    with torch.autocast(device_type="cuda", dtype=torch.bfloat16):
+        output = model(node_features, edge_features, pairs)
+    assert output["edge_logits"].shape == (4,)
+    assert torch.isfinite(output["graph_bond_count"])
