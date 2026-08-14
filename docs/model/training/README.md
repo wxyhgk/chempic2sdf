@@ -1,5 +1,10 @@
 # ChemVector 训练档案
 
+当前进行中：[v1 P2-D2-E7 Bond Query Set Capacity64](20260814-v1p2d2e7-bond-query-set-capacity64.md)：
+把 E6 的 edge 二分类/top-K 改成 128 个 Bond query；query 对候选 edge memory 做 cross-attention，
+以 GT Bond 等价候选组的 Hungarian matching 学一个 Bond 一个槽，其余槽为 no-object。继续使用
+同一 64 图 100% Oracle cache，固定 0.5 阈值，不使用像素 NMS。
+
 当前已完成：[v1 P2-D2-E6 Candidate Graph Capacity64](20260814-v1p2d2e6-candidate-graph-capacity64.md)：
 共享 endpoint 图模型后期把 known-count recall 提到 80.39%，但 exact 仅 2/64；冻结模型的
 count 为 10/64、端到端 exact 为 0，正式 NO-GO。错误集中在同一 Bond 的近重复候选占用

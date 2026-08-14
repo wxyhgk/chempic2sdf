@@ -103,6 +103,10 @@ style_train_100k，发现 339 张坐标重合异常、涉及 166 个分子；整
 为 99.74%/99.69%，fresh stress pairable 99.30%，全部门通过；相对旧 endpoint 提升
 2.82pp/3.15pp。下一步冻结 checkpoint，在 max256 下重跑 fresh top8 pair Oracle。
 
+[v1 P2-D2-E7](training/20260814-v1p2d2e7-bond-query-set-capacity64.md) 把 edge 二分类/top-K
+替换为 128 个 Bond query，以等价候选组的 Hungarian matching 直接学习无重复 Bond 集合；
+capacity64 固定 0.5 threshold，不使用像素 NMS，未过 64/64 前不扩量。
+
 [v1 P2-D2-E6](training/20260814-v1p2d2e6-candidate-graph-capacity64.md) 的共享 endpoint 图分类器
 后期 known-count recall 为 80.39%，但 exact 仅 2/64；冻结模型 count 为 10/64、端到端为 0，
 正式 NO-GO。同一 Bond 的重复候选仍占用 top-K，下一步改成 Hungarian Bond query set。
