@@ -27,10 +27,12 @@ Lean 4 build 为 13/13，无 `sorry`、`admit` 或新增 `axiom`。本轮证明�
 - sound abstaining decoder 在同 observation 异图时不能输出 Graph；
 - conservative decoder 不能靠全 Reject 真空通过，必须完整输出 strict Graph 和 honest ambiguity；
 - render-invariant `Scene -> Prop` prior 加 coverage 不可能消除一个已有碰撞类；
-- production prior 必须建模为 `extract -> exact candidate set -> choose`；
+- 本轮认证规格把 production prior 建模为 `extract -> exact candidate set -> choose`；这不是唯一
+  可能架构的定理；
 - 同 observation 的确定性 chooser 至多匹配碰撞真值中的一个；
 - Oracle evidence 若不能写成 `extract(render(scene))`，就不是可观察字段；
-- observable field 加 `FieldStrict` 才能推出 observation strict，左逆只在该条件域成立。
+- 已证明 `observable field + FieldStrict` 足以推出 observation strict；全域左逆会要求全部合法
+  Scene field-strict，但不排除某个非 strict Scene 偶然解对。
 
 Lean 证明的是接口命题，不会阻止 `extract` 的 Python 实现内部按 hash 查表；因此仍需要隔离执行、
 未知输入和独立代码审计。
@@ -74,7 +76,8 @@ fc6a20427ce3ddc60e84e09351f9b15954be1cc961dbca5a60a36cc92b94aeb2
 verifier 不导入 recovery、runner、Scene generator 或 graph canonicalizer。它独立重组 56,472
 个 domain-observation，得到 ambiguity taxonomy：crossing/junction 7，parallel 2（同一个
 parallel observation 分别出现在 simple/crossing 累计域）。Strategy B 保留 44,281 个真值
-Scene，排除 12,200 个；其中 12,191 个 observation 为零 survivor。
+domain-scene membership，排除 12,200 个 domain-scene membership；这些不是跨累计域去重后的
+全局 Scene 数。其中 12,191 个 domain-observation 为零 survivor。
 
 ## Strategy A
 

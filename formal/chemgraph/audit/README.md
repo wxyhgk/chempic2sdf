@@ -92,7 +92,8 @@ python -m formal.chemgraph.audit.verify_observation_recovery_v0_2 \
 ```
 
 它从冻结 v0.1 manifest 独立重组每个 domain 的 graph candidate set，验证 A 的 strict/ambiguity、
-B 的 choice/survivor/Reject、summary/validation 统计和全部安全边界。
+B **已报告 choice** 的候选成员关系、survivor/Reject、summary/validation 统计和全部安全边界；
+它不独立重写几何 prior chooser。
 
 全局 crossing prior 的外部风险诊断使用 SDF 定点坐标的精确有理数几何：
 
