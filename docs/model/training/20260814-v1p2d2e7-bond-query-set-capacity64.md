@@ -2,7 +2,7 @@
 
 > 日期：2026-08-14
 >
-> 状态：已预注册，等待训练
+> 状态：已完成，正式 NO-GO
 >
 > 模型：`chemvector-v1p2d2e7-bond-query-set-capacity64`
 
@@ -44,3 +44,32 @@ predicted exact 64/64，且四种布局分别 16/16。任一失败即 NO-GO，�
 .venv-train/bin/python -m \
   chemvector.training.bonds.objects.train_v1p2d2e7_bond_query_set_capacity64
 ```
+
+## 实际结果
+
+967,305 参数训练 4,800 个单图 optimizer step，耗时 47.30 秒。冻结 step 4800：
+
+- known-count precision/recall：97.04%/30.69%，image exact 0/64；
+- 0.5 threshold count accuracy：3/64，MAE 14.45；
+- predicted F1：37.90%，image exact 0/64；
+- 训练过程最高 known recall 仅 41.73%（step 2400）。
+
+正式判定 `bond_query_set_capacity_no_go`，不进入 style 扩量。单图连续更新时 Hungarian
+assignment 持续重排，0.5 阈值输出数在接近 0 与大幅过选之间震荡，并出现单样本 loss 超过
+100；说明当前实验首先是优化稳定性失败，不能用它否定 query-set 表示。
+
+下一步先做固定单图 overfit 隔离：若单图仍不能 100%，检查 pointer/group loss；若单图能
+100%，则保持模型与损失，改用多图梯度累积、较低学习率和 assignment 稳定策略，再回到
+capacity64。不得直接增加本轮单图 SGD 的步数。
+
+## 产物
+
+- checkpoint：
+  `outputs/checkpoints/chemvector-v1p2d2e7-bond-query-set-capacity64/final.pt`；
+- checkpoint SHA256：
+  `3e49d063bee4d367cd388a7685e0f7637e7b98a3b481288cf096c3f1c9cefece`；
+- result SHA256：
+  `1ca5a14933d12795ca994e8ad9f9dfcbe34e3ea67cef098693088cd2b7fbc4a5`；
+- 模型 tag：`chemvector-v1p2d2e7-bond-query-set-capacity64`。
+
+所有保留集读取数为 0，生成 PNG 数为 0。
