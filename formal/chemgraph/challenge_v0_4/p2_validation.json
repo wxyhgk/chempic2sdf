@@ -1,0 +1,35 @@
+{
+  "schema_version": "chemgraph-hidden-seed-share-p2-validation-v0.4",
+  "validated_at": "2026-08-15",
+  "status": "passed_procedural_two_custodian_commitment_only",
+  "p0_preregistration_commit": "55a459499a5f72775e2796c7bd0c0ff012eaf244",
+  "p1_freeze_commit": "b015d5d61f9dcc8f4a6c8581d3ff1e2392827557",
+  "custodian_commitments": [
+    {
+      "custodian_role": "custodian-1",
+      "commitment_sha256": "ca577bebe7ef3b9bbca271988d3db8fe995ee65cb8ae9feaff96c3b6e5ee322d",
+      "commitment_file_sha256": "576508af9b788057b6112bf1dd9470ad29af22a524b7d72bf2fac9bc54d4c368",
+      "raw_share_included": false
+    },
+    {
+      "custodian_role": "custodian-2",
+      "commitment_sha256": "3d60542ccf325012e898c13fb6cb689469d8a793f76e8fa60a1a0482c1a66af5",
+      "commitment_file_sha256": "ec2173ac9c351f22dccf5147674f4df6bdec7fc49848057c01c17b0095c2c665",
+      "raw_share_included": false
+    }
+  ],
+  "commitments_distinct": true,
+  "shares_known_to_primary_agent": false,
+  "shares_stored_in_repository": false,
+  "shares_stored_in_filesystem_by_protocol": false,
+  "commitment_binding_verified": false,
+  "commitment_binding_verification_deferred_until_reveal": true,
+  "lean_proves_share_secrecy": false,
+  "generated_hidden_pack": false,
+  "authorizations": {
+    "p3_extractor_and_candidate_implementation_authorized": true,
+    "formal_hidden_pack_generation_authorized": false,
+    "prediction_execution_authorized": false,
+    "training_authorized": false
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "schema_version": "chemgraph-hidden-generator-p1-validation-v0.4",
+  "validated_at": "2026-08-15",
+  "status": "passed_public_smoke_generator_first_only",
+  "p0_preregistration_commit": "55a459499a5f72775e2796c7bd0c0ff012eaf244",
+  "p1_freeze_commit": "b015d5d61f9dcc8f4a6c8581d3ff1e2392827557",
+  "lean": {
+    "jobs_passed": 15,
+    "jobs_failed": 0,
+    "sorry_admit_axiom_matches": 0,
+    "hidden_challenge_lean_sha256": "d5a092cf4b412f3a86eb9ebabbef8098a9260f7f6eb452e5f3acca0c1e26b481",
+    "proves_generator_timeline": false,
+    "proves_hash_collision_resistance": false,
+    "computed_epsilon_or_delta": false
+  },
+  "public_smoke_audit": {
+    "python_tests_passed": 28,
+    "schema_count": 19,
+    "support_gray_combinations_passed": 81,
+    "unique_observations_per_pack": 48,
+    "invocations_per_pack": 72,
+    "support_certificates_passed": 12,
+    "pack_a_replay_byte_exact": true,
+    "pack_ab_png_overlap": 0,
+    "semantic_blocker_count": 0,
+    "graph_set_reconstruction_failure_count": 0
+  },
+  "commitments": {
+    "schema_bundle_sha256": "0ec53107573e482bd7c9b3942d2ce89974648c903fc93ef01b3fb8b9773bea49",
+    "generator_source_tree_sha256": "362afbf9c19d8b9d4c87cb38666868cd2141969920a1055996cfcbc2195b421c",
+    "protocol_bundle_sha256": "7d90c89617bcae70bacd6d6013df3316122b6b2563f45a0ff4f3eb811fcd129f",
+    "public_smoke_pack_a_commitment_sha256": "5eb7882e9096a933695fc8cbfd5fe2184213685c1b66b37c94895b532992df99",
+    "public_smoke_pack_b_commitment_sha256": "2303ae97b29f853628d9a559c3ca13746ec62e1555f5d62bb519da630891912b"
+  },
+  "review": {
+    "lean_reviewer": "APPROVE frozen finite generator grammar only",
+    "oracle_reviewer": "APPROVE public smoke P1 only",
+    "first_round_status": "no_go_candidate_incomplete_and_join_not_rendered",
+    "second_round_status": "passed"
+  },
+  "authorizations": {
+    "p2_seed_share_commitment_authorized": true,
+    "formal_hidden_pack_generation_authorized": false,
+    "extractor_freeze_authorized": false,
+    "prediction_execution_authorized": false,
+    "training_authorized": false
+  }
+}
