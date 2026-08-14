@@ -42,6 +42,7 @@ geometry 为 48/48，但 CandidateSet 只有 44/48；C4 与 S8 存在同 raster 
 - `ChemGraph/Multiplicity.lean`：双键与两根平行单键的墨迹分组反例。
 - `ChemGraph/Recovery.lean`：受限十字语法上的恢复定理。
 - `ChemGraph/FiniteAudit.lean`：最小可执行碰撞分类器和 strict/ambiguity 回归测试。
+- `ChemGraph/ObservationClosure.lean`：v0.5 的从属 tuple/interpretation 域、8 轴 Cartesian product 的无公理结构双射与基数乘积、Raster/Evidence 双层闭包、sampled/full 单调性、三态、候选 coverage 与 `NodupUpTo`、带标签简单图同构，以及 typed preprocess/Shift 合同。
 
 ## 工具链与构建
 
@@ -106,7 +107,9 @@ strict（up to graph equivalence）。生产中的 `Observation` 必须实例化
 
 时，Lean 定理 `robust_ball_has_unique_graph` 才保证同一个噪声球内的全部合法候选属于同一化学图。后续 production tensor 审计必须估计每个样本族的 `Δ`，并用小于 `Δ/2` 的拒识半径；否则只能输出多解或不确定，不能把“hash 没撞”误称为稳定。
 
-当前 Lean 模型只证明有限十字抽象中的逻辑事实。`graphEquivalentBool` 和 `GraphEquivalent` 已忽略 Bond 列表排列，但 Atom 编号目前仍由有限场景的空间角色规范化；一般图同构尚未形式化。当前还只检查精确碰撞，没有定义观测度量、异图最小间隔或拒识半径，所以不能把有限扰动未碰撞误称为数学稳定。真实抗锯齿 PNG、文字遮挡、短键、双键 lane、虚线和任意分子的恢复也尚未证明。因此当前状态仍是 `FORMALIZATION_IN_PROGRESS`，不能据此开始大规模训练。
+`ObservationClosure.lean` 已形式化有限无向带标签简单图，以及由节点双射保持节点标签和边标签定义的图同构，并证明该关系为等价关系。可执行 Boolean checker 仍通过显式 `Decidable` 接口接入；Lean 证明 checker 的 sound/complete 规格，但不声称已验证 Python canonicalizer 的具体实现。
+
+当前 Lean 模型仍只证明冻结接口之间的逻辑事实。它没有执行 3608 万 tuple 枚举，也不验证真实 rasterizer、extractor、PNG/JSON、syscall 隔离或 Git 时序。真实抗锯齿 PNG、文字遮挡、短键、双键 lane、虚线和任意分子的恢复也尚未证明。因此当前状态仍是 `FORMALIZATION_IN_PROGRESS`，不能只凭 Lean 接口定理开始大规模训练。
 
 ## 参考原则
 
