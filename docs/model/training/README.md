@@ -1,9 +1,10 @@
 # ChemVector 训练档案
 
-当前已预注册：[v1 P1 语义墨迹分离 Pilot](20260814-v1p1-semantic-ink-separation-pilot.md)：
-只用 P0-R 安全清单的 8,856 train 训练轻量双通道 U-Net，从原图分离 bond ink 与 text ink；
-496 validation 固定门为 bond IoU 90%、text IoU 75%、stress bond IoU 88%，internal test
-不读取。GO 后 BondObject 只消费预测 bond feature，OCR 只消费 text feature。
+当前已完成：[v1 P1 语义墨迹分离 Pilot](20260814-v1p1-semantic-ink-separation-pilot.md)：
+1.34M 参数双通道 U-Net 完成两轮 8,856 train。固定 0.5 下 bond/text IoU 为
+71.73%/65.09%，未过预注册门，严格 NO-GO；但 precision 为 99.60%/99.78%，文字误入 bond
+仅 1.68%，残差几乎全是召回。下一步先做 validation 阈值 PR 审计，冻结后一次性读 internal
+test，区分 soft-alpha 校准不匹配与真实容量不足。
 
 当前已完成：[v1 P0-R Edge-centric 安全清单](20260814-v1p0r-edge-centric-safe-manifest.md)：
 按分子整组排除 P0 的 38 个异常分子，保留 2,462 个分子、9,848 张完整四布局图片；9,848 张

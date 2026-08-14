@@ -19,6 +19,12 @@ MR-TADF 用于训练或选参。详见
 ChemScene/SDF 往返，train/validation/internal test 为 8,856/496/496，安全输入正式 GO。
 该结果只解除数据协议阻塞，不代表视觉模型已经有效；下一步从 train split 做小型容量实验。
 
+[v1 P1](training/20260814-v1p1-semantic-ink-separation-pilot.md) 用 1.34M 参数双通道 U-Net
+训练两轮；固定 0.5 的 validation bond/text IoU 为 71.73%/65.09%，严格 NO-GO。但两通道
+precision 达 99.60%/99.78%，bond-on-text-only 仅 1.68%，没有复现“文字笔画当键”的主要
+旧错误，当前更像 soft-alpha 边缘与二值阈值不匹配。先做冻结 PR 校准和一次性 internal-test
+确认，再决定是否扩大模型或改损失。
+
 2026-08-10 的 P19-E11 首次把 P19 risk router 接到部署 predicted AtomObject。Atom matched
 recall 为 97.36%，但整图 Atom exact 仅 59.30%，stress 仅 153/500、crossed 仅 1/126。
 GT Atom router 在预测分布得到 6 rescue/3 harmful，`1101->1104`，正式 NO-GO；old/new 相对
