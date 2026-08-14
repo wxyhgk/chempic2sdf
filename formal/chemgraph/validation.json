@@ -1,7 +1,7 @@
 {
-  "schema_version": "chemgraph-formal-validation-0.1",
-  "validated_at": "2026-08-14",
-  "status": "passed_finite_abstract_and_single_style_raster",
+  "schema_version": "chemgraph-formal-validation-0.2",
+  "validated_at": "2026-08-15",
+  "status": "passed_formal_boundaries_observation_recovery_no_go",
   "training_authorized": false,
   "toolchain": {
     "lean": "4.33.0",
@@ -10,47 +10,70 @@
     "toolchain_archive_sha256": "4b3fb03c29a1e0a253fb1d11f9bae3725f19a0dc6fc09b3ea16d2c9df3349e2c"
   },
   "build": {
-    "command": "lake clean && lake build",
-    "jobs_passed": 11,
+    "command": "lake build",
+    "jobs_passed": 13,
     "jobs_failed": 0,
     "sorry_admit_axiom_matches": 0
   },
-  "source_tree_sha256_excluding_validation": "864fac9623b2e5e9b2326b744a9fd9d1a6c071bfa76208461a9a3a14bf02c61a",
+  "source_tree_hash_method": "sha256 of sorted sha256sum lines for git-tracked formal/chemgraph files excluding validation.json",
+  "source_tree_sha256_excluding_validation": "e8502c82d13c8030c8392ea67ae1e2958c3cf884a5677c4ce537bfa612d0331b",
   "proved_boundaries": [
     "crossing 与中心 junction 在不透明四臂观测中发生同观测异图碰撞",
     "双键与两根平行单键在不透明 lane 观测中发生同观测异图碰撞",
     "发生同观测异图碰撞时不存在对全部场景精确的确定性解码器",
     "BondGroupingOracle 不能由已经碰撞的不透明观测确定性导出",
     "BondGroupingOracle 会丢失键级和重复 Bond 实例数量",
-    "八个有限 toy kind 的 strict/ambiguity 分类和 Bond 排列不变性通过",
-    "异图间隔大于两倍噪声半径时，噪声球内图语义唯一"
+    "异图间隔大于两倍噪声半径时，噪声球内图语义唯一",
+    "sound abstaining decoder 在 ambiguous observation 上不得输出 Graph",
+    "conservative decoder 必须覆盖 strict Graph 与 honest ambiguity，不能靠全 Reject 真空通过",
+    "render-invariant Scene predicate prior 加 observation coverage 不可能消除已有碰撞",
+    "同 observation 的确定性 production chooser 至多匹配一个异图真值",
+    "Oracle evidence 不满足 extract 与 render 的 factorization 时不可由 observation 恢复",
+    "observable Oracle field 与 FieldStrict 是推出 observation strict-up-to 的充分条件",
+    "全域 Oracle field 左逆会要求每个合法 Scene 均为 FieldStrict"
   ],
-  "independent_review": {
-    "alternative_reviewer": "APPROVE finite abstract and single-style exact-collision gate only",
-    "red_team": "APPROVE fixed 3px toy-grammar negative audit; NO-GO training"
-  },
-  "finite_raster_audit": {
-    "implementation_commit": "dae58c7",
+  "grammar_v0_1_audit": {
+    "implementation_commit": "882bea848abf81c4fa34cadf024118b9eec036ff",
     "full_runs": 2,
-    "core_scenes": 66712,
-    "fixture_scenes": 4,
-    "unique_observations": 53206,
-    "graph_collision_classes": 3518,
-    "scenes_in_collision_classes": 17028,
-    "preprocessing_only_collision_classes": 0,
-    "summary_sha256": "56c2d7af660711fb5e54cf2767d8a7e205401b53c14978080e2c4c6686d65508",
-    "collision_certificates_sha256": "fe0df24ed8266d380beba97caf0893709f5076d77b1605b6f8f73e5787920077",
-    "validation_sha256": "7c7c15014bb5ba0cf50d76f8e162f19dbf66abeeb4239be44177e81e8ef6f4b4",
-    "replay_byte_identical": true,
-    "networkx_nonisomorphic_pairs_checked": 12294,
-    "networkx_false_graph_differences": 0,
-    "independent_review_sha256": "d4e027fd619cbd3d2dbc780c83ac854bf2a817db9afb70f78cdaeeaffe2ec9a4"
+    "processed_scenes": 66716,
+    "simple_domain_collision_classes": 1,
+    "crossing_domain_collision_classes": 8,
+    "all_domain_collision_classes": 3518,
+    "summary_sha256": "0e361850b5a9746c9b92d35c55e6dd934a538103296cf61dd69e78a9c9dab990",
+    "validation_sha256": "f007ea92c2845c3c72372f2a8d21344f318886878953f9927a1b88d837115e0d",
+    "manifest_sha256": "f7519924b13b685f235a90dbd837772ced626cdffc9bbbacd4ff423d22c406f7",
+    "certificate_sha256": "f97262008a50edf26b263745b9058533820be8bb72fdffcc3f9c38e6f9839485",
+    "independent_review_sha256": "10db28ce9262a7af4a0c1601f58b40fca362c067cc06ade4f679d6cb1ec90b71",
+    "identifiability_gate_status": "no_go"
+  },
+  "observation_recovery_v0_2_audit": {
+    "implementation_commit": "df6f83fbfbb6aabf56df30d8cb32b0c27fbf043b",
+    "full_runs": 2,
+    "domain_observation_rows": 56472,
+    "strategy_a_status": "passed_finite_specification_only",
+    "strategy_b_status": "no_go_global_prior_coverage",
+    "strategy_b_zero_survivor_domain_observations": 12191,
+    "observable_extractor_status": "no_go_not_implemented",
+    "semantic_serialization_status": "passed_field_strict_only",
+    "summary_sha256": "0ed7f0367630a3a7b7dbde046846133c070a58c111481dd04da2c2d96fb562cf",
+    "validation_sha256": "80d3023d4669143bdc2b43b18f7bc5db71a6fd16fa0d5ff2d62d0c37f58070e2",
+    "manifest_sha256": "ae60a39da34751ac59a64ce71501fa9803dcc7950fe52eeed7c282dcb6ddf32d",
+    "certificate_sha256": "6f1f360404efcbdac2726d3f63f6fb1b73fb2d2ad686af7ee853954e284e39a7",
+    "independent_review_sha256": "f109494085130b5de404b31324cb37d8db2be5f8e4fab632bb6f65488a2d928f",
+    "crossing_prior_risk_sha256": "ecbf28654ba600f7fb739e7f7fb58ab95eb2d05320222aeb0f49e1a773dba7ca",
+    "overall_gate_status": "no_go"
+  },
+  "independent_review": {
+    "lean_reviewer": "APPROVE finite formal boundary and NO-GO claims only",
+    "implementation_reviewer": "APPROVE v0.2 audit as honest NO-GO; reject Strategy B and training",
+    "red_team": "APPROVE result record; reject global crossing prior, extractor and training"
   },
   "remaining_training_gates": [
-    "完整 Atom/Text/visible-port/order/multiplicity Oracle field",
-    "字体、文字、颜色、线宽、lane gap、模糊与缩放 observation shell",
-    "production tensor 距离、异图最小间隔和拒识半径的实测与冻结",
-    "Oracle field 到 production decoder 的 100% graph exact",
-    "独立未知 seed 连续两轮审批"
+    "隔离的完整 PNG 或 tensor 到 neutral Evidence extractor",
+    "evidence-only 可枚举 candidate set 的 soundness 与 completeness",
+    "文字 mask、楔键、虚线、非整数坐标、线宽和抗锯齿支持",
+    "未知坐标、旋转、反射、缩放和文字干扰的独立生成审计",
+    "production tensor 扰动半径 epsilon 与异图最小间隔 Delta 满足 2 epsilon < Delta",
+    "独立未知输入下 conservative Graph/Ambiguous 分类 100% 正确"
   ]
 }
