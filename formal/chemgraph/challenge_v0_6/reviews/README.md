@@ -114,3 +114,24 @@ v0.4 只允许进行可审计的最小修订：
 
 v0.4 合同、schema、Lean 和 executable verifier 全部闭合前，仍保持
 `execution_authorized=false` 与 `training_authorized=false`。
+
+## v0.4 合同冻结
+
+v0.4 仅修复 v0.3 的 authorization inbox 精确集合问题，并通过 Oracle 全量回归和独立红队
+复核。固定哈希为：
+
+```text
+contract ddb03c311e1e3a41f63d2438a8e4c7bf7b7fa9c3044fe6b15fe399e10c47a6ea
+schema   dfa0e0087cf7f065f9219c5d4bdb129723a8a1b3309a7db789828a60819bc5d6
+```
+
+红队结论是 `GO-for-Lean-contract-freeze`：允许冻结合同，并实现 Lean 模型与 executable
+relation verifier。该结论不授权运行 launcher、创建 dry-run/official authorization、发布 E2 权威结果
+或训练模型。
+
+机器结果见 `e2_launcher_v0_4_contract_freeze.json`。当前仍是：
+
+```text
+execution_authorized=false
+training_authorized=false
+```
