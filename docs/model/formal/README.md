@@ -27,6 +27,9 @@
 - [OCSR 数学与结构建模文献地图](20260815-ocsr-mathematical-literature-map.md)
 - [Intersection Ownership v0.4 可辨识性预注册](20260815-intersection-ownership-v0_4-identifiability-preregistration.md)
 - [Intersection Ownership v0.4 可辨识性 NO-GO](20260815-intersection-ownership-v0_4-identifiability-no-go.md)
+- [Owner Candidate Domain v0.5 预注册](20260815-owner-candidate-domain-v0_5-preregistration.md)
+- [PNG Ownership Realization v0.5 探索协议](20260815-png-ownership-realization-v0_5-exploratory-protocol.md)
+- [PNG Ownership Realization v0.5 结果](20260815-png-ownership-realization-v0_5-results.md)
 - Lean 工程：`formal/chemgraph/`
 
 状态：训练暂停，形式化验证进行中。
