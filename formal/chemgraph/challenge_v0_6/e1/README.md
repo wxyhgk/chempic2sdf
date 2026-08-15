@@ -60,7 +60,7 @@ validation.json                       正式重放结果
 
 ```text
 witness.json
-e9f5a423e1031f756be3e6441a18ff0676f5d5f24f84f8160f60e223ce21221d
+fb17551b74a47a1d2bd5e511ff656e2c3f8f9577aa8e4e6c8d613d442951b17c
 
 validation.json
 b7ded6a4ee193aaca7f6043c7a3d289bb2af38a6625432aae792aa7505ac8012

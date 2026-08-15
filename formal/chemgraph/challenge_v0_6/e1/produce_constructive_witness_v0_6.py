@@ -51,12 +51,12 @@ def sha256(payload: bytes) -> str:
 def _graph_signature(
     labels: tuple[str, ...], bonds: tuple[tuple[int, int, int], ...]
 ) -> str:
-    """Canonicalize the tiny anonymous graph without generator identifiers."""
+    """Implement the parent contract's exact canonical graph byte protocol."""
     best: str | None = None
     for order in itertools.permutations(range(len(labels))):
         inverse = {old: new for new, old in enumerate(order)}
         value = {
-            "bonds": sorted(
+            "edges": sorted(
                 [
                     min(inverse[left], inverse[right]),
                     max(inverse[left], inverse[right]),
@@ -64,9 +64,11 @@ def _graph_signature(
                 ]
                 for left, right, bond_order in bonds
             ),
-            "labels": [labels[old] for old in order],
+            "nodes": [[labels[old], 0] for old in order],
         }
-        encoded = canonical_bytes(value).decode("ascii").rstrip("\n")
+        encoded = json.dumps(
+            value, ensure_ascii=True, separators=(",", ":"), sort_keys=True
+        )
         if best is None or encoded < best:
             best = encoded
     if best is None:

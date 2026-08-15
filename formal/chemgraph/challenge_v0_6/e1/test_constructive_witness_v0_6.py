@@ -33,6 +33,11 @@ class ConstructiveWitnessTests(unittest.TestCase):
             value["interpretations"][0]["graph_signature"],
             value["interpretations"][1]["graph_signature"],
         )
+        for interpretation in value["interpretations"]:
+            signature = interpretation["graph_signature"]
+            graph = json.loads(signature)
+            self.assertEqual(set(graph), {"edges", "nodes"})
+            self.assertFalse(signature.endswith("\n"))
         self.assertTrue(value["checks"]["same_tuple_full_gray_bytes_equal"])
 
     def test_canonical_roundtrip_verifier(self) -> None:
