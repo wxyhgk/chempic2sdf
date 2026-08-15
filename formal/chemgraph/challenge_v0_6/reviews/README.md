@@ -144,3 +144,9 @@ training_authorized=false
 
 四个完整文件及目录 tree framing 见 `e2_launcher_v0_4_offline_verifier_freeze.json`。当前 verifier
 不会运行 launcher、创建 authorization、写 ledger/marker 或授权训练。
+
+## v0.4 Lean 边界
+
+当前 Lean 候选仍是 `NO-GO for Lean freeze`。详细原因、JSON/SHA 调研和下一周期的可信边界见
+`E2_V0_4_LEAN_BOUNDARY_DECISION.md`。在 transcript codec、46 个非恒等 checker soundness 和
+双重审计完成前，不得把当前候选提交为权威证明，也不得运行 launcher 或训练。
