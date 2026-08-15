@@ -201,3 +201,18 @@ training_authorized=false
 `blind_carrier_v0_1_triple_expressivity_no_go.json`。因此上面的 validator freeze 只作为历史结构实现证据，
 v0.1 整体不得选择 blind 20 或运行 proposer。下一版必须改用显式 endpoint alignment 和由 validator
 重算的 terminal region。
+
+## Blind Carrier v0.2 协议与结构验证器冻结
+
+v0.2 用显式 `(segment_id, endpoint_index)` 和 endpoint carrier-disk 相交图替代 v0.1 的共享单点
+terminal，标准平行三键已经有 Lean 构造见证和可执行正例。定向测试 33/33、全 formal audit 112/112、
+Lean build 24/24，独立红队结论为 `GO_FOR_V0_2_STRUCTURAL_VALIDATOR_FREEZE`。
+
+机器记录见 `blind_carrier_v0_2_protocol_validator_freeze.json`。当前只冻结协议和结构验证器，proposer
+尚未实现；因此仍不得选择 blind 20、运行 proposer 或训练：
+
+```text
+blind_sample_selection_authorized=false
+proposer_execution_authorized=false
+training_authorized=false
+```

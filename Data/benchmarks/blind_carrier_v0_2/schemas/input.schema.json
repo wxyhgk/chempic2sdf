@@ -1,0 +1,23 @@
+{
+  "$id": "https://chemgraph.local/schemas/blind-carrier-input-v0.2.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "image": {
+      "additionalProperties": false,
+      "properties": {
+        "bytes_base64": {"maxLength": 5592408, "minLength": 12, "pattern": "^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$", "type": "string"},
+        "format": {"const": "png"},
+        "height": {"const": 768},
+        "width": {"const": 768}
+      },
+      "required": ["bytes_base64", "format", "height", "width"],
+      "type": "object"
+    },
+    "schema_version": {"const": "chemgraph-blind-carrier-input-v0.2"},
+    "training_authorized": {"const": false}
+  },
+  "required": ["image", "schema_version", "training_authorized"],
+  "title": "Blind carrier proposer input v0.2",
+  "type": "object"
+}

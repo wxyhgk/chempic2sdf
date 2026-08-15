@@ -46,6 +46,7 @@ geometry 为 48/48，但 CandidateSet 只有 44/48；C4 与 S8 存在同 raster 
 - `ChemGraph/ConstrainedRecovery.lean`：笔画精确归属、Bond lane 成组、carrier 支撑边和 `2 * epsilon` 鲁棒分数间隔。
 - `ChemGraph/ConstrainedRecoveryV02.lean`：具名 support、lane 级端点与 provenance、coverage/calibration 双证书和缺证拒绝边界。
 - `ChemGraph/BlindCarrierTripleExpressivityV01.lean`：形式化 Blind Carrier v0.1 三条平行 lane 在固定 terminal 半径与最小间距下的合同不相容性。
+- `ChemGraph/BlindCarrierTerminalRegionV02.lean`：形式化 v0.2 terminal region 修复，证明三条平行 lane 的相邻 endpoint disk 相交且交图 `0-1-2` 连通，不要求三圆公共交点。
 
 ## 工具链与构建
 
