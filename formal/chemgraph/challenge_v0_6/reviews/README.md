@@ -173,3 +173,23 @@ v0.2 修复了零 support 假边、lane bundle、provenance、candidate coverage
 漏洞，但 proposer support 与 issuer 仍未绑定真实 PNG/独立审计。机器结论见
 `constrained_recovery_v0_2_review.json`：允许进入 20 图 blind carrier audit，不允许作为自足 authority，
 也不授权训练。
+
+## Blind Carrier v0.1 结构验证器冻结
+
+无 GT 结构验证器已通过 24 项定向测试、79 项全 formal audit 和独立红队复核，15 文件 tree SHA256 为：
+
+```text
+c300d41eb2f0ed7d810aff7e31a6434684d57fc79a2328e3a824a823c6815bc8
+```
+
+冻结记录见 `blind_carrier_v0_1_structural_validator_freeze.json`。该冻结只覆盖 canonical PNG/JSON、
+像素 support、局部 geometry、引用、同一 BondBundle 的 lane 分离和 ownership 结构合同。它不证明
+multi-segment lane 连续性、candidate coverage、calibration、carrier 准确率或化学图正确性。
+
+当前尚未选择 20 张盲图、尚未冻结并运行 proposer，也不授权训练：
+
+```text
+blind_sample_selection_authorized=false
+proposer_execution_authorized=false
+training_authorized=false
+```
