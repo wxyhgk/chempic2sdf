@@ -1,0 +1,136 @@
+{
+  "$id": "e1_constructive_witness.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "checks": {
+      "additionalProperties": false,
+      "properties": {
+        "both_interpretations_in_same_frozen_tuple": {"const": true},
+        "graph_signatures_distinct": {"const": true},
+        "padded_clipping_certificate_passed": {"const": true},
+        "render_is_interpretation_independent": {"const": true},
+        "same_tuple_full_gray_bytes_equal": {"const": true}
+      },
+      "required": [
+        "both_interpretations_in_same_frozen_tuple",
+        "graph_signatures_distinct",
+        "padded_clipping_certificate_passed",
+        "render_is_interpretation_independent",
+        "same_tuple_full_gray_bytes_equal"
+      ],
+      "type": "object"
+    },
+    "contract_binding": {
+      "additionalProperties": false,
+      "properties": {
+        "parent_contract_sha256": {
+          "const": "55ddcaacdf851166554ccd586b2a924c0e793f86cc7a6319f98132ef0ffb6b65"
+        },
+        "parent_domain_cardinality": {"const": 36088416},
+        "v0_6_contract_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"}
+      },
+      "required": [
+        "parent_contract_sha256",
+        "parent_domain_cardinality",
+        "v0_6_contract_sha256"
+      ],
+      "type": "object"
+    },
+    "interpretations": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "atom_count": {"minimum": 1, "type": "integer"},
+          "bond_count": {"minimum": 0, "type": "integer"},
+          "decode_kind": {"minLength": 1, "type": "string"},
+          "graph_signature": {"minLength": 1, "type": "string"},
+          "graph_signature_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+          "interpretation_index": {"minimum": 0, "type": "integer"}
+        },
+        "required": [
+          "atom_count",
+          "bond_count",
+          "decode_kind",
+          "graph_signature",
+          "graph_signature_sha256",
+          "interpretation_index"
+        ],
+        "type": "object"
+      },
+      "maxItems": 2,
+      "minItems": 2,
+      "type": "array"
+    },
+    "raster": {
+      "additionalProperties": false,
+      "properties": {
+        "byte_length": {"const": 589824},
+        "format": {"const": "gray8-768x768"},
+        "sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"}
+      },
+      "required": ["byte_length", "format", "sha256"],
+      "type": "object"
+    },
+    "schema_version": {"const": "chemgraph-constructive-witness-v0.6"},
+    "scope": {
+      "additionalProperties": false,
+      "properties": {
+        "claim": {"const": "full_frozen_domain_contains_a_non_singleton_graph_fiber"},
+        "full_domain_collision_rate_claimed": {"const": false},
+        "neural_generalization_claimed": {"const": false},
+        "production_png_equivalence_claimed": {"const": false},
+        "sampled_to_full_extrapolation_used": {"const": false},
+        "training_authorized": {"const": false}
+      },
+      "required": [
+        "claim",
+        "full_domain_collision_rate_claimed",
+        "neural_generalization_claimed",
+        "production_png_equivalence_claimed",
+        "sampled_to_full_extrapolation_used",
+        "training_authorized"
+      ],
+      "type": "object"
+    },
+    "status": {"const": "passed"},
+    "witness_tuple": {
+      "additionalProperties": false,
+      "properties": {
+        "antialias_profile": {"const": "box_2x2"},
+        "cap": {"const": "round"},
+        "half_length": {"const": 85},
+        "motif_ordinal": {"const": 25},
+        "reflection": {"const": "none"},
+        "rotation_index": {"const": 0},
+        "scale_index": {"const": 3},
+        "tuple_id": {"minimum": 0, "maximum": 36088415, "type": "integer"},
+        "width_px": {"const": 5}
+      },
+      "required": [
+        "antialias_profile",
+        "cap",
+        "half_length",
+        "motif_ordinal",
+        "reflection",
+        "rotation_index",
+        "scale_index",
+        "tuple_id",
+        "width_px"
+      ],
+      "type": "object"
+    }
+  },
+  "required": [
+    "checks",
+    "contract_binding",
+    "interpretations",
+    "raster",
+    "schema_version",
+    "scope",
+    "status",
+    "witness_tuple"
+  ],
+  "title": "ChemGraph v0.6 E1 constructive witness",
+  "type": "object"
+}
