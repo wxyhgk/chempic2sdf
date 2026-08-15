@@ -1,0 +1,1 @@
+{"artifact_sha256":"ff0aedcfe46f75e71320df280948a3d75edbc5dd9f5a19d13ecdd82ddf89d133","parallel_replay_count":32,"schema_version":"owner-candidate-domain-v0.5-r0-replay","sequential_replay_count":1000,"status":"passed","training_authorized":false,"unique_digest_count":1,"worker_count":8}
