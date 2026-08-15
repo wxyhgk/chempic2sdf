@@ -163,3 +163,13 @@ a6ccdee55385d547d11b9240a81d6f8c091c45377081be34765a2db4f79d572d
 冻结记录见 `e2_v0_4_python_transcript_codec_freeze.json`。该 codec 只保证 transcript 语法、严格
 解码和有序字节编码；它不理解每个 Rxx 的合同语义。后续 checker 必须对 relation-specific inputs
 进行等长、逐项、按序完整字节比较。该冻结不授权 launcher、relation gates 或训练。
+
+Lean 端对应 codec 已证明完整字节 roundtrip、successful decode 的精确重编码、encode 单射和严格
+EOF，冻结记录见 `e2_v0_4_lean_transcript_codec_freeze.json`。该结论同样只覆盖 codec。
+
+## Constrained Recovery v0.2
+
+v0.2 修复了零 support 假边、lane bundle、provenance、candidate coverage 和 calibration 的有限规格
+漏洞，但 proposer support 与 issuer 仍未绑定真实 PNG/独立审计。机器结论见
+`constrained_recovery_v0_2_review.json`：允许进入 20 图 blind carrier audit，不允许作为自足 authority，
+也不授权训练。

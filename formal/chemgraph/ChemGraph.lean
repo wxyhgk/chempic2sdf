@@ -14,3 +14,6 @@ import ChemGraph.FiniteAudit
 import ChemGraph.ObservationClosure
 import ChemGraph.StructuredRecovery
 import ChemGraph.HardenedLauncher
+import ChemGraph.TranscriptCodecV04
+import ChemGraph.ConstrainedRecovery
+import ChemGraph.ConstrainedRecoveryV02

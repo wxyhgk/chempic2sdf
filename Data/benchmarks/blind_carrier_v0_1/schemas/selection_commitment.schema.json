@@ -1,0 +1,102 @@
+{
+  "$defs": {
+    "sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    }
+  },
+  "$id": "https://chemgraph.local/schemas/blind-carrier-selection-commitment-v0.1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "causal_count": {
+      "const": 5
+    },
+    "causal_png_tree_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "difficulty_counts": {
+      "additionalProperties": false,
+      "properties": {
+        "extreme_long_bond": {
+          "const": 6
+        },
+        "long_bond": {
+          "const": 6
+        },
+        "standard_bond_length": {
+          "const": 8
+        }
+      },
+      "required": [
+        "extreme_long_bond",
+        "long_bond",
+        "standard_bond_length"
+      ],
+      "type": "object"
+    },
+    "exposure_registry_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "identifiers_public": {
+      "const": false
+    },
+    "normalized_original_png_tree_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "pool_manifest_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "prior_records_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "protocol_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "schema_version": {
+      "const": "chemgraph-blind-carrier-selection-commitment-v0.1"
+    },
+    "sealed_mapping_tree_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "seed_commitment_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "selected_count": {
+      "const": 20
+    },
+    "selector_source_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "status": {
+      "const": "committed"
+    },
+    "training_authorized": {
+      "const": false
+    },
+    "training_overlap_audit_sha256": {
+      "$ref": "#/$defs/sha256"
+    }
+  },
+  "required": [
+    "causal_count",
+    "causal_png_tree_sha256",
+    "difficulty_counts",
+    "exposure_registry_sha256",
+    "identifiers_public",
+    "normalized_original_png_tree_sha256",
+    "pool_manifest_sha256",
+    "prior_records_sha256",
+    "protocol_sha256",
+    "schema_version",
+    "sealed_mapping_tree_sha256",
+    "seed_commitment_sha256",
+    "selected_count",
+    "selector_source_sha256",
+    "status",
+    "training_authorized",
+    "training_overlap_audit_sha256"
+  ],
+  "title": "Blind carrier selection commitment v0.1",
+  "type": "object"
+}

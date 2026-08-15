@@ -1,0 +1,400 @@
+{
+  "$defs": {
+    "bond": {
+      "additionalProperties": false,
+      "properties": {
+        "begin_terminal_id": {
+          "maximum": 511,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "end_terminal_id": {
+          "maximum": 511,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "id": {
+          "maximum": 511,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "lane_endpoint_alignment": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "begin_terminal_id": {
+                "maximum": 511,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "end_terminal_id": {
+                "maximum": 511,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "lane_id": {
+                "maximum": 511,
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "begin_terminal_id",
+              "end_terminal_id",
+              "lane_id"
+            ],
+            "type": "object"
+          },
+          "maxItems": 3,
+          "minItems": 1,
+          "type": "array"
+        },
+        "lane_ids": {
+          "items": {
+            "maximum": 511,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "maxItems": 3,
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "order": {
+          "enum": [
+            1,
+            2,
+            3
+          ]
+        }
+      },
+      "required": [
+        "begin_terminal_id",
+        "end_terminal_id",
+        "id",
+        "lane_endpoint_alignment",
+        "lane_ids",
+        "order"
+      ],
+      "type": "object"
+    },
+    "interpretation": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maximum": 127,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "ownership": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "owner_id": {
+                "maximum": 65535,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "owner_kind": {
+                "enum": [
+                  "bond_lane",
+                  "glyph_stroke",
+                  "marker",
+                  "residual"
+                ]
+              },
+              "segment_id": {
+                "maximum": 1023,
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "owner_id",
+              "owner_kind",
+              "segment_id"
+            ],
+            "type": "object"
+          },
+          "maxItems": 1024,
+          "type": "array"
+        },
+        "selected_bond_ids": {
+          "items": {
+            "maximum": 511,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "maxItems": 512,
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "id",
+        "ownership",
+        "selected_bond_ids"
+      ],
+      "type": "object"
+    },
+    "lane": {
+      "additionalProperties": false,
+      "properties": {
+        "begin_terminal_id": {
+          "maximum": 511,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "end_terminal_id": {
+          "maximum": 511,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "id": {
+          "maximum": 511,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "segment_ids": {
+          "items": {
+            "maximum": 1023,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "maxItems": 64,
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "begin_terminal_id",
+        "end_terminal_id",
+        "id",
+        "segment_ids"
+      ],
+      "type": "object"
+    },
+    "point_q4": {
+      "items": {
+        "maximum": 12288,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "maxItems": 2,
+      "minItems": 2,
+      "type": "array"
+    },
+    "segment": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maximum": 1023,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "polyline_q4": {
+          "items": {
+            "$ref": "#/$defs/point_q4"
+          },
+          "maxItems": 256,
+          "minItems": 2,
+          "type": "array"
+        },
+        "support_pixel_count": {
+          "maximum": 589824,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "support_runs": {
+          "items": {
+            "items": false,
+            "prefixItems": [
+              {
+                "maximum": 767,
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "maximum": 767,
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "maximum": 768,
+                "minimum": 1,
+                "type": "integer"
+              }
+            ],
+            "maxItems": 3,
+            "minItems": 3,
+            "type": "array"
+          },
+          "maxItems": 100000,
+          "minItems": 1,
+          "type": "array"
+        },
+        "width_q4": {
+          "maximum": 1024,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "polyline_q4",
+        "support_pixel_count",
+        "support_runs",
+        "width_q4"
+      ],
+      "type": "object"
+    },
+    "terminal": {
+      "additionalProperties": false,
+      "properties": {
+        "center_q4": {
+          "$ref": "#/$defs/point_q4"
+        },
+        "id": {
+          "maximum": 511,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "support_segment_ids": {
+          "items": {
+            "maximum": 1023,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "maxItems": 64,
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "center_q4",
+        "id",
+        "support_segment_ids"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://chemgraph.local/schemas/blind-carrier-prediction-v0.1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "oneOf": [
+    {
+      "additionalProperties": false,
+      "properties": {
+        "bond_hypotheses": {
+          "items": {
+            "$ref": "#/$defs/bond"
+          },
+          "maxItems": 512,
+          "type": "array"
+        },
+        "image": {
+          "additionalProperties": false,
+          "properties": {
+            "coordinate_format": {
+              "const": "Q4-pixel"
+            },
+            "height": {
+              "const": 768
+            },
+            "width": {
+              "const": 768
+            }
+          },
+          "required": [
+            "coordinate_format",
+            "height",
+            "width"
+          ],
+          "type": "object"
+        },
+        "interpretations": {
+          "items": {
+            "$ref": "#/$defs/interpretation"
+          },
+          "maxItems": 128,
+          "minItems": 1,
+          "type": "array"
+        },
+        "lane_hypotheses": {
+          "items": {
+            "$ref": "#/$defs/lane"
+          },
+          "maxItems": 512,
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "chemgraph-blind-carrier-prediction-v0.1"
+        },
+        "segments": {
+          "items": {
+            "$ref": "#/$defs/segment"
+          },
+          "maxItems": 1024,
+          "type": "array"
+        },
+        "status": {
+          "const": "ok"
+        },
+        "terminals": {
+          "items": {
+            "$ref": "#/$defs/terminal"
+          },
+          "maxItems": 512,
+          "type": "array"
+        },
+        "training_authorized": {
+          "const": false
+        }
+      },
+      "required": [
+        "bond_hypotheses",
+        "image",
+        "interpretations",
+        "lane_hypotheses",
+        "schema_version",
+        "segments",
+        "status",
+        "terminals",
+        "training_authorized"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "properties": {
+        "reason": {
+          "enum": [
+            "invalid_png",
+            "outside_capacity",
+            "unsupported_geometry",
+            "no_supported_carrier",
+            "internal_error"
+          ]
+        },
+        "schema_version": {
+          "const": "chemgraph-blind-carrier-prediction-v0.1"
+        },
+        "status": {
+          "const": "reject"
+        },
+        "training_authorized": {
+          "const": false
+        }
+      },
+      "required": [
+        "reason",
+        "schema_version",
+        "status",
+        "training_authorized"
+      ],
+      "type": "object"
+    }
+  ],
+  "title": "Blind carrier proposer prediction v0.1"
+}
