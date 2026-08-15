@@ -22,6 +22,9 @@
 - [Symbolic Candidate Family v0.4 容量实验结果](20260815-symbolic-candidate-family-v0_4-capacity-results.md)
 - [Fragment Root Constructor v0.4 微场景预注册](20260815-fragment-root-constructor-v0_4-preregistration.md)
 - [Fragment Root Constructor v0.4 微场景结果](20260815-fragment-root-constructor-v0_4-results.md)
+- [Fragment Support Partition v0.4 预注册](20260815-fragment-support-partition-v0_4-preregistration.md)
+- [Fragment Support Partition v0.4 结果](20260815-fragment-support-partition-v0_4-results.md)
+- [OCSR 数学与结构建模文献地图](20260815-ocsr-mathematical-literature-map.md)
 - Lean 工程：`formal/chemgraph/`
 
 状态：训练暂停，形式化验证进行中。
