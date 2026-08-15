@@ -1,0 +1,285 @@
+{
+  "$id": "p0_contract_v0_6.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "allow_exclusions": {"const": false},
+    "claim_lanes": {
+      "additionalProperties": false,
+      "properties": {
+        "E1": {
+          "additionalProperties": false,
+          "properties": {
+            "claim_kind": {"const": "exact_full_domain_existential_same_tuple"},
+            "permitted_wording": {"minLength": 1, "type": "string"},
+            "proof_obligations": {"items": {"minLength": 1, "type": "string"}, "minItems": 5, "type": "array"},
+            "resource_gate": {
+              "allOf": [
+                {"$ref": "#/$defs/resourceGate"},
+                {
+                  "properties": {
+                    "maximum_artifact_bytes": {"const": 2147483648},
+                    "maximum_peak_rss_bytes": {"const": 4294967296},
+                    "maximum_temporary_bytes": {"const": 2147483648},
+                    "maximum_wall_seconds": {"const": 600},
+                    "workers": {"const": 4}
+                  }
+                }
+              ]
+            },
+            "witness_plan": {
+              "additionalProperties": false,
+              "properties": {
+                "antialias_profile": {"const": "box_2x2"},
+                "cap": {"const": "round"},
+                "half_length": {"const": 85},
+                "interpretation_indices": {"const": [0, 1]},
+                "motif_ordinal": {"const": 25},
+                "reflection": {"const": "none"},
+                "rotation_index": {"const": 0},
+                "scale_index": {"const": 3},
+                "width_px": {"const": 5}
+              },
+              "required": [
+                "antialias_profile", "cap", "half_length", "interpretation_indices",
+                "motif_ordinal", "reflection", "rotation_index", "scale_index", "width_px"
+              ],
+              "type": "object"
+            }
+          },
+          "required": ["claim_kind", "permitted_wording", "proof_obligations", "resource_gate", "witness_plan"],
+          "type": "object"
+        },
+        "E2": {
+          "additionalProperties": false,
+          "properties": {
+            "claim_kind": {"const": "exact_full_domain_existential_cross_tuple_full_bytes"},
+            "permitted_wording": {"minLength": 1, "type": "string"},
+            "proof_obligations": {"items": {"minLength": 1, "type": "string"}, "minItems": 6, "type": "array"},
+            "resource_gate": {
+              "allOf": [
+                {"$ref": "#/$defs/resourceGate"},
+                {
+                  "properties": {
+                    "maximum_artifact_bytes": {"const": 2147483648},
+                    "maximum_peak_rss_bytes": {"const": 8589934592},
+                    "maximum_temporary_bytes": {"const": 17179869184},
+                    "maximum_wall_seconds": {"const": 1800},
+                    "workers": {"const": 4}
+                  }
+                }
+              ]
+            },
+            "witness_plan": {
+              "additionalProperties": false,
+              "properties": {
+                "antialias_profile": {"const": "binary_1x"},
+                "caps": {"const": ["butt", "square"]},
+                "left_fixed": {"$ref": "#/$defs/witnessFixedLeft"},
+                "right_fixed": {"$ref": "#/$defs/witnessFixedRight"},
+                "width_px": {"const": [2, 4, 6, 8]},
+                "witness_pair_count": {"const": 8}
+              },
+              "required": ["antialias_profile", "caps", "left_fixed", "right_fixed", "width_px", "witness_pair_count"],
+              "type": "object"
+            }
+          },
+          "required": ["claim_kind", "permitted_wording", "proof_obligations", "resource_gate", "witness_plan"],
+          "type": "object"
+        },
+        "Q": {
+          "additionalProperties": false,
+          "properties": {
+            "claim_kind": {"const": "exact_full_closure_over_proved_quotient"},
+            "k_overflow_policy": {"minLength": 1, "type": "string"},
+            "maximum_quotient_cardinality": {"const": 100000},
+            "permitted_wording": {"minLength": 1, "type": "string"},
+            "proof_obligations": {"items": {"minLength": 1, "type": "string"}, "minItems": 8, "type": "array"},
+            "resource_gate": {
+              "allOf": [
+                {"$ref": "#/$defs/resourceGate"},
+                {
+                  "properties": {
+                    "maximum_artifact_bytes": {"const": 137438953472},
+                    "maximum_peak_rss_bytes": {"const": 34359738368},
+                    "maximum_temporary_bytes": {"const": 274877906944},
+                    "maximum_wall_seconds": {"const": 14400},
+                    "workers": {"const": 16}
+                  }
+                }
+              ]
+            }
+          },
+          "required": ["claim_kind", "k_overflow_policy", "maximum_quotient_cardinality", "permitted_wording", "proof_obligations", "resource_gate"],
+          "type": "object"
+        },
+        "S": {
+          "additionalProperties": false,
+          "properties": {
+            "claim_kind": {"const": "preregistered_stratified_finite_population_statistics"},
+            "permitted_wording": {"minLength": 1, "type": "string"},
+            "resource_gate": {
+              "allOf": [
+                {"$ref": "#/$defs/resourceGate"},
+                {
+                  "properties": {
+                    "maximum_artifact_bytes": {"const": 17179869184},
+                    "maximum_peak_rss_bytes": {"const": 17179869184},
+                    "maximum_temporary_bytes": {"const": 68719476736},
+                    "maximum_wall_seconds": {"const": 3600},
+                    "workers": {"const": 16}
+                  }
+                }
+              ]
+            },
+            "sample_plan": {
+              "additionalProperties": false,
+              "properties": {
+                "antialias_profiles": {"const": ["binary_1x", "box_2x2", "box_4x4"]},
+                "confidence_level_ppm": {"const": 990000},
+                "familywise_method": {"minLength": 1, "type": "string"},
+                "motif_families": {"const": ["s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "c1", "c2", "c3", "c4"]},
+                "sample_without_replacement": {"const": true},
+                "samples_per_stratum": {"const": 64},
+                "seed_derivation": {"minLength": 1, "type": "string"},
+                "stratum_count": {"const": 108},
+                "total_sample_count": {"const": 6912},
+                "width_buckets": {"const": [[1, 2, 3], [4, 5, 6], [7, 8, 9]]}
+              },
+              "required": [
+                "antialias_profiles", "confidence_level_ppm", "familywise_method",
+                "motif_families", "sample_without_replacement", "samples_per_stratum",
+                "seed_derivation", "stratum_count", "total_sample_count", "width_buckets"
+              ],
+              "type": "object"
+            },
+            "statistical_boundaries": {"items": {"minLength": 1, "type": "string"}, "minItems": 6, "type": "array"}
+          },
+          "required": ["claim_kind", "permitted_wording", "resource_gate", "sample_plan", "statistical_boundaries"],
+          "type": "object"
+        }
+      },
+      "required": ["E1", "E2", "Q", "S"],
+      "type": "object"
+    },
+    "contract_format": {"minLength": 1, "type": "string"},
+    "domain_binding": {
+      "additionalProperties": false,
+      "properties": {
+        "allow_exclusions": {"const": false},
+        "exclusion_count": {"const": 0},
+        "frozen_quotient_tuple_count": {"const": 36088416},
+        "interpretation_scope": {"minLength": 1, "type": "string"},
+        "parent_contract_path": {"const": "formal/chemgraph/challenge_v0_5/prereg/p0_contract_v0_5.json"},
+        "parent_contract_sha256": {"const": "55ddcaacdf851166554ccd586b2a924c0e793f86cc7a6319f98132ef0ffb6b65"},
+        "reuse_mode": {"const": "reference_only_no_copy_or_redefinition"},
+        "scene_domain": {"minLength": 1, "type": "string"},
+        "tuple_id_maximum": {"const": 36088415},
+        "tuple_id_minimum": {"const": 0}
+      },
+      "required": [
+        "allow_exclusions", "exclusion_count", "frozen_quotient_tuple_count",
+        "interpretation_scope", "parent_contract_path", "parent_contract_sha256",
+        "reuse_mode", "scene_domain", "tuple_id_maximum", "tuple_id_minimum"
+      ],
+      "type": "object"
+    },
+    "failure_policy": {
+      "additionalProperties": false,
+      "properties": {
+        "cross_lane_promotion_forbidden": {"const": true},
+        "lane_failure_result": {"minLength": 1, "type": "string"},
+        "post_hoc_change_policy": {"minLength": 1, "type": "string"},
+        "training_authorization_policy": {"minLength": 1, "type": "string"}
+      },
+      "required": ["cross_lane_promotion_forbidden", "lane_failure_result", "post_hoc_change_policy", "training_authorization_policy"],
+      "type": "object"
+    },
+    "independence": {
+      "additionalProperties": false,
+      "properties": {
+        "digest_role": {"minLength": 1, "type": "string"},
+        "e1_logic_checker": {"minLength": 1, "type": "string"},
+        "e2_and_q_minimum_independent_verifiers": {"const": 2},
+        "full_byte_identity_required": {"const": true},
+        "network_allowed": {"const": false},
+        "producer_verifier_shared_implementation_allowed": {"const": false},
+        "shared_frozen_contract_allowed": {"const": true},
+        "verifier_language_requirement": {"minLength": 1, "type": "string"},
+        "verifier_recomputation": {"minLength": 1, "type": "string"}
+      },
+      "required": [
+        "digest_role", "e1_logic_checker", "e2_and_q_minimum_independent_verifiers",
+        "full_byte_identity_required", "network_allowed",
+        "producer_verifier_shared_implementation_allowed", "shared_frozen_contract_allowed",
+        "verifier_language_requirement", "verifier_recomputation"
+      ],
+      "type": "object"
+    },
+    "resource_accounting": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_definition": {"minLength": 1, "type": "string"},
+        "failure_rule": {"minLength": 1, "type": "string"},
+        "rss_definition": {"minLength": 1, "type": "string"},
+        "temporary_definition": {"minLength": 1, "type": "string"},
+        "wall_definition": {"minLength": 1, "type": "string"},
+        "worker_definition": {"minLength": 1, "type": "string"}
+      },
+      "required": ["artifact_definition", "failure_rule", "rss_definition", "temporary_definition", "wall_definition", "worker_definition"],
+      "type": "object"
+    },
+    "schema_version": {"const": "chemgraph-observation-closure-p0-v0.6"},
+    "training_authorized": {"const": false}
+  },
+  "required": [
+    "allow_exclusions", "claim_lanes", "contract_format", "domain_binding",
+    "failure_policy", "independence", "resource_accounting", "schema_version",
+    "training_authorized"
+  ],
+  "type": "object",
+  "$defs": {
+    "resourceGate": {
+      "additionalProperties": false,
+      "properties": {
+        "maximum_artifact_bytes": {"minimum": 1, "type": "integer"},
+        "maximum_oom_events": {"const": 0},
+        "maximum_peak_rss_bytes": {"minimum": 1, "type": "integer"},
+        "maximum_temporary_bytes": {"minimum": 1, "type": "integer"},
+        "maximum_wall_seconds": {"minimum": 1, "type": "integer"},
+        "workers": {"enum": [4, 16]}
+      },
+      "required": [
+        "maximum_artifact_bytes", "maximum_oom_events", "maximum_peak_rss_bytes",
+        "maximum_temporary_bytes", "maximum_wall_seconds", "workers"
+      ],
+      "type": "object"
+    },
+    "witnessFixedLeft": {
+      "additionalProperties": false,
+      "properties": {
+        "half_length": {"const": 62},
+        "interpretation_index": {"const": 0},
+        "motif_ordinal": {"const": 11},
+        "reflection": {"const": "none"},
+        "rotation_index": {"const": 0},
+        "scale_index": {"const": 2}
+      },
+      "required": ["half_length", "interpretation_index", "motif_ordinal", "reflection", "rotation_index", "scale_index"],
+      "type": "object"
+    },
+    "witnessFixedRight": {
+      "additionalProperties": false,
+      "properties": {
+        "half_length": {"const": 93},
+        "interpretation_index": {"const": 0},
+        "motif_ordinal": {"const": 48},
+        "reflection": {"const": "none"},
+        "rotation_index": {"const": 4},
+        "scale_index": {"const": 0}
+      },
+      "required": ["half_length", "interpretation_index", "motif_ordinal", "reflection", "rotation_index", "scale_index"],
+      "type": "object"
+    }
+  }
+}
