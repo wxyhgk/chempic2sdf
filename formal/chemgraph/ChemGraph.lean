@@ -19,3 +19,4 @@ import ChemGraph.ConstrainedRecovery
 import ChemGraph.ConstrainedRecoveryV02
 import ChemGraph.BlindCarrierTripleExpressivityV01
 import ChemGraph.BlindCarrierTerminalRegionV02
+import ChemGraph.BlindCarrierTerminalComponentsV02

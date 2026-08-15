@@ -14,6 +14,7 @@
 - [受约束恢复 v0.2：红队修订规格](20260815-constrained-recovery-v0_2.md)
 - [Blind Carrier v0.1 三键表达能力 NO-GO](20260815-blind-carrier-v0_1-triple-no-go.md)
 - [Blind Carrier v0.2 Terminal Region](20260815-blind-carrier-v0_2-terminal-region.md)
+- [Blind Carrier v0.2 纯适配器冻结](20260815-blind-carrier-v0_2-adapter-freeze.md)
 - Lean 工程：`formal/chemgraph/`
 
 状态：训练暂停，形式化验证进行中。
