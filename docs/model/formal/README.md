@@ -12,6 +12,7 @@
 - [Observation Closure v0.5 预注册](20260815-observation-closure-v0_5-preregistration.md)
 - [受约束恢复 v0.1：训练前数学方案与有限验证](20260815-constrained-recovery-v0_1.md)
 - [受约束恢复 v0.2：红队修订规格](20260815-constrained-recovery-v0_2.md)
+- [Blind Carrier v0.1 三键表达能力 NO-GO](20260815-blind-carrier-v0_1-triple-no-go.md)
 - Lean 工程：`formal/chemgraph/`
 
 状态：训练暂停，形式化验证进行中。

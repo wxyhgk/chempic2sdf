@@ -193,3 +193,11 @@ blind_sample_selection_authorized=false
 proposer_execution_authorized=false
 training_authorized=false
 ```
+
+### v0.1 三键表达能力 NO-GO
+
+结构验证器冻结后，在 proposer 适配器设计阶段发现标准三条平行 lane 无法同时满足 v0.1 的 lane 最小
+分离和共享单点 terminal 半径。Lean 定理与机器记录见
+`blind_carrier_v0_1_triple_expressivity_no_go.json`。因此上面的 validator freeze 只作为历史结构实现证据，
+v0.1 整体不得选择 blind 20 或运行 proposer。下一版必须改用显式 endpoint alignment 和由 validator
+重算的 terminal region。
