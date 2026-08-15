@@ -49,6 +49,8 @@ geometry 为 48/48，但 CandidateSet 只有 44/48；C4 与 S8 存在同 raster 
 - `ChemGraph/BlindCarrierTerminalRegionV02.lean`：形式化 v0.2 terminal region 修复，证明三条平行 lane 的相邻 endpoint disk 相交且交图 `0-1-2` 连通，不要求三圆公共交点。
 - `ChemGraph/BlindCarrierTerminalComponentsV02.lean`：证明 v0.2 endpoint-disk 相交图在 terminal 内部连通且跨 terminal 无边时，terminal fiber 恰好是连通分量，且该分区唯一。
 - `ChemGraph/CarrierCandidateSetV03.lean`：形式化 PNG proposer v0.3 的根级 boundary/pair/Atom/DirectPair 有限宇宙及 pair 端点归属、通用 interpretation 完备枚举、空图 interpretation、boundary/stroke 与 lane/Bond 精确 fiber、bond/text/charge ownership、`1..3` lane 键级、具名 reason/stage Reject，以及绑定组件 SHA256、实际 root artifact、前后输入输出和整链摘要的固定 12 阶段 trace。v0.3 序列化仅有 candidate set/reject，均不发出 graph；JSON 自签 `complete=true` 不代替 root-relative completeness 证书。Lean 把 schema 指定的 SHA256 framing 建模为抽象函数，具体哈希实现仍由独立 validator 审计。文件内 accept/abstain 定理只供未来升级，不属于当前序列化。
+- `ChemGraph/CarrierCompletenessVerifierV03.lean`：给出独立 completeness verifier 的正反边界。正向证明 root compatible-pair list 的全部 canonical sublist 经 pairwise endpoint-disjoint 过滤后，恰好是全部规范 boundary matching；每个 matching 唯一决定 root boundary 顺序下的 unmatched complement。反向证明：若 fragment split、intersection、ownership、port 或 lane universe 没有进入 root，则同一 root record 可以对应不同 interpretation universe，任何只读 root 的 verifier 都不可能同时 sound 且 complete。该 NO-GO 不否定单独 completeness；文件同时证明“输出全部 Interpretation”的超集 verifier 总是 complete，说明没有 soundness 的 completeness 是真空门禁。
+- `ChemGraph/SymbolicCandidateFamilyV04.lean`：形式化 v0.4 factorized symbolic candidate family 的容量动机。8 个无约束 Boolean variable domain 展开为 `2^8 = 256` 个无重复 assignment；完整 canonical materialized list 因此不可能满足 128 项容量，而 factorized CSP 只保存 8 个 `[false,true]` 域即可表示并展开为同一解族。该定理只证明表示容量差异，不证明真实图片必然出现 8 个相互独立歧义，也不证明 symbolic constraint extractor 正确。
 
 ## 工具链与构建
 

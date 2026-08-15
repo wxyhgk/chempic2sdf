@@ -1,0 +1,65 @@
+{
+  "authority": {
+    "canonical_formula_generated_by": "independent_verifier_from_root",
+    "formula_submission_by_producer_allowed": false,
+    "materialized_interpretations_authoritative": false,
+    "producer_outputs": ["anonymous_png", "frozen_root_extractor_outputs"],
+    "root_constructor_must_be_independently_replayable": true
+  },
+  "candidate_family_semantics": {
+    "complete_statement": "Feasible(root,I) implies exists total satisfying assignment a with CanonicalCompile(root,a)=Canonicalize(I)",
+    "family": "all canonical semantic projections of total assignments satisfying the verifier-generated finite-domain CSP",
+    "sound_statement": "every total satisfying assignment compiles to a feasible canonical interpretation",
+    "symbolic_formula_is_authoritative": true
+  },
+  "capacity_policy": {
+    "capacity_census_required_before_freeze": true,
+    "interpretation_solution_count_is_not_capped": true,
+    "materialized_debug_view_max": 128,
+    "overflow_action": "reject_outside_capacity",
+    "root_variable_constraint_proof_byte_caps": "TBD_after_public_census"
+  },
+  "mandatory_root_layers": [
+    "boundaries",
+    "compatible_boundary_pairs",
+    "boundary_matchings",
+    "base_strokes",
+    "fragment_splits",
+    "intersection_options",
+    "atom_instances",
+    "endpoint_attachments",
+    "port_partitions",
+    "ownership_options",
+    "lane_flow_objects",
+    "bond_groupings"
+  ],
+  "permissions": {
+    "blind_execution_authorized": false,
+    "proposer_public_execution_authorized": false,
+    "root_constructor_frozen": false,
+    "schema_frozen": false,
+    "symbolic_verifier_frozen": false,
+    "training_authorized": false,
+    "unique_graph_authorized": false
+  },
+  "proof_policy": {
+    "ambiguous_requires_two_satisfying_semantically_distinct_witnesses": true,
+    "auxiliary_variables_excluded_from_semantic_projection": true,
+    "candidate_nonempty_requires_satisfying_witness": true,
+    "derived_decision_diagram_requires_bidirectional_equivalence_proof": true,
+    "solver_timeout_or_unknown": "reject",
+    "unique_graph_not_in_v0_4": true,
+    "unsat_requires_independently_checked_proof": true
+  },
+  "schema_version": "carrier-candidate-family-preregistration-v0.4",
+  "status": "draft_for_root_constructor_review",
+  "training_authorized": false,
+  "validation_fixtures": {
+    "cross_component_constraint_required": true,
+    "eight_independent_binary_ambiguities_solution_count": 256,
+    "extra_unit_clause_action": "invalid",
+    "invalid_multivalue_codes_forbidden": true,
+    "missing_domain_value_action": "invalid",
+    "semantic_symmetry_must_not_change_projection_count": true
+  }
+}

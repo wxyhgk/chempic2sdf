@@ -17,6 +17,9 @@
 - [Blind Carrier v0.2 纯适配器冻结](20260815-blind-carrier-v0_2-adapter-freeze.md)
 - [Carrier Candidate Set v0.3 预注册](20260815-carrier-candidate-set-v0_3-preregistration.md)
 - [Carrier Candidate Set v0.3 结构验证结果](20260815-carrier-candidate-set-v0_3-structural-validation.md)
+- [Carrier Candidate Set v0.3 独立完整性 NO-GO](20260815-carrier-completeness-v0_3-no-go.md)
+- [Symbolic Candidate Family v0.4 预注册](20260815-symbolic-candidate-family-v0_4-preregistration.md)
+- [Symbolic Candidate Family v0.4 容量实验结果](20260815-symbolic-candidate-family-v0_4-capacity-results.md)
 - Lean 工程：`formal/chemgraph/`
 
 状态：训练暂停，形式化验证进行中。
