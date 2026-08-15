@@ -56,6 +56,21 @@ class CandidateDomainTests(unittest.TestCase):
         with self.assertRaisesRegex(CandidateDomainError, "OBSERVATION_NOT_CLOSED"):
             build_candidate_domain(forged)
 
+    def test_observation_hashes_are_fixed_lower_hex_sha256(self) -> None:
+        observation = build_observation()
+        mutations = (
+            ("png_sha256", "0" * 65, "PNG_SHA256_INVALID"),
+            ("png_sha256", "A" * 64, "PNG_SHA256_INVALID"),
+            ("renderer_sha256", 0, "RENDERER_SHA256_INVALID"),
+            ("renderer_sha256", "g" * 64, "RENDERER_SHA256_INVALID"),
+        )
+        for field, value, code in mutations:
+            with self.subTest(field=field, value_type=type(value).__name__):
+                mutated = copy.deepcopy(observation)
+                mutated[field] = value
+                with self.assertRaisesRegex(CandidateDomainError, code):
+                    build_candidate_domain(mutated)
+
     def test_factorized_counts_and_nontriviality_metrics(self) -> None:
         candidate = build_candidate_domain(build_observation())
         self.assertEqual(candidate["counts"], {

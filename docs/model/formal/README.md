@@ -31,6 +31,7 @@
 - [Owner Candidate Domain v0.5 R0 修订协议](20260815-owner-candidate-domain-v0_5-r0-amendment.md)
 - [Owner Candidate Domain v0.5 R0 结果](20260815-owner-candidate-domain-v0_5-r0-results.md)
 - [Owner Candidate Domain v0.5 容量澄清协议](20260815-owner-candidate-domain-v0_5-capacity-clarification.md)
+- [Owner Candidate Domain v0.5 Observation Hash 闭包加固](20260815-owner-candidate-domain-v0_5-observation-hash-hardening.md)
 - [PNG Ownership Realization v0.5 探索协议](20260815-png-ownership-realization-v0_5-exploratory-protocol.md)
 - [PNG Ownership Realization v0.5 结果](20260815-png-ownership-realization-v0_5-results.md)
 - [PNG Ownership Realization v0.5 独立确认预注册](20260815-png-ownership-realization-v0_5-confirmation-preregistration.md)

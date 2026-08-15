@@ -32,6 +32,15 @@ PNG_PATH = (
 )
 EXPECTED_PNG_SHA256 = "0152efc7791f03515ef554739b545088b36d654aa081da9718d0c31eef3ecb4e"
 EXPECTED_RENDERER_SHA256 = "5d673ae1c33648b5498b4ebacfc1b91136fee5abdbae4fa1503a144a59816943"
+LOWER_HEX = frozenset("0123456789abcdef")
+
+
+def _is_sha256_hex(value: Any) -> bool:
+    return (
+        type(value) is str
+        and len(value) == 64
+        and all(character in LOWER_HEX for character in value)
+    )
 
 
 def _fixture() -> tuple[list[Segment], LineStyle]:
@@ -107,6 +116,10 @@ def support_input_from_observation(observation: Any) -> dict[str, Any]:
         fail("OBSERVATION_SCHEMA_MISMATCH")
     if observation["training_authorized"] is not False:
         fail("TRAINING_AUTHORIZED")
+    if not _is_sha256_hex(observation["png_sha256"]):
+        fail("PNG_SHA256_INVALID")
+    if not _is_sha256_hex(observation["renderer_sha256"]):
+        fail("RENDERER_SHA256_INVALID")
     support_input = {
         "geometry_root": observation["geometry_root"],
         "parent_supports": observation["parent_supports"],
