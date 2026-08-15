@@ -20,6 +20,8 @@
 - [Carrier Candidate Set v0.3 独立完整性 NO-GO](20260815-carrier-completeness-v0_3-no-go.md)
 - [Symbolic Candidate Family v0.4 预注册](20260815-symbolic-candidate-family-v0_4-preregistration.md)
 - [Symbolic Candidate Family v0.4 容量实验结果](20260815-symbolic-candidate-family-v0_4-capacity-results.md)
+- [Fragment Root Constructor v0.4 微场景预注册](20260815-fragment-root-constructor-v0_4-preregistration.md)
+- [Fragment Root Constructor v0.4 微场景结果](20260815-fragment-root-constructor-v0_4-results.md)
 - Lean 工程：`formal/chemgraph/`
 
 状态：训练暂停，形式化验证进行中。
