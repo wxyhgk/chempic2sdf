@@ -83,3 +83,34 @@ v0.3 必须把 v0.2 的文字承诺变成不可真空满足的结构：
 
 在 v0.3 双重审计和形式证明完成前，`execution_authorized=false` 且
 `training_authorized=false`。
+
+## v0.3 结论
+
+Hardened launcher contract v0.3 的固定哈希完成红队审查后，状态是：
+
+```text
+NO-GO / not_executed
+```
+
+v0.3 已闭合 v0.2 的主要结构问题：17 类 closed record schema、46 条跨记录关系、261 条按
+phase/source/event 展开的失败迁移、dry-run 与 official 分离状态机、完整 8 GiB 资源门和六角色
+隔离矩阵均通过离线复核。
+
+剩余唯一阻断位于 authorization inbox：类别计数声明 `1 + 2 + 1 = 4`，但 entries 和
+`entry_count` 只要求至少 4，R29 也没有证明 `entry_count = len(entries) = 4`。因此第 5 个未分类
+信任条目仍可能通过 schema，冻结的授权信任集合并不精确。
+
+机器结果见 `e2_launcher_v0_3_no_go.json`。v0.3 没有实现 launcher，没有生成授权记录，没有运行
+dry-run 或 official pipeline，也没有发布权威结果。
+
+## v0.4 最低要求
+
+v0.4 只允许进行可审计的最小修订：
+
+- inbox entries 同时固定 `minItems=4` 和 `maxItems=4`；
+- `entry_count` 固定为 4；
+- R29 明确证明 entry count、entries 长度和三类记录计数之和都等于 4；
+- v0.3 其余资源、隔离、状态机、证书和 authority 门必须逐项精确继承。
+
+v0.4 合同、schema、Lean 和 executable verifier 全部闭合前，仍保持
+`execution_authorized=false` 与 `training_authorized=false`。
