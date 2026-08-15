@@ -135,3 +135,12 @@ relation verifier。该结论不授权运行 launcher、创建 dry-run/official 
 execution_authorized=false
 training_authorized=false
 ```
+
+## v0.4 离线 verifier 冻结
+
+离线 verifier 只验证冻结 JSON、schema、framed hash、关系注册表和状态机等不依赖运行态的事实。
+27 项正负测试通过，CLI 正常审计结果仍为 `NO_GO`：R27、R37、R38 静态通过，其余 43 条关系
+保持 `unobserved`。输入记录通过 schema 只表示记录形状有效，不会把对应运行态关系提升为通过。
+
+四个完整文件及目录 tree framing 见 `e2_launcher_v0_4_offline_verifier_freeze.json`。当前 verifier
+不会运行 launcher、创建 authorization、写 ledger/marker 或授权训练。
