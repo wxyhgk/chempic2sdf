@@ -27,3 +27,4 @@ import ChemGraph.FragmentRootConstructorV04
 import ChemGraph.FragmentSupportPartitionV04
 import ChemGraph.GlobalOwnershipNoGoV04
 import ChemGraph.OwnerCandidateDomainV05
+import ChemGraph.OwnerCapacityReachabilityV05
