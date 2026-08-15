@@ -17,6 +17,10 @@
 保存在 root-owned 只读目录 `/opt/chemgraph/results/p1-raster-pilot-fa796de`，其摘要见
 `pilot_receipt.json`。
 
+`pilot_receipt.json` 只是 Git 中的非权威绑定索引，不是新增的 P1 正式协议。权威记录是上述
+只读目录内、符合冻结 schema 的 `validation.json` 与 `resource_validation.json`。索引分别
+记录 runner artifact tree root 和包含日志、资源裁决在内的完整 published tree root。
+
 Raster pilot 观察到 351,759 个 distinct raster class；360,885 个样本中有 9,126 个超出
 每类首个成员的重复成员。重复类涉及 16,699 个样本，最大类大小为 7。这证明冻结渲染域内
 存在大量 exact-pixel collision，但本 P1 只签发 sampled raster 统计，不把 sampled Graph
