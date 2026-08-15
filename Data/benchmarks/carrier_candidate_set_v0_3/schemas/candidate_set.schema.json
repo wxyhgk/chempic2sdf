@@ -1,0 +1,798 @@
+{
+  "$defs": {
+    "ambiguity_entry": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence_region_refs": {
+          "items": {"$ref": "#/$defs/ambiguity_evidence_ref"},
+          "maxItems": 128,
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "graph_class_ids": {
+          "items": {"maximum": 127, "minimum": 0, "type": "integer"},
+          "maxItems": 128,
+          "minItems": 2,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "id": {"maximum": 127, "minimum": 0, "type": "integer"},
+        "interpretation_ids": {
+          "items": {"maximum": 127, "minimum": 0, "type": "integer"},
+          "maxItems": 128,
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "kind": {"enum": ["boundary_matching", "stroke_ownership", "crossing_vs_junction", "touch_vs_crossing", "glyph_vs_bond", "double_vs_parallel_single", "endpoint_atom_attachment", "lane_grouping"]},
+        "taxonomy_code": {"enum": ["A03", "A08", "A10", "A11", "A12", "A13", "A15", "A16"]}
+      },
+      "required": ["evidence_region_refs", "graph_class_ids", "id", "interpretation_ids", "kind", "taxonomy_code"],
+      "type": "object"
+    },
+    "ambiguity_evidence_ref": {
+      "additionalProperties": false,
+      "properties": {
+        "interpretation_id": {"maximum": 127, "minimum": 0, "type": "integer"},
+        "object_id": {"maximum": 4095, "minimum": 0, "type": "integer"},
+        "object_kind": {"enum": ["boundary", "fragment", "intersection", "port", "lane", "white_gap", "lane_separation"]}
+      },
+      "required": ["interpretation_id", "object_id", "object_kind"],
+      "type": "object"
+    },
+    "ambiguity_taxonomy": {
+      "additionalProperties": false,
+      "properties": {
+        "entry_count": {"maximum": 128, "minimum": 0, "type": "integer"},
+        "entries": {
+          "items": {"$ref": "#/$defs/ambiguity_entry"},
+          "maxItems": 128,
+          "type": "array"
+        },
+        "taxonomy_id": {"maxLength": 128, "minLength": 1, "pattern": "^[A-Za-z0-9._-]+$", "type": "string"},
+        "taxonomy_sha256": {"$ref": "#/$defs/sha256"},
+        "taxonomy_version": {"maxLength": 64, "minLength": 1, "pattern": "^[A-Za-z0-9._-]+$", "type": "string"}
+      },
+      "required": ["entries", "entry_count", "taxonomy_id", "taxonomy_sha256", "taxonomy_version"],
+      "type": "object"
+    },
+    "atom": {
+      "additionalProperties": false,
+      "properties": {
+        "anchor_q4": {"$ref": "#/$defs/point_q4"},
+        "id": {"maximum": 127, "minimum": 0, "type": "integer"},
+        "glyph_fragment_ids": {
+          "items": {"maximum": 511, "minimum": 0, "type": "integer"},
+          "maxItems": 64,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "kind": {"enum": ["explicit_label", "implicit_vertex"]},
+        "port_ids": {
+          "items": {"maximum": 511, "minimum": 0, "type": "integer"},
+          "maxItems": 64,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "presence_score_q24": {"$ref": "#/$defs/probability_q24"},
+        "source_cell_q4": {"$ref": "#/$defs/point_q4"},
+        "source_proposal_id": {"maximum": 127, "minimum": 0, "type": "integer"}
+      },
+      "required": ["anchor_q4", "glyph_fragment_ids", "id", "kind", "port_ids", "presence_score_q24", "source_cell_q4", "source_proposal_id"],
+      "type": "object"
+    },
+    "atom_pair_evidence": {
+      "additionalProperties": false,
+      "properties": {
+        "pair_id": {"maximum": 8127, "minimum": 0, "type": "integer"},
+        "presence_decision": {"enum": ["negative", "uncertain", "positive"]},
+        "presence_score_q24": {"$ref": "#/$defs/probability_q24"},
+        "source": {"const": "direct_atom_pair_v0103"}
+      },
+      "required": ["pair_id", "presence_decision", "presence_score_q24", "source"],
+      "type": "object"
+    },
+    "atom_proposal_universe_member": {
+      "additionalProperties": false,
+      "properties": {
+        "anchor_q4": {"$ref": "#/$defs/point_q4"},
+        "heatmap_score_q24": {"$ref": "#/$defs/probability_q24"},
+        "id": {"maximum": 127, "minimum": 0, "type": "integer"},
+        "set_decision": {"enum": ["inactive", "active"]},
+        "set_logit_q20": {"maximum": 2147483647, "minimum": -2147483648, "type": "integer"},
+        "source_cell_q4": {"$ref": "#/$defs/point_q4"}
+      },
+      "required": ["anchor_q4", "heatmap_score_q24", "id", "set_decision", "set_logit_q20", "source_cell_q4"],
+      "type": "object"
+    },
+    "bond": {
+      "additionalProperties": false,
+      "properties": {
+        "atom_pair": {
+          "items": {"maximum": 127, "minimum": 0, "type": "integer"},
+          "maxItems": 2,
+          "minItems": 2,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "atom_pair_evidence": {"$ref": "#/$defs/atom_pair_evidence"},
+        "begin_port_id": {"maximum": 511, "minimum": 0, "type": "integer"},
+        "end_port_id": {"maximum": 511, "minimum": 0, "type": "integer"},
+        "id": {"maximum": 511, "minimum": 0, "type": "integer"},
+        "lane_endpoint_alignment": {
+          "items": {"$ref": "#/$defs/lane_endpoint_alignment"},
+          "maxItems": 3,
+          "minItems": 1,
+          "type": "array"
+        },
+        "lane_ids": {
+          "items": {"maximum": 511, "minimum": 0, "type": "integer"},
+          "maxItems": 3,
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "order": {"enum": [1, 2, 3]}
+      },
+      "required": ["atom_pair", "atom_pair_evidence", "begin_port_id", "end_port_id", "id", "lane_endpoint_alignment", "lane_ids", "order"],
+      "type": "object"
+    },
+    "boundary": {
+      "additionalProperties": false,
+      "properties": {
+        "bond_mask_support_pixel_count": {"maximum": 589824, "minimum": 1, "type": "integer"},
+        "bond_mask_support_runs": {
+          "items": {"$ref": "#/$defs/support_run"},
+          "maxItems": 100000,
+          "minItems": 1,
+          "type": "array"
+        },
+        "final_foreground_support_pixel_count": {"maximum": 589824, "minimum": 1, "type": "integer"},
+        "final_foreground_support_runs": {
+          "items": {"$ref": "#/$defs/support_run"},
+          "maxItems": 100000,
+          "minItems": 1,
+          "type": "array"
+        },
+        "id": {"maximum": 127, "minimum": 0, "type": "integer"},
+        "segment_q4": {"$ref": "#/$defs/two_point_segment_q4"},
+        "source_lsd_index": {"maximum": 127, "minimum": 0, "type": "integer"}
+      },
+      "required": ["bond_mask_support_pixel_count", "bond_mask_support_runs", "final_foreground_support_pixel_count", "final_foreground_support_runs", "id", "segment_q4", "source_lsd_index"],
+      "type": "object"
+    },
+    "boundary_matching": {
+      "additionalProperties": false,
+      "properties": {
+        "matching_index": {"maximum": 127, "minimum": 0, "type": "integer"},
+        "compatible_pair_ids": {
+          "items": {"maximum": 8127, "minimum": 0, "type": "integer"},
+          "maxItems": 64,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "unmatched_boundary_ids": {
+          "items": {"maximum": 127, "minimum": 0, "type": "integer"},
+          "maxItems": 128,
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": ["compatible_pair_ids", "matching_index", "unmatched_boundary_ids"],
+      "type": "object"
+    },
+    "compatible_boundary_pair": {
+      "additionalProperties": false,
+      "properties": {
+        "boundary_ids": {
+          "items": {"maximum": 127, "minimum": 0, "type": "integer"},
+          "maxItems": 2,
+          "minItems": 2,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "canonical_centerline_q4": {"$ref": "#/$defs/two_point_segment_q4"},
+        "id": {"maximum": 8127, "minimum": 0, "type": "integer"},
+        "interior_darkness_q24": {"$ref": "#/$defs/probability_q24"},
+        "interior_ink_occupancy_ppm": {"$ref": "#/$defs/ratio_ppm"},
+        "observed_angle_mdeg": {"maximum": 90000, "minimum": 0, "type": "integer"},
+        "overlap_q4": {"maximum": 12288, "minimum": 0, "type": "integer"},
+        "separation_q4": {"maximum": 12288, "minimum": 0, "type": "integer"},
+        "shorter_overlap_ppm": {"$ref": "#/$defs/ratio_ppm"}
+      },
+      "required": ["boundary_ids", "canonical_centerline_q4", "id", "interior_darkness_q24", "interior_ink_occupancy_ppm", "observed_angle_mdeg", "overlap_q4", "separation_q4", "shorter_overlap_ppm"],
+      "type": "object"
+    },
+    "component_binding": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {"maxLength": 128, "minLength": 1, "pattern": "^[A-Za-z0-9._-]+$", "type": "string"},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "version": {"maxLength": 64, "minLength": 1, "pattern": "^[A-Za-z0-9._-]+$", "type": "string"}
+      },
+      "required": ["id", "sha256", "version"],
+      "type": "object"
+    },
+    "direct_pair_universe_member": {
+      "additionalProperties": false,
+      "properties": {
+        "atom_proposal_pair": {
+          "items": {"maximum": 127, "minimum": 0, "type": "integer"},
+          "maxItems": 2,
+          "minItems": 2,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "chemical_scores_q24": {
+          "items": {"$ref": "#/$defs/probability_q24"},
+          "maxItems": 4,
+          "minItems": 4,
+          "type": "array"
+        },
+        "id": {"maximum": 8127, "minimum": 0, "type": "integer"},
+        "presence_decision": {"enum": ["negative", "uncertain", "positive"]},
+        "presence_score_q24": {"$ref": "#/$defs/probability_q24"}
+      },
+      "required": ["atom_proposal_pair", "chemical_scores_q24", "id", "presence_decision", "presence_score_q24"],
+      "type": "object"
+    },
+    "enumeration": {
+      "additionalProperties": false,
+      "properties": {
+        "all_boundary_matchings_sha256": {"$ref": "#/$defs/sha256"},
+        "all_candidates_emitted": {"const": true},
+        "all_endpoint_atom_relations_sha256": {"$ref": "#/$defs/sha256"},
+        "all_interpretations_sha256": {"$ref": "#/$defs/sha256"},
+        "all_ownership_hypotheses_sha256": {"$ref": "#/$defs/sha256"},
+        "atom_proposal_universe_count": {"maximum": 128, "minimum": 0, "type": "integer"},
+        "boundary_matching_count": {"maximum": 128, "minimum": 1, "type": "integer"},
+        "capacity_hit": {"const": false},
+        "candidate_universe_sha256": {"$ref": "#/$defs/sha256"},
+        "compatible_boundary_pair_count": {"maximum": 8128, "minimum": 0, "type": "integer"},
+        "complete": {"const": true},
+        "direct_pair_universe_count": {"maximum": 8128, "minimum": 0, "type": "integer"},
+        "endpoint_atom_relation_count": {"maximum": 524288, "minimum": 0, "type": "integer"},
+        "emitted_set_sha256": {"$ref": "#/$defs/sha256"},
+        "enumeration_verifier_id": {"maxLength": 128, "minLength": 1, "pattern": "^[A-Za-z0-9._-]+$", "type": "string"},
+        "enumeration_verifier_sha256": {"$ref": "#/$defs/sha256"},
+        "hash_framing": {"const": "u32be-length-prefixed-canonical-json-v1"},
+        "interpretation_count": {"maximum": 128, "minimum": 1, "type": "integer"},
+        "ownership_component_count": {"maximum": 128, "minimum": 0, "type": "integer"},
+        "ownership_hypothesis_count": {"maximum": 128, "minimum": 1, "type": "integer"},
+        "pruned_candidate_count": {"const": 0},
+        "raw_boundary_count": {"maximum": 128, "minimum": 1, "type": "integer"}
+      },
+      "required": ["all_boundary_matchings_sha256", "all_candidates_emitted", "all_endpoint_atom_relations_sha256", "all_interpretations_sha256", "all_ownership_hypotheses_sha256", "atom_proposal_universe_count", "boundary_matching_count", "capacity_hit", "candidate_universe_sha256", "compatible_boundary_pair_count", "complete", "direct_pair_universe_count", "emitted_set_sha256", "endpoint_atom_relation_count", "enumeration_verifier_id", "enumeration_verifier_sha256", "hash_framing", "interpretation_count", "ownership_component_count", "ownership_hypothesis_count", "pruned_candidate_count", "raw_boundary_count"],
+      "type": "object"
+    },
+    "fragment_chain_item": {
+      "additionalProperties": false,
+      "properties": {
+        "begin_endpoint_index": {"enum": [0, 1]},
+        "end_endpoint_index": {"enum": [0, 1]},
+        "fragment_id": {"maximum": 511, "minimum": 0, "type": "integer"}
+      },
+      "required": ["begin_endpoint_index", "end_endpoint_index", "fragment_id"],
+      "type": "object"
+    },
+    "fragment_endpoint_ref": {
+      "additionalProperties": false,
+      "properties": {
+        "endpoint_index": {"enum": [0, 1]},
+        "fragment_id": {"maximum": 511, "minimum": 0, "type": "integer"}
+      },
+      "required": ["endpoint_index", "fragment_id"],
+      "type": "object"
+    },
+    "fixed_thresholds": {
+      "additionalProperties": false,
+      "properties": {
+        "atom_proposal_threshold_q24": {"const": 167772},
+        "atom_set_logit_q20": {"const": -262144},
+        "attach_max_angle_millidegrees": {"const": 12000},
+        "attach_max_endpoint_distance_q4": {"const": 256},
+        "boundary_support_width_q4": {"const": 16},
+        "direct_presence_threshold_q24": {"const": 14260634},
+        "direct_uncertain_lower_q24": {"const": 8388608},
+        "lane_white_gap_max_q4": {"const": 256},
+        "lane_white_gap_min_q4": {"const": 1},
+        "p1a_bond_threshold_q24": {"const": 8388608},
+        "p1a_text_threshold_q24": {"const": 8388608},
+        "pairing_darkness_threshold_q24": {"const": 4194304},
+        "pairing_interior_occupancy_ppm": {"const": 800000},
+        "pairing_max_angle_millidegrees": {"const": 3000},
+        "pairing_max_separation_q4": {"const": 64},
+        "pairing_min_overlap_q4": {"const": 128},
+        "pairing_min_separation_q4": {"const": 8},
+        "pairing_shorter_overlap_ppm": {"const": 700000},
+        "white_gap_max_length_q4": {"const": 256}
+      },
+      "required": ["atom_proposal_threshold_q24", "atom_set_logit_q20", "attach_max_angle_millidegrees", "attach_max_endpoint_distance_q4", "boundary_support_width_q4", "direct_presence_threshold_q24", "direct_uncertain_lower_q24", "lane_white_gap_max_q4", "lane_white_gap_min_q4", "p1a_bond_threshold_q24", "p1a_text_threshold_q24", "pairing_darkness_threshold_q24", "pairing_interior_occupancy_ppm", "pairing_max_angle_millidegrees", "pairing_max_separation_q4", "pairing_min_overlap_q4", "pairing_min_separation_q4", "pairing_shorter_overlap_ppm", "white_gap_max_length_q4"],
+      "type": "object"
+    },
+    "graph_class": {
+      "additionalProperties": false,
+      "properties": {
+        "canonical_spatial_graph_sha256": {"$ref": "#/$defs/sha256"},
+        "id": {"maximum": 127, "minimum": 0, "type": "integer"},
+        "interpretation_ids": {
+          "items": {"maximum": 127, "minimum": 0, "type": "integer"},
+          "maxItems": 128,
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": ["canonical_spatial_graph_sha256", "id", "interpretation_ids"],
+      "type": "object"
+    },
+    "graph_equivalence": {
+      "additionalProperties": false,
+      "properties": {
+        "algorithm_id": {"maxLength": 128, "minLength": 1, "pattern": "^[A-Za-z0-9._-]+$", "type": "string"},
+        "algorithm_sha256": {"$ref": "#/$defs/sha256"},
+        "algorithm_version": {"maxLength": 64, "minLength": 1, "pattern": "^[A-Za-z0-9._-]+$", "type": "string"},
+        "class_count": {"maximum": 128, "minimum": 1, "type": "integer"},
+        "graph_classes": {
+          "items": {"$ref": "#/$defs/graph_class"},
+          "maxItems": 128,
+          "minItems": 1,
+          "type": "array"
+        }
+      },
+      "required": ["algorithm_id", "algorithm_sha256", "algorithm_version", "class_count", "graph_classes"],
+      "type": "object"
+    },
+    "endpoint_atom_geometry_evidence": {
+      "additionalProperties": false,
+      "properties": {
+        "absolute_cross_q8": {"maximum": 301989888, "minimum": 0, "type": "integer"},
+        "angle_millidegrees": {"maximum": 90000, "minimum": 0, "type": "integer"},
+        "atom_anchor_q4": {"$ref": "#/$defs/point_q4"},
+        "attachment_radius_q4": {"maximum": 1024, "minimum": 1, "type": "integer"},
+        "distance_q4": {"maximum": 12288, "minimum": 0, "type": "integer"},
+        "endpoint_q4": {"$ref": "#/$defs/point_q4"},
+        "outward_dot_q8": {"maximum": 301989888, "minimum": -301989888, "type": "integer"},
+        "predicate_passed": {"const": true}
+      },
+      "required": ["absolute_cross_q8", "angle_millidegrees", "atom_anchor_q4", "attachment_radius_q4", "distance_q4", "endpoint_q4", "outward_dot_q8", "predicate_passed"],
+      "type": "object"
+    },
+    "endpoint_atom_relation": {
+      "additionalProperties": false,
+      "properties": {
+        "atom_id": {"maximum": 127, "minimum": 0, "type": "integer"},
+        "endpoint_ref": {"$ref": "#/$defs/fragment_endpoint_ref"},
+        "geometry_evidence": {"$ref": "#/$defs/endpoint_atom_geometry_evidence"},
+        "id": {"maximum": 4095, "minimum": 0, "type": "integer"},
+        "port_id": {"maximum": 511, "minimum": 0, "type": "integer"}
+      },
+      "required": ["atom_id", "endpoint_ref", "geometry_evidence", "id", "port_id"],
+      "type": "object"
+    },
+    "interpretation": {
+      "additionalProperties": false,
+      "properties": {
+        "atoms": {
+          "items": {"$ref": "#/$defs/atom"},
+          "maxItems": 128,
+          "type": "array"
+        },
+        "boundary_matching": {"$ref": "#/$defs/boundary_matching"},
+        "bonds": {
+          "items": {"$ref": "#/$defs/bond"},
+          "maxItems": 512,
+          "type": "array"
+        },
+        "boundaries": {
+          "items": {"$ref": "#/$defs/boundary"},
+          "maxItems": 128,
+          "minItems": 1,
+          "type": "array"
+        },
+        "endpoint_atom_relations": {
+          "items": {"$ref": "#/$defs/endpoint_atom_relation"},
+          "maxItems": 4096,
+          "type": "array"
+        },
+        "id": {"maximum": 127, "minimum": 0, "type": "integer"},
+        "intersection_regions": {
+          "items": {"$ref": "#/$defs/intersection_region"},
+          "maxItems": 128,
+          "type": "array"
+        },
+        "lanes": {
+          "items": {"$ref": "#/$defs/lane"},
+          "maxItems": 512,
+          "type": "array"
+        },
+        "lane_separation_certificates": {
+          "items": {"$ref": "#/$defs/lane_separation_certificate"},
+          "maxItems": 1024,
+          "type": "array"
+        },
+        "ownership": {
+          "items": {"$ref": "#/$defs/ownership"},
+          "maxItems": 512,
+          "minItems": 1,
+          "type": "array"
+        },
+        "ownership_hypothesis_index": {"maximum": 127, "minimum": 0, "type": "integer"},
+        "ports": {
+          "items": {"$ref": "#/$defs/port"},
+          "maxItems": 512,
+          "type": "array"
+        },
+        "stroke_fragments": {
+          "items": {"$ref": "#/$defs/stroke_fragment"},
+          "maxItems": 512,
+          "minItems": 1,
+          "type": "array"
+        },
+        "white_gap_certificates": {
+          "items": {"$ref": "#/$defs/white_gap_certificate"},
+          "maxItems": 512,
+          "type": "array"
+        }
+      },
+      "required": ["atoms", "boundary_matching", "bonds", "boundaries", "endpoint_atom_relations", "id", "intersection_regions", "lane_separation_certificates", "lanes", "ownership", "ownership_hypothesis_index", "ports", "stroke_fragments", "white_gap_certificates"],
+      "type": "object"
+    },
+    "intersection_region": {
+      "additionalProperties": false,
+      "properties": {
+        "boundary_member_ids": {
+          "items": {"maximum": 127, "minimum": 0, "type": "integer"},
+          "maxItems": 128,
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "center_q4": {"$ref": "#/$defs/point_q4"},
+        "id": {"maximum": 127, "minimum": 0, "type": "integer"},
+        "kind": {"enum": ["crossing", "junction", "touch"]},
+        "port_member_ids": {
+          "items": {"maximum": 511, "minimum": 0, "type": "integer"},
+          "maxItems": 64,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "stroke_fragment_member_ids": {
+          "items": {"maximum": 511, "minimum": 0, "type": "integer"},
+          "maxItems": 64,
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "support_pixel_count": {"maximum": 589824, "minimum": 1, "type": "integer"},
+        "support_runs": {
+          "items": {"$ref": "#/$defs/support_run"},
+          "maxItems": 100000,
+          "minItems": 1,
+          "type": "array"
+        }
+      },
+      "required": ["boundary_member_ids", "center_q4", "id", "kind", "port_member_ids", "stroke_fragment_member_ids", "support_pixel_count", "support_runs"],
+      "type": "object"
+    },
+    "lane": {
+      "additionalProperties": false,
+      "properties": {
+        "begin_port_id": {"maximum": 511, "minimum": 0, "type": "integer"},
+        "end_port_id": {"maximum": 511, "minimum": 0, "type": "integer"},
+        "fragment_chain": {
+          "items": {"$ref": "#/$defs/fragment_chain_item"},
+          "maxItems": 64,
+          "minItems": 1,
+          "type": "array"
+        },
+        "id": {"maximum": 511, "minimum": 0, "type": "integer"},
+        "white_gap_certificate_ids": {
+          "items": {"maximum": 511, "minimum": 0, "type": "integer"},
+          "maxItems": 63,
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": ["begin_port_id", "end_port_id", "fragment_chain", "id", "white_gap_certificate_ids"],
+      "type": "object"
+    },
+    "lane_separation_certificate": {
+      "additionalProperties": false,
+      "properties": {
+        "adjacent_lane_index": {"enum": [0, 1]},
+        "bond_id": {"maximum": 511, "minimum": 0, "type": "integer"},
+        "id": {"maximum": 1023, "minimum": 0, "type": "integer"},
+        "input_png_sha256": {"$ref": "#/$defs/sha256"},
+        "left_lane_id": {"maximum": 511, "minimum": 0, "type": "integer"},
+        "observed_maximum_gap_q4": {"maximum": 12288, "minimum": 1, "type": "integer"},
+        "observed_minimum_gap_q4": {"maximum": 12288, "minimum": 1, "type": "integer"},
+        "predicate_passed": {"const": true},
+        "right_lane_id": {"maximum": 511, "minimum": 0, "type": "integer"},
+        "rule_id": {"maxLength": 128, "minLength": 1, "pattern": "^[A-Za-z0-9._-]+$", "type": "string"},
+        "span_q4": {"$ref": "#/$defs/two_point_segment_q4"},
+        "support_pixel_count": {"maximum": 589824, "minimum": 1, "type": "integer"},
+        "support_runs": {
+          "items": {"$ref": "#/$defs/support_run"},
+          "maxItems": 100000,
+          "minItems": 1,
+          "type": "array"
+        },
+        "white_occupancy_ppm": {"$ref": "#/$defs/ratio_ppm"}
+      },
+      "required": ["adjacent_lane_index", "bond_id", "id", "input_png_sha256", "left_lane_id", "observed_maximum_gap_q4", "observed_minimum_gap_q4", "predicate_passed", "right_lane_id", "rule_id", "span_q4", "support_pixel_count", "support_runs", "white_occupancy_ppm"],
+      "type": "object"
+    },
+    "lane_endpoint_alignment": {
+      "additionalProperties": false,
+      "properties": {
+        "begin_port_id": {"maximum": 511, "minimum": 0, "type": "integer"},
+        "end_port_id": {"maximum": 511, "minimum": 0, "type": "integer"},
+        "lane_id": {"maximum": 511, "minimum": 0, "type": "integer"}
+      },
+      "required": ["begin_port_id", "end_port_id", "lane_id"],
+      "type": "object"
+    },
+    "ownership": {
+      "additionalProperties": false,
+      "properties": {
+        "fragment_id": {"maximum": 511, "minimum": 0, "type": "integer"},
+        "owner_id": {"maximum": 65535, "minimum": 0, "type": "integer"},
+        "owner_kind": {"enum": ["bond_lane", "text_glyph", "marker", "charge", "residual"]}
+      },
+      "required": ["fragment_id", "owner_id", "owner_kind"],
+      "type": "object"
+    },
+    "point_q4": {
+      "items": {"maximum": 12288, "minimum": 0, "type": "integer"},
+      "maxItems": 2,
+      "minItems": 2,
+      "type": "array"
+    },
+    "port": {
+      "additionalProperties": false,
+      "properties": {
+        "atom_id": {"maximum": 127, "minimum": 0, "type": "integer"},
+        "center_q4": {"$ref": "#/$defs/point_q4"},
+        "fragment_endpoint_refs": {
+          "items": {"$ref": "#/$defs/fragment_endpoint_ref"},
+          "maxItems": 64,
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "id": {"maximum": 511, "minimum": 0, "type": "integer"},
+        "radius_q4": {"maximum": 1024, "minimum": 1, "type": "integer"},
+        "support_fragment_ids": {
+          "items": {"maximum": 511, "minimum": 0, "type": "integer"},
+          "maxItems": 64,
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": ["atom_id", "center_q4", "fragment_endpoint_refs", "id", "radius_q4", "support_fragment_ids"],
+      "type": "object"
+    },
+    "probability_q24": {"maximum": 16777216, "minimum": 0, "type": "integer"},
+    "provenance": {
+      "additionalProperties": false,
+      "properties": {
+        "atom_source_checkpoint_sha256": {"$ref": "#/$defs/sha256"},
+        "boundary_extractor": {"$ref": "#/$defs/component_binding"},
+        "boundary_pairing": {"$ref": "#/$defs/component_binding"},
+        "candidate_predicate": {"$ref": "#/$defs/component_binding"},
+        "contract_sha256": {"$ref": "#/$defs/sha256"},
+        "direct_atom_pair_checkpoint_sha256": {"$ref": "#/$defs/sha256"},
+        "enumerator_id": {"maxLength": 128, "minLength": 1, "pattern": "^[A-Za-z0-9._-]+$", "type": "string"},
+        "enumerator_sha256": {"$ref": "#/$defs/sha256"},
+        "fixed_thresholds": {"$ref": "#/$defs/fixed_thresholds"},
+        "p1a_checkpoint_sha256": {"$ref": "#/$defs/sha256"},
+        "runtime_sha256": {"$ref": "#/$defs/sha256"},
+        "preprocess": {"$ref": "#/$defs/component_binding"},
+        "semantic_ink_extractor": {"$ref": "#/$defs/component_binding"},
+        "structural_verifier": {"$ref": "#/$defs/component_binding"},
+        "vision_checkpoint_sha256": {"$ref": "#/$defs/sha256"}
+      },
+      "required": ["atom_source_checkpoint_sha256", "boundary_extractor", "boundary_pairing", "candidate_predicate", "contract_sha256", "direct_atom_pair_checkpoint_sha256", "enumerator_id", "enumerator_sha256", "fixed_thresholds", "p1a_checkpoint_sha256", "preprocess", "runtime_sha256", "semantic_ink_extractor", "structural_verifier", "vision_checkpoint_sha256"],
+      "type": "object"
+    },
+    "ratio_ppm": {"maximum": 1000000, "minimum": 0, "type": "integer"},
+    "sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+    "stroke_fragment": {
+      "additionalProperties": false,
+      "properties": {
+        "boundary_member_ids": {
+          "items": {"maximum": 127, "minimum": 0, "type": "integer"},
+          "maxItems": 2,
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "derivation": {"enum": ["paired_boundaries", "unmatched_boundary", "split_at_intersection"]},
+        "id": {"maximum": 511, "minimum": 0, "type": "integer"},
+        "primitive_kind": {"enum": ["straight", "glyph", "charge", "unknown"]},
+        "segment_q4": {"$ref": "#/$defs/two_point_segment_q4"},
+        "support_pixel_count": {"maximum": 589824, "minimum": 1, "type": "integer"},
+        "support_runs": {
+          "items": {"$ref": "#/$defs/support_run"},
+          "maxItems": 100000,
+          "minItems": 1,
+          "type": "array"
+        },
+        "width_q4": {"maximum": 1024, "minimum": 1, "type": "integer"}
+      },
+      "required": ["boundary_member_ids", "derivation", "id", "primitive_kind", "segment_q4", "support_pixel_count", "support_runs", "width_q4"],
+      "type": "object"
+    },
+    "stage_record": {
+      "additionalProperties": false,
+      "properties": {
+        "component_sha256": {"$ref": "#/$defs/sha256"},
+        "index": {"maximum": 15, "minimum": 0, "type": "integer"},
+        "input_sha256": {"$ref": "#/$defs/sha256"},
+        "output_sha256": {"$ref": "#/$defs/sha256"},
+        "record_count": {"maximum": 589824, "minimum": 0, "type": "integer"},
+        "stage": {"enum": ["preprocess", "semantic_ink", "boundary_detection", "boundary_compatibility", "boundary_matching", "atom_proposals", "direct_pairs", "stroke_ownership", "endpoint_atom_relations", "interpretations", "graph_equivalence", "ambiguity_taxonomy"]}
+      },
+      "required": ["component_sha256", "index", "input_sha256", "output_sha256", "record_count", "stage"],
+      "type": "object"
+    },
+    "stage_trace": {
+      "additionalProperties": false,
+      "properties": {
+        "framing": {"const": "u32be-index||u32be-stage-bytes-length||stage-bytes||component-sha256-bytes||input-sha256-bytes||output-sha256-bytes||u64be-record-count"},
+        "ordered_chain_sha256": {"$ref": "#/$defs/sha256"},
+        "stages": {
+          "items": {"$ref": "#/$defs/stage_record"},
+          "maxItems": 12,
+          "minItems": 12,
+          "type": "array"
+        }
+      },
+      "required": ["framing", "ordered_chain_sha256", "stages"],
+      "type": "object"
+    },
+    "support_run": {
+      "items": false,
+      "maxItems": 3,
+      "minItems": 3,
+      "prefixItems": [
+        {"maximum": 767, "minimum": 0, "type": "integer"},
+        {"maximum": 767, "minimum": 0, "type": "integer"},
+        {"maximum": 768, "minimum": 1, "type": "integer"}
+      ],
+      "type": "array"
+    },
+    "two_point_segment_q4": {
+      "items": {"$ref": "#/$defs/point_q4"},
+      "maxItems": 2,
+      "minItems": 2,
+      "type": "array"
+    },
+    "white_gap_certificate": {
+      "additionalProperties": false,
+      "properties": {
+        "bond_probability_min_q24": {"$ref": "#/$defs/probability_q24"},
+        "gap_begin_q4": {"$ref": "#/$defs/point_q4"},
+        "gap_end_q4": {"$ref": "#/$defs/point_q4"},
+        "gap_kind": {"enum": ["text_occlusion", "antialias_break", "intersection_split", "raster_break"]},
+        "gap_length_q4": {"maximum": 1024, "minimum": 1, "type": "integer"},
+        "id": {"maximum": 511, "minimum": 0, "type": "integer"},
+        "input_png_sha256": {"$ref": "#/$defs/sha256"},
+        "left_endpoint_index": {"enum": [0, 1]},
+        "left_fragment_id": {"maximum": 511, "minimum": 0, "type": "integer"},
+        "right_endpoint_index": {"enum": [0, 1]},
+        "right_fragment_id": {"maximum": 511, "minimum": 0, "type": "integer"},
+        "rule_id": {"maxLength": 128, "minLength": 1, "pattern": "^[A-Za-z0-9._-]+$", "type": "string"},
+        "span_q4": {"$ref": "#/$defs/two_point_segment_q4"},
+        "support_pixel_count": {"maximum": 589824, "minimum": 1, "type": "integer"},
+        "support_runs": {
+          "items": {"$ref": "#/$defs/support_run"},
+          "maxItems": 100000,
+          "minItems": 1,
+          "type": "array"
+        },
+        "text_probability_max_q24": {"$ref": "#/$defs/probability_q24"},
+        "white_occupancy_ppm": {"$ref": "#/$defs/ratio_ppm"}
+      },
+      "required": ["bond_probability_min_q24", "gap_begin_q4", "gap_end_q4", "gap_kind", "gap_length_q4", "id", "input_png_sha256", "left_endpoint_index", "left_fragment_id", "right_endpoint_index", "right_fragment_id", "rule_id", "span_q4", "support_pixel_count", "support_runs", "text_probability_max_q24", "white_occupancy_ppm"],
+      "type": "object"
+    }
+  },
+  "$id": "https://chemgraph.local/schemas/carrier-candidate-set-v0.3.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "oneOf": [
+    {
+      "additionalProperties": false,
+      "properties": {
+        "ambiguity_taxonomy": {"$ref": "#/$defs/ambiguity_taxonomy"},
+        "atom_proposal_universe": {
+          "items": {"$ref": "#/$defs/atom_proposal_universe_member"},
+          "maxItems": 128,
+          "type": "array"
+        },
+        "boundary_universe": {
+          "items": {"$ref": "#/$defs/boundary"},
+          "maxItems": 128,
+          "minItems": 1,
+          "type": "array"
+        },
+        "compatible_boundary_pairs": {
+          "items": {"$ref": "#/$defs/compatible_boundary_pair"},
+          "maxItems": 8128,
+          "type": "array"
+        },
+        "direct_pair_universe": {
+          "items": {"$ref": "#/$defs/direct_pair_universe_member"},
+          "maxItems": 8128,
+          "type": "array"
+        },
+        "enumeration": {"$ref": "#/$defs/enumeration"},
+        "graph_equivalence": {"$ref": "#/$defs/graph_equivalence"},
+        "image": {
+          "additionalProperties": false,
+          "properties": {
+            "bond_mask_pixel_count": {"maximum": 589824, "minimum": 1, "type": "integer"},
+            "bond_mask_runs": {
+              "items": {"$ref": "#/$defs/support_run"},
+              "maxItems": 100000,
+              "minItems": 1,
+              "type": "array"
+            },
+            "bond_mask_rle_sha256": {"$ref": "#/$defs/sha256"},
+            "coordinate_format": {"const": "Q4-pixel"},
+            "final_foreground_pixel_count": {"maximum": 589824, "minimum": 1, "type": "integer"},
+            "final_foreground_rle_sha256": {"$ref": "#/$defs/sha256"},
+            "final_foreground_runs": {
+              "items": {"$ref": "#/$defs/support_run"},
+              "maxItems": 100000,
+              "minItems": 1,
+              "type": "array"
+            },
+            "height": {"const": 768},
+            "png_sha256": {"$ref": "#/$defs/sha256"},
+            "rle_hash_framing": {"const": "u32be(run_count)||for_each_run(u32be(row)||u32be(start)||u32be(length))"},
+            "text_mask_pixel_count": {"maximum": 589824, "minimum": 0, "type": "integer"},
+            "text_mask_rle_sha256": {"$ref": "#/$defs/sha256"},
+            "text_mask_runs": {
+              "items": {"$ref": "#/$defs/support_run"},
+              "maxItems": 100000,
+              "type": "array"
+            },
+            "width": {"const": 768}
+          },
+          "required": ["bond_mask_pixel_count", "bond_mask_rle_sha256", "bond_mask_runs", "coordinate_format", "final_foreground_pixel_count", "final_foreground_rle_sha256", "final_foreground_runs", "height", "png_sha256", "rle_hash_framing", "text_mask_pixel_count", "text_mask_rle_sha256", "text_mask_runs", "width"],
+          "type": "object"
+        },
+        "interpretations": {
+          "items": {"$ref": "#/$defs/interpretation"},
+          "maxItems": 128,
+          "minItems": 1,
+          "type": "array"
+        },
+        "provenance": {"$ref": "#/$defs/provenance"},
+        "schema_version": {"const": "chemgraph-carrier-candidate-set-v0.3"},
+        "stage_trace": {"$ref": "#/$defs/stage_trace"},
+        "status": {"const": "candidate_set"},
+        "training_authorized": {"const": false}
+      },
+      "required": ["ambiguity_taxonomy", "atom_proposal_universe", "boundary_universe", "compatible_boundary_pairs", "direct_pair_universe", "enumeration", "graph_equivalence", "image", "interpretations", "provenance", "schema_version", "stage_trace", "status", "training_authorized"],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "properties": {
+        "reason": {"enum": ["invalid_png", "outside_capacity", "unsupported_geometry", "no_supported_carrier", "enumeration_incomplete", "unsupported_primitive"]},
+        "schema_version": {"const": "chemgraph-carrier-candidate-set-v0.3"},
+        "stage": {"enum": ["input", "semantic_ink", "boundary_detection", "boundary_enumeration", "ownership_enumeration", "atom_enumeration", "port_enumeration", "lane_enumeration", "bond_enumeration", "graph_equivalence", "ambiguity_taxonomy", "serialization"]},
+        "status": {"const": "reject"},
+        "training_authorized": {"const": false}
+      },
+      "required": ["reason", "schema_version", "stage", "status", "training_authorized"],
+      "type": "object"
+    }
+  ],
+  "title": "Carrier candidate set output v0.3"
+}

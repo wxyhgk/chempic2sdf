@@ -48,6 +48,7 @@ geometry 为 48/48，但 CandidateSet 只有 44/48；C4 与 S8 存在同 raster 
 - `ChemGraph/BlindCarrierTripleExpressivityV01.lean`：形式化 Blind Carrier v0.1 三条平行 lane 在固定 terminal 半径与最小间距下的合同不相容性。
 - `ChemGraph/BlindCarrierTerminalRegionV02.lean`：形式化 v0.2 terminal region 修复，证明三条平行 lane 的相邻 endpoint disk 相交且交图 `0-1-2` 连通，不要求三圆公共交点。
 - `ChemGraph/BlindCarrierTerminalComponentsV02.lean`：证明 v0.2 endpoint-disk 相交图在 terminal 内部连通且跨 terminal 无边时，terminal fiber 恰好是连通分量，且该分区唯一。
+- `ChemGraph/CarrierCandidateSetV03.lean`：形式化 PNG proposer v0.3 的根级 boundary/pair/Atom/DirectPair 有限宇宙及 pair 端点归属、通用 interpretation 完备枚举、空图 interpretation、boundary/stroke 与 lane/Bond 精确 fiber、bond/text/charge ownership、`1..3` lane 键级、具名 reason/stage Reject，以及绑定组件 SHA256、实际 root artifact、前后输入输出和整链摘要的固定 12 阶段 trace。v0.3 序列化仅有 candidate set/reject，均不发出 graph；JSON 自签 `complete=true` 不代替 root-relative completeness 证书。Lean 把 schema 指定的 SHA256 framing 建模为抽象函数，具体哈希实现仍由独立 validator 审计。文件内 accept/abstain 定理只供未来升级，不属于当前序列化。
 
 ## 工具链与构建
 
@@ -115,6 +116,25 @@ strict（up to graph equivalence）。生产中的 `Observation` 必须实例化
 `ObservationClosure.lean` 已形式化有限无向带标签简单图，以及由节点双射保持节点标签和边标签定义的图同构，并证明该关系为等价关系。可执行 Boolean checker 仍通过显式 `Decidable` 接口接入；Lean 证明 checker 的 sound/complete 规格，但不声称已验证 Python canonicalizer 的具体实现。
 
 当前 Lean 模型仍只证明冻结接口之间的逻辑事实。它没有执行 3608 万 tuple 枚举，也不验证真实 rasterizer、extractor、PNG/JSON、syscall 隔离或 Git 时序。真实抗锯齿 PNG、文字遮挡、短键、双键 lane、虚线和任意分子的恢复也尚未证明。因此当前状态仍是 `FORMALIZATION_IN_PROGRESS`，不能只凭 Lean 接口定理开始大规模训练。
+
+Carrier Candidate Set v0.3 最新加入的整数几何也仍在这个边界之外。`CarrierCandidateSetV03.lean`
+证明 compatible/direct pair 的端点属于相应 root universe，但没有在 Lean 中重算以下具体公式；它们当前只由
+`formal/chemgraph/audit/carrier_candidate_set_v0_3/validate_candidate_set.py` 和 mutation tests 保证：
+
+- endpoint-to-Atom evidence 必须重复真实 Q4 endpoint/anchor；以“实际 endpoint 减另一端”为 outward、
+  “Atom anchor 减实际 endpoint”为 attachment，精确重算 Q8 dot 与 absolute cross，并要求 dot 非负；
+- attachment gate 使用 Q4 坐标的平方距离比较 `d2 <= radius_q4^2`，不能用先开方取整的距离代替；
+  `distance_q4` 另按整数平方根向下取整，acute angle 按 half-up millidegrees 重算；
+- compatible boundary pair 的 acute angle、对应端点逐坐标 half-up 中线、两端整数距离的 half-up 平均 separation、
+  dominant-axis overlap 及相对较短 boundary 的 half-up ppm overlap 均必须从根级 boundary 重算；
+- white-gap 必须绑定最终 PNG，引用有向相邻 fragment endpoint，span/长度与引用严格相等；全部 support pixel
+  必须为白色并位于冻结宽度的 span 邻域内，且证书与 lane 的非接触相邻项形成精确 fiber；
+- lane-separation 必须绑定 order-2/order-3 Bond 的规范相邻 lane，span 是两条 lane 外端点中点之间的线段，
+  min/max 是两对外端点距离；每个相邻 lane pair 恰有一份证书，support 同样必须为白色且靠近该 span。
+
+所以 Lean 当前没有证明 Python 的浮点角度实现跨平台一致，也没有证明 Q4/Q8 数值不溢出、RLE support
+确实来自目标 PNG、gap 像素确实为空白或 compatible predicate 对真实图像具有召回率。这些仍是独立
+validator、fixture 和真实公开图片实验的责任。
 
 ## 参考原则
 
