@@ -150,3 +150,16 @@ training_authorized=false
 当前 Lean 候选仍是 `NO-GO for Lean freeze`。详细原因、JSON/SHA 调研和下一周期的可信边界见
 `E2_V0_4_LEAN_BOUNDARY_DECISION.md`。在 transcript codec、46 个非恒等 checker soundness 和
 双重审计完成前，不得把当前候选提交为权威证明，也不得运行 launcher 或训练。
+
+## Python transcript codec 冻结
+
+Python v0.4 transcript codec、5 组二进制 fixture 和对应 canonical JSON sidecar 已通过独立红队
+审计，tree SHA256 为：
+
+```text
+a6ccdee55385d547d11b9240a81d6f8c091c45377081be34765a2db4f79d572d
+```
+
+冻结记录见 `e2_v0_4_python_transcript_codec_freeze.json`。该 codec 只保证 transcript 语法、严格
+解码和有序字节编码；它不理解每个 Rxx 的合同语义。后续 checker 必须对 relation-specific inputs
+进行等长、逐项、按序完整字节比较。该冻结不授权 launcher、relation gates 或训练。
