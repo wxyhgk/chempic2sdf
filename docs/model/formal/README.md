@@ -28,6 +28,7 @@
 - [Intersection Ownership v0.4 可辨识性预注册](20260815-intersection-ownership-v0_4-identifiability-preregistration.md)
 - [Intersection Ownership v0.4 可辨识性 NO-GO](20260815-intersection-ownership-v0_4-identifiability-no-go.md)
 - [Owner Candidate Domain v0.5 预注册](20260815-owner-candidate-domain-v0_5-preregistration.md)
+- [Owner Candidate Domain v0.5 R0 修订协议](20260815-owner-candidate-domain-v0_5-r0-amendment.md)
 - [PNG Ownership Realization v0.5 探索协议](20260815-png-ownership-realization-v0_5-exploratory-protocol.md)
 - [PNG Ownership Realization v0.5 结果](20260815-png-ownership-realization-v0_5-results.md)
 - [PNG Ownership Realization v0.5 独立确认预注册](20260815-png-ownership-realization-v0_5-confirmation-preregistration.md)
