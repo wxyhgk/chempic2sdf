@@ -1,0 +1,1 @@
+{"observation_sha256":"4a1d9a42f6be3f78b537fdfbc777e5cb6f1b7a63ff153bcfece9796a628e7a25","regions":[{"intersection_id":0,"owner_id":0,"support_pixels":[[20,18],[20,19]]},{"intersection_id":1,"owner_id":1,"support_pixels":[[20,20],[20,21],[20,22]]}],"schema_version":"intersection-ownership-world-v0.4-research","training_authorized":false,"world_id":"bridge_owned_by_right"}

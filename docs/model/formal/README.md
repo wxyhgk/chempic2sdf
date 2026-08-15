@@ -25,6 +25,8 @@
 - [Fragment Support Partition v0.4 预注册](20260815-fragment-support-partition-v0_4-preregistration.md)
 - [Fragment Support Partition v0.4 结果](20260815-fragment-support-partition-v0_4-results.md)
 - [OCSR 数学与结构建模文献地图](20260815-ocsr-mathematical-literature-map.md)
+- [Intersection Ownership v0.4 可辨识性预注册](20260815-intersection-ownership-v0_4-identifiability-preregistration.md)
+- [Intersection Ownership v0.4 可辨识性 NO-GO](20260815-intersection-ownership-v0_4-identifiability-no-go.md)
 - Lean 工程：`formal/chemgraph/`
 
 状态：训练暂停，形式化验证进行中。
