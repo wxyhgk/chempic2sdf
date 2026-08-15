@@ -1,0 +1,323 @@
+{
+  "$id": "e2_launcher_contract_v0_1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "archive": {
+      "additionalProperties": false,
+      "properties": {
+        "file_count": {"minimum": 1, "type": "integer"},
+        "git_tree_object_sha1": {"pattern": "^[0-9a-f]{40}$", "type": "string"},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "source_file_payload_bytes": {"minimum": 1, "type": "integer"}
+      },
+      "required": ["file_count", "sha256", "source_file_payload_bytes"],
+      "type": "object"
+    },
+    "limitGroup": {
+      "additionalProperties": false,
+      "properties": {
+        "memory_max_bytes": {"minimum": 1, "type": "integer"},
+        "pids_max": {"minimum": 1, "type": "integer"}
+      },
+      "required": ["memory_max_bytes", "pids_max"],
+      "type": "object"
+    },
+    "sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+    "stringArray": {"items": {"minLength": 1, "type": "string"}, "minItems": 1, "type": "array"},
+    "tool": {
+      "additionalProperties": false,
+      "properties": {
+        "invoked_path": {"pattern": "^/", "type": "string"},
+        "kind": {"enum": ["executable", "shared_library"]},
+        "resolved_path": {"pattern": "^/", "type": "string"},
+        "role": {"enum": ["bubblewrap_namespace_executor", "gcc", "git", "mount", "nsenter_negative_probe", "python_verifier_a", "python_producer", "setpriv", "umount", "unshare", "zlib"]},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      },
+      "required": ["invoked_path", "kind", "resolved_path", "role", "sha256"],
+      "type": "object"
+    },
+    "writableMount": {
+      "additionalProperties": false,
+      "properties": {
+        "maximum_bytes": {"minimum": 1, "type": "integer"},
+        "mountpoint": {"pattern": "^/", "type": "string"},
+        "purpose": {"minLength": 1, "type": "string"}
+      },
+      "required": ["maximum_bytes", "mountpoint", "purpose"],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "allow_exclusions": {"const": false},
+    "artifact_protocol": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_identity": {"minLength": 1, "type": "string"},
+        "authoritative_files": {"$ref": "#/$defs/stringArray"},
+        "maximum_candidate_count": {"const": 8},
+        "maximum_published_allocated_bytes": {"const": 2147483648},
+        "maximum_published_logical_bytes": {"const": 2147483648},
+        "tree_root_domains": {
+          "additionalProperties": false,
+          "properties": {
+            "evidence": {"const": "chemgraph-v0.6/e2-launcher-v0.1/evidence-tree"},
+            "published": {"const": "chemgraph-v0.6/e2-launcher-v0.1/published-tree"}
+          },
+          "required": ["evidence", "published"],
+          "type": "object"
+        }
+      },
+      "required": ["artifact_identity", "authoritative_files", "maximum_candidate_count", "maximum_published_allocated_bytes", "maximum_published_logical_bytes", "tree_root_domains"],
+      "type": "object"
+    },
+    "authorization_protocol": {
+      "additionalProperties": false,
+      "properties": {
+        "authorization_by_contract_mutation_forbidden": {"const": true},
+        "authorization_records_external_to_contract": {"const": true},
+        "canonical_record_encoding": {"const": "UTF-8 canonical JSON with sorted keys, compact separators, one trailing LF, and duplicate keys rejected"},
+        "dry_run": {
+          "additionalProperties": false,
+          "properties": {
+            "maximum_authorized_runs": {"const": 1},
+            "official_publication_forbidden": {"const": true},
+            "record_kind": {"const": "chemgraph-e2-dry-run-authorization-v0.1"},
+            "required_bindings": {"const": ["contract_sha256", "contract_schema_sha256", "implementation_commit", "launcher_source_freeze_sha256", "authorization_record_schema_sha256", "test_bundle_sha256", "external_tool_dependency_closure_sha256", "reviewer_1_attestation_sha256", "reviewer_2_attestation_sha256", "run_nonce"]},
+            "required_gate_results": {"const": ["implementation_commit_frozen", "launcher_source_freeze_passed", "authorization_record_schema_passed", "negative_tests_passed", "external_tool_dependency_closure_passed", "reviewer_1_independent_passed", "reviewer_2_independent_passed"]},
+            "reviewer_count": {"const": 2},
+            "reviewers_must_be_distinct_and_independent_from_implementation_author": {"const": true}
+          },
+          "required": ["maximum_authorized_runs", "official_publication_forbidden", "record_kind", "required_bindings", "required_gate_results", "reviewer_count", "reviewers_must_be_distinct_and_independent_from_implementation_author"],
+          "type": "object"
+        },
+        "execution_authorized_field_semantics": {"const": "false means the P0 and launcher contracts alone authorize no execution; authorization can only come from a matching unconsumed external phase record"},
+        "matching_unconsumed_record_required": {"const": true},
+        "official": {
+          "additionalProperties": false,
+          "properties": {
+            "maximum_authorized_runs": {"const": 1},
+            "record_kind": {"const": "chemgraph-e2-official-authorization-v0.1"},
+            "required_bindings": {"const": ["contract_sha256", "contract_schema_sha256", "implementation_commit", "launcher_source_freeze_sha256", "dry_run_authorization_record_sha256", "dry_run_validation_sha256", "redteam_validation_sha256", "authorization_record_schema_sha256", "run_nonce"]},
+            "required_gate_results": {"const": ["dry_run_authorization_consumed_once", "dry_run_validation_passed", "redteam_validation_passed", "official_authorization_record_schema_passed"]}
+          },
+          "required": ["maximum_authorized_runs", "record_kind", "required_bindings", "required_gate_results"],
+          "type": "object"
+        },
+        "phase_order": {"const": ["implementation_freeze", "dry_run_authorization", "single_dry_run", "dry_run_and_redteam_review", "official_authorization", "single_official_run"]},
+        "record_binding_or_consumption_mismatch_is_whole_run_no_go": {"const": true}
+      },
+      "required": ["authorization_by_contract_mutation_forbidden", "authorization_records_external_to_contract", "canonical_record_encoding", "dry_run", "execution_authorized_field_semantics", "matching_unconsumed_record_required", "official", "phase_order", "record_binding_or_consumption_mismatch_is_whole_run_no_go"],
+      "type": "object"
+    },
+    "cgroup_protocol": {
+      "additionalProperties": false,
+      "properties": {
+        "controllers": {"const": ["cpuset", "memory", "pids"]},
+        "full_pipeline_accounting": {"minLength": 1, "type": "string"},
+        "inner": {"$ref": "#/$defs/limitGroup"},
+        "memory_peak_formula": {"minLength": 1, "type": "string"},
+        "monitor": {"$ref": "#/$defs/limitGroup"},
+        "oom_event_keys": {"const": ["oom", "oom_kill", "oom_group_kill"]},
+        "oom_required_total": {"const": 0},
+        "placement": {"minLength": 1, "type": "string"},
+        "total_memory_max_bytes": {"const": 8589934592}
+      },
+      "required": ["controllers", "full_pipeline_accounting", "inner", "memory_peak_formula", "monitor", "oom_event_keys", "oom_required_total", "placement", "total_memory_max_bytes"],
+      "type": "object"
+    },
+    "cpuset_protocol": {
+      "additionalProperties": false,
+      "properties": {
+        "cpuset_controller_required": {"const": true},
+        "effective_set_must_equal_selected": {"const": true},
+        "physical_core_selection": {"minLength": 1, "type": "string"},
+        "selected_cpu_count": {"const": 4},
+        "worker_affinity_changes_forbidden": {"const": true},
+        "write_order": {"$ref": "#/$defs/stringArray"}
+      },
+      "required": ["cpuset_controller_required", "effective_set_must_equal_selected", "physical_core_selection", "selected_cpu_count", "write_order", "worker_affinity_changes_forbidden"],
+      "type": "object"
+    },
+    "execution_authorized": {"const": false},
+    "execution_order": {"$ref": "#/$defs/stringArray"},
+    "external_tools": {"items": {"$ref": "#/$defs/tool"}, "maxItems": 11, "minItems": 11, "type": "array"},
+    "identity_network_protocol": {
+      "additionalProperties": false,
+      "properties": {
+        "ambient_capabilities": {"const": "empty"},
+        "bounding_capabilities": {"const": "empty"},
+        "effective_capabilities": {"const": "empty"},
+        "gid": {"const": 61184},
+        "host_network_fd_source": {"minLength": 1, "type": "string"},
+        "host_setns_negative": {
+          "additionalProperties": false,
+          "properties": {
+            "expected_errno": {"const": "EPERM"},
+            "required": {"const": true},
+            "success_is_whole_run_no_go": {"const": true}
+          },
+          "required": ["expected_errno", "required", "success_is_whole_run_no_go"],
+          "type": "object"
+        },
+        "identity_name": {"const": "chemgraph-pilot"},
+        "inheritable_capabilities": {"const": "empty"},
+        "loopback_required_state": {"const": ["down", "unknown"]},
+        "namespace_executor_role": {"const": "bubblewrap_namespace_executor"},
+        "network_namespace_order": {"$ref": "#/$defs/stringArray"},
+        "no_new_privs": {"const": 1},
+        "permitted_capabilities": {"const": "empty"},
+        "supplementary_groups": {"const": "empty"},
+        "uid": {"const": 61184}
+      },
+      "required": ["ambient_capabilities", "bounding_capabilities", "effective_capabilities", "gid", "host_network_fd_source", "host_setns_negative", "identity_name", "inheritable_capabilities", "loopback_required_state", "namespace_executor_role", "network_namespace_order", "no_new_privs", "permitted_capabilities", "supplementary_groups", "uid"],
+      "type": "object"
+    },
+    "implementation_status": {
+      "additionalProperties": false,
+      "properties": {
+        "launcher_source_freeze_required": {"const": true},
+        "state": {"const": "contract_frozen_implementation_absent"},
+        "whole_run_policy": {"minLength": 1, "type": "string"}
+      },
+      "required": ["launcher_source_freeze_required", "state", "whole_run_policy"],
+      "type": "object"
+    },
+    "launcher_boundary": {
+      "additionalProperties": false,
+      "properties": {
+        "inner": {"minLength": 1, "type": "string"},
+        "monitor": {"minLength": 1, "type": "string"},
+        "pre_migration_rule": {"minLength": 1, "type": "string"},
+        "trust_boundary": {"minLength": 1, "type": "string"}
+      },
+      "required": ["inner", "monitor", "pre_migration_rule", "trust_boundary"],
+      "type": "object"
+    },
+    "mount_protocol": {
+      "additionalProperties": false,
+      "properties": {
+        "authorized_writable_mounts": {"items": {"$ref": "#/$defs/writableMount"}, "maxItems": 2, "minItems": 2, "type": "array"},
+        "forbidden_write_probes": {"$ref": "#/$defs/stringArray"},
+        "mount_namespace_private": {"const": true},
+        "mount_setattr_recursive_readonly_required": {"const": true},
+        "root_mount_readonly": {"const": true},
+        "source_snapshot_readonly_after_extraction": {"const": true},
+        "temporary_environment": {
+          "additionalProperties": false,
+          "properties": {
+            "HOME": {"const": "/work/home"},
+            "TEMP": {"const": "/work/tmp"},
+            "TMP": {"const": "/work/tmp"},
+            "TMPDIR": {"const": "/work/tmp"}
+          },
+          "required": ["HOME", "TEMP", "TMP", "TMPDIR"],
+          "type": "object"
+        },
+        "unexpected_writable_mount_is_whole_run_no_go": {"const": true},
+        "write_probe_errno": {"const": ["EROFS", "EACCES"]}
+      },
+      "required": ["authorized_writable_mounts", "forbidden_write_probes", "mount_namespace_private", "mount_setattr_recursive_readonly_required", "root_mount_readonly", "source_snapshot_readonly_after_extraction", "temporary_environment", "unexpected_writable_mount_is_whole_run_no_go", "write_probe_errno"],
+      "type": "object"
+    },
+    "publication_protocol": {
+      "additionalProperties": false,
+      "properties": {
+        "atomicity": {"minLength": 1, "type": "string"},
+        "failure_policy": {"minLength": 1, "type": "string"},
+        "metadata": {
+          "additionalProperties": false,
+          "properties": {
+            "directories_mode": {"const": "0555"},
+            "files_mode": {"const": "0444"},
+            "gid": {"const": 0},
+            "hardlinks_forbidden": {"const": true},
+            "special_files_forbidden": {"const": true},
+            "symlinks_forbidden": {"const": true},
+            "uid": {"const": 0}
+          },
+          "required": ["directories_mode", "files_mode", "gid", "hardlinks_forbidden", "special_files_forbidden", "symlinks_forbidden", "uid"],
+          "type": "object"
+        },
+        "ordering": {"$ref": "#/$defs/stringArray"},
+        "post_publication_failure": {"minLength": 1, "type": "string"},
+        "root_semantics": {"minLength": 1, "type": "string"}
+      },
+      "required": ["atomicity", "failure_policy", "metadata", "ordering", "post_publication_failure", "root_semantics"],
+      "type": "object"
+    },
+    "resource_limits": {
+      "additionalProperties": false,
+      "properties": {
+        "maximum_published_allocated_bytes": {"const": 2147483648},
+        "maximum_published_logical_bytes": {"const": 2147483648},
+        "maximum_temporary_allocated_bytes": {"const": 17179869184},
+        "maximum_total_memory_bytes": {"const": 8589934592},
+        "maximum_wall_seconds": {"const": 1800},
+        "oom_events": {"const": 0},
+        "physical_cpus": {"const": 4},
+        "workers_per_semantic_stage": {"const": 4}
+      },
+      "required": ["maximum_published_allocated_bytes", "maximum_published_logical_bytes", "maximum_temporary_allocated_bytes", "maximum_total_memory_bytes", "maximum_wall_seconds", "oom_events", "physical_cpus", "workers_per_semantic_stage"],
+      "type": "object"
+    },
+    "schema_version": {"const": "chemgraph-e2-hardened-launcher-contract-v0.1"},
+    "source_binding": {
+      "additionalProperties": false,
+      "properties": {
+        "dependency_binding": {"minLength": 1, "type": "string"},
+        "e2_archive": {"$ref": "#/$defs/archive"},
+        "full_commit_archive": {"$ref": "#/$defs/archive"},
+        "launcher_source_freeze": {"minLength": 1, "type": "string"},
+        "p0_contract_sha256": {"const": "e326fc744903b998793746f299232c4225ce3b8648e1abdda7b4e065f06a9402"},
+        "parent_contract_sha256": {"const": "55ddcaacdf851166554ccd586b2a924c0e793f86cc7a6319f98132ef0ffb6b65"},
+        "source_commit": {"const": "5970f316a4cfd30a25d3e89776ab8a4c50742b65"},
+        "source_freeze_snapshot": {
+          "additionalProperties": false,
+          "properties": {
+            "copy_rule": {"minLength": 1, "type": "string"},
+            "sha256": {"const": "994ae0de25ae47835c8b2bb97e3579555c45d8b79fd41a3a7c195eb9a0c798dc"}
+          },
+          "required": ["copy_rule", "sha256"],
+          "type": "object"
+        }
+      },
+      "required": ["dependency_binding", "e2_archive", "full_commit_archive", "launcher_source_freeze", "p0_contract_sha256", "parent_contract_sha256", "source_commit", "source_freeze_snapshot"],
+      "type": "object"
+    },
+    "stage_quiescence": {
+      "additionalProperties": false,
+      "properties": {
+        "daemon_escape_policy": {"minLength": 1, "type": "string"},
+        "handshake": {"minLength": 1, "type": "string"},
+        "required_stages": {"const": ["producer", "verifier_a", "verifier_b"]},
+        "snapshot_policy": {"minLength": 1, "type": "string"},
+        "worker_proof": {"minLength": 1, "type": "string"}
+      },
+      "required": ["daemon_escape_policy", "handshake", "required_stages", "snapshot_policy", "worker_proof"],
+      "type": "object"
+    },
+    "training_authorized": {"const": false},
+    "wall_protocol": {
+      "additionalProperties": false,
+      "properties": {
+        "clock": {"const": "CLOCK_MONOTONIC_RAW"},
+        "deadline_start": {"minLength": 1, "type": "string"},
+        "hard_kill": {"minLength": 1, "type": "string"},
+        "included_operations": {"$ref": "#/$defs/stringArray"},
+        "no_extension": {"const": true},
+        "wall_upper_rule": {"minLength": 1, "type": "string"}
+      },
+      "required": ["clock", "deadline_start", "hard_kill", "included_operations", "no_extension", "wall_upper_rule"],
+      "type": "object"
+    }
+  },
+  "required": [
+    "allow_exclusions", "artifact_protocol", "authorization_protocol", "cgroup_protocol", "cpuset_protocol",
+    "execution_authorized", "execution_order", "external_tools",
+    "identity_network_protocol", "implementation_status", "launcher_boundary",
+    "mount_protocol", "publication_protocol", "resource_limits", "schema_version",
+    "source_binding", "stage_quiescence", "training_authorized", "wall_protocol"
+  ],
+  "type": "object"
+}
