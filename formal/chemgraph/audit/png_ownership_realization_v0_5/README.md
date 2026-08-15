@@ -25,3 +25,6 @@ PNG extractor 能恢复 oracle per-carrier support。UniqueGraph、SDF 和训练
 完整结果：90 个配置的 support union 全部逐像素 exact；36 个配置有至少两份 locally admissible partition，最大已
 枚举数为 25,032。15 个配置因 exact seed 不可用得到 0；3 个配置因 `|A| > 20` 按探索容量门报告 `null`，数学
 计数未知。全部配置均保留在 `results.json`。
+
+`verify_confirmation.py` 是 commit `61b7779` 之后实现的独立确认 oracle。它不 import 探索构造器，自行解 PNG、
+RLE、重建 carrier fiber、检查连通并穷举代表配置的 1024 个 assignment；`confirmation.json` 冻结确认结果 873。

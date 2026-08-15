@@ -31,6 +31,7 @@
 - [PNG Ownership Realization v0.5 探索协议](20260815-png-ownership-realization-v0_5-exploratory-protocol.md)
 - [PNG Ownership Realization v0.5 结果](20260815-png-ownership-realization-v0_5-results.md)
 - [PNG Ownership Realization v0.5 独立确认预注册](20260815-png-ownership-realization-v0_5-confirmation-preregistration.md)
+- [PNG Ownership Realization v0.5 独立确认结果](20260815-png-ownership-realization-v0_5-confirmation-results.md)
 - Lean 工程：`formal/chemgraph/`
 
 状态：训练暂停，形式化验证进行中。

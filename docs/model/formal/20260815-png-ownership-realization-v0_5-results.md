@@ -9,7 +9,7 @@ actual renderer per-carrier support: GO
 global overlap admits >=2 locally admissible labels: GO
 same PNG/support, different local annotations:    GO
 R0 exploratory computational result:              GO
-preregistered independent confirmation:           NO-GO
+preregistered confirmation at this exploratory stage: NO-GO
 conditional Lean antecedent bridge:               NOT FORMALIZED
 distinct chemical/semantic worlds:                NOT ESTABLISHED
 non-isomorphic chemical graph collision: NOT TESTED
@@ -119,6 +119,10 @@ Lean，也仍未给出两个真实 semantic world 或两个非同构化学图的
 
 当前测试会重放完整矩阵和 witness，但仍 import 构造器的局部 admissibility helper；独立审计已在会话中复算 873，
 却尚未作为不依赖构造器 helper 的 verifier 落盘。因此 commit-level preregistered confirmation 继续 NO-GO。
+
+后续状态：独立协议已先提交为 `61b7779`，随后 verifier 与确认结果通过；见
+[PNG Ownership Realization v0.5 独立确认结果](20260815-png-ownership-realization-v0_5-confirmation-results.md)。这不会
+把本探索周期追溯改写成预注册实验，但当前独立确认状态已经是 GO。
 
 下一步应分别做：
 
