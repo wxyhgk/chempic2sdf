@@ -40,6 +40,10 @@ Data/sdf/chemvision_layers_v0_1/pilot_10k/samples.csv
 Data/sdf/chemvision_layers_v0_1/pilot_10k/summary.json
 Data/sdf/chemvision_layers_v0_1/pilot_10k/validation.json
 Data/sdf/chemvision_layers_v0_2/
+# safe-suppression v0.1: one-shot confirm split (protocol-sealed at 000) and
+# build-time work scratch; must stay local even if lock_private is ever unlocked
+Data/sdf/chemvector_safe_suppression_v0_1/route_confirm/
+Data/sdf/chemvector_safe_suppression_v0_1/work/
 Data/sdf/molgrapher_synthetic_v0_1/raw/
 Data/sdf/molgrapher_synthetic_v0_1/pilot_10k/
 Data/benchmarks/*
