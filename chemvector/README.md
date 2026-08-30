@@ -391,12 +391,17 @@ python -m chemvector.evaluate --help
 python -m pytest tests -q
 ```
 
-已知测试状态：`tests/chemvector/test_audit_g3_p1b_final.py`、`test_audit_g3_p1d_final.py`、
-`test_audit_g3_p1e_final.py` 与 `test_train_g3_p1e_aligned_stroke_feature_sufficiency.py` 自
-G3 campaign commit `ec2b846` 起在干净 checkout 上即为红——预注册的 `EXPECTED_*_SHA256`
-pin 与同 commit 提交的源文件（`g3_presence_ranker.py`、`g3_boundary_band_loss.py` 等）
-实际 hash 不符，测试在源文件 hash 守卫处失败。是否 re-pin 属 owner 决定（pin 若为有效
-科学承诺则应回退源文件而非改 pin），见上条"检查随代码冻结的 SHA256"纪律。
+已知测试状态：G3 P1-B/P1-D/P1-E 的冻结 hash 链测试（`test_audit_g3_p1b_final`、
+`test_audit_g3_p1d_final`、`test_audit_g3_p1e_final` 各一个方法，以及
+`test_train_g3_p1e_aligned_stroke_feature_sufficiency` 的
+`test_dependency_sources_are_preregistered`）自 G3 campaign commit `ec2b846` 起即失败：
+预注册的 `EXPECTED_*_SHA256` pin 与同 commit 提交的源文件（`g3_presence_ranker.py`、
+`g3_boundary_band_loss.py`）实际 hash 不符。2026-08-30 调查确认：pin 与 checkpoint
+payload、预注册文档三方一致（训练时真实记录），训练版源文件在 `ec2b846` 被修订后无
+处归档、不可恢复，且 P1-B/D/E 均为终态 NO-GO 实验。决策：不削弱审计（不 re-pin、不改
+审计逻辑），4 个方法以 `@pytest.mark.xfail(strict=True, reason=...)` 隔离并显式记录；
+strict 为金丝雀——若未来正式 re-pin 或恢复源文件使测试通过（xpass），会显式报错，
+必须人工清除标注。审计实现与 pin 常量原样保留。
 
 ## 正式训练与版本
 

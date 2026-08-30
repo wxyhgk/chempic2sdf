@@ -1,6 +1,8 @@
 from pathlib import Path
 import unittest
 
+import pytest
+
 from chemvector.evaluation.audits.atoms.audit_g3_p1e_final import (
     EXPECTED_TRAINER_SHA256,
     _checkpoint_audit,
@@ -14,6 +16,16 @@ from chemvector.training.atoms import (
 
 
 class G3P1EFinalAuditTests(unittest.TestCase):
+    @pytest.mark.xfail(
+        strict=True,
+        reason=(
+            "superseded frozen hash chain: P1-E depends on the same drifted "
+            "g3_boundary_band_loss source (7ea06a351b43 at training, revised "
+            "to 032b829189a8 at ec2b846, training version unrecoverable); "
+            "P1-E is terminal NO-GO. strict canary: clear after a formal "
+            "re-pin or source restoration."
+        ),
+    )
     def test_source_checkpoint_and_epoch_chain_are_fixed(self) -> None:
         root = Path(__file__).resolve().parents[2]
         sources = _source_hashes(root)

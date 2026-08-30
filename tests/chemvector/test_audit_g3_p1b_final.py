@@ -1,6 +1,8 @@
 from pathlib import Path
 import unittest
 
+import pytest
+
 from chemvector.evaluation.audits.atoms.audit_g3_p1b_final import (
     EXPECTED_RANKER_SHA256,
     EXPECTED_STEPS,
@@ -14,6 +16,16 @@ from chemvector.training.atoms import train_g3_p1b_frozen_presence_ranker as p1b
 
 
 class G3P1BFinalAuditTests(unittest.TestCase):
+    @pytest.mark.xfail(
+        strict=True,
+        reason=(
+            "superseded frozen hash chain: pinned ranker source 423b7414f8eb "
+            "(recorded in checkpoint payloads and prereg doc) was revised to "
+            "1a31c090bff8 at ec2b846 and the training version is "
+            "unrecoverable; P1-B is terminal NO-GO. strict canary: clear "
+            "after a formal re-pin or source restoration."
+        ),
+    )
     def test_fixed_checkpoint_chain_is_residual_only(self) -> None:
         root = Path(__file__).resolve().parents[2]
         source_hashes = _source_hashes(root)

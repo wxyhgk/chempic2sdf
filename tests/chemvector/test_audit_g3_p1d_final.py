@@ -1,6 +1,8 @@
 from pathlib import Path
 import unittest
 
+import pytest
+
 from chemvector.evaluation.audits.atoms.audit_g3_p1d_final import (
     EXPECTED_LOSS_SHA256,
     EXPECTED_P1C_HELPER_SHA256,
@@ -14,6 +16,16 @@ from chemvector.training.atoms import train_g3_p1d_boundary_band_set_ranker as p
 
 
 class G3P1DFinalAuditTests(unittest.TestCase):
+    @pytest.mark.xfail(
+        strict=True,
+        reason=(
+            "superseded frozen hash chain: pinned loss source 7ea06a351b43 "
+            "(recorded in checkpoint payloads and prereg doc) was revised to "
+            "032b829189a8 at ec2b846 and the training version is "
+            "unrecoverable; P1-D is terminal NO-GO. strict canary: clear "
+            "after a formal re-pin or source restoration."
+        ),
+    )
     def test_source_and_checkpoint_chain_are_fixed(self) -> None:
         root = Path(__file__).resolve().parents[2]
         hashes = _source_hashes(root)

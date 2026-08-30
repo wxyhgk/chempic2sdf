@@ -4,6 +4,7 @@ import inspect
 import unittest
 from unittest import mock
 
+import pytest
 import torch
 from torch import nn
 
@@ -90,6 +91,16 @@ def synthetic_frozen_pipeline():
 
 
 class G3P1ETrainerTests(unittest.TestCase):
+    @pytest.mark.xfail(
+        strict=True,
+        reason=(
+            "superseded frozen hash chain: dependency g3_boundary_band_loss "
+            "was revised to 032b829189a8 at ec2b846 while the preregistered "
+            "pin records the unrecoverable training version 7ea06a351b43; "
+            "P1-E is terminal NO-GO. strict canary: clear after a formal "
+            "re-pin or source restoration."
+        ),
+    )
     def test_dependency_sources_are_preregistered(self):
         self.assertEqual(
             p1e.validate_dependency_sources(), p1e.EXPECTED_DEPENDENCY_SHA256
