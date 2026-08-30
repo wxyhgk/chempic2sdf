@@ -128,6 +128,71 @@ chemvector/
 | `workflows/` | 多阶段 campaign、恢复、门控和报告编排 | 新模型层 |
 | `configs/` | 小型、静态、可审计配置 | checkpoint、图片、tar、运行时快照 |
 
+### ChemScene 推理边界
+
+`infer_chemscene_hybrid.py` 只负责编排 checkpoint、模型前向和输出流程。下列确定性算法已经从入口拆出，
+训练、评测和其他推理路线应直接复用对应逻辑模块：
+
+| 逻辑模块 | 物理位置 | 职责 |
+|---|---|---|
+| `chemvector.chemscene_assembly` | `components/graph/joint/` | Junction/BondObject 组装、原子标签转换、ChemScene 校验与 SDF 编译 |
+| `chemvector.junction_text_attachment` | `components/graph/joint/` | 将 OCR 结果一对一挂接到已选 Junction，不允许文字创建结构点 |
+| `chemvector.graph_prediction_correction` | `components/graph/correction/` | 将图修正头输出应用到 BondObject 集合 |
+| `chemvector.text_interior_bond_veto` | `components/bonds/selection/` | 删除完全位于同一文字框内部的假 BondObject |
+
+旧代码仍可从 `chemvector.infer_chemscene_hybrid` 导入这些函数，但该入口只做兼容重导出，不再保存实现。
+组件不得反向依赖 `inference/`、`training/`、`evaluation/`、`tools/` 或 `workflows/`。
+
+Hybrid 推理所需的 selector、BondObject、OCR、graph corrector 和 junction-aware checkpoint 统一由
+`chemvector.hybrid_checkpoint_loader` 装配。`ChemSceneHybridPipeline.__init__` 只保存运行参数并绑定显式的
+`HybridRuntimeComponents`，不得直接调用 `torch.load`。可选专家必须以完整组合出现，组合约束在读取任何
+checkpoint 前统一校验。
+
+单图命令行参数由 `chemvector.hybrid_cli.build_hybrid_parser` 唯一定义。入口模块只解析该协议，不得再次
+内嵌第二份参数表；这样前端、benchmark 和命令行可以针对同一套默认值与 choices 做兼容测试。
+
+ChemScene JSON、SDF、诊断 PNG 和 `metrics.json` 统一由 `chemvector.hybrid_output` 写入；模型流水线
+不直接接触 RDKit 绘图或结果目录。无效结构的诊断 SDF 写入位于 `chemvector.diagnostic_sdf`，benchmark
+仅兼容重导出，不再被推理代码反向依赖。
+
+Junction 的视觉候选融合、集合选择、角色抑制和 batch padding 位于
+`chemvector.hybrid_junction_selection`；该模块不依赖 OCR。结构集合确定后，
+`chemvector.hybrid_ocr_inference` 独立完成 CTC crop、主/专家 OCR 路由和标签回填。OCR 组件只接收已经
+冻结的 Junction 集合，只能修改文字角色的标签，不能新增、删除或移动结构点。入口中的
+`ChemSceneHybridPipeline._junctions_batch` 现在只编排这两个阶段。
+
+Junction 选择内部又分为候选准备和集合定稿。候选准备保留主文字阈值与过滤阈值的不同职责，按
+text-first 容量规则合并候选并生成视觉、像素和端点证据；集合定稿执行按角色阈值、同角色抑制、
+空集校验和变长 batch padding。角色及候选索引顺序是下游原子编号协议的一部分，不能按全局分数
+重新排序。
+
+主 OCR 与专家 OCR 的 utility 路由位于 `chemvector.hybrid_ocr_routing`。该模块只处理两组文字预测的
+分歧、动态特征标准化和保守替换；不依赖 Junction、crop 或 checkpoint 装载。旧的
+`chemvector.hybrid_ocr_inference.route_ocr_predictions` 仍重导出同一函数，保证历史调用兼容。
+
+BondObject 的多尺度特征准备、基础/风格专家推理和 utility router 选择统一放在
+`chemvector.hybrid_bond_routing`。该模块只返回过滤后的键对象和路由诊断，不接触 Junction、OCR 或
+ChemScene 编译；pipeline 保留一个薄委托方法，以兼容现有内部调用。
+
+无效 ChemScene 的原子状态恢复候选由 `chemvector.hybrid_atom_decoding` 生成。它可以重新读取同一文字
+crop 并提出元素、电荷、显式氢等候选，但不能改变 Junction 或 BondObject；化学有效性重排仍由
+`structured_atom_decoder` 负责。
+
+图级后处理分为两个边界：`chemvector.hybrid_graph_refinement` 负责 graph corrector、语义键级和稀疏
+键存在推理；`chemvector.hybrid_junction_bonds` 负责 BondObject 集合选择、端点聚类及随后一次语义键级
+细化。二者都显式返回诊断字典，不允许通过 pipeline 全局状态传递结果。
+
+更高层的推理编排也分为三个阶段：`chemvector.hybrid_component_routing` 统一处理单图/批量的 Junction
+来源与 Bond 来源分派；`chemvector.hybrid_scene_compilation` 在固定组件上处理 assignment、ChemScene
+组装及 invalid-only 恢复；`chemvector.hybrid_cli_execution` 负责模型装载、图片准备、可选 OCR fallback 和
+结果写盘。入口 `main()` 只连接这四个步骤，不再保存业务流程实现。
+
+其中场景编译内部继续按固定顺序分为五段：先执行可选的初始图修正，再确定显式或学习式 assignment，
+随后完成首次 ChemScene 组装和结构化原子状态重排；只有首次场景无法编译时才进入 `invalid_only`
+恢复；最后按 assembly、assignment、graph、atom、component、固定运行元数据的顺序合并 diagnostics。
+恢复流程复用首次 assignment，结构化原子候选只计算一次，修正后场景可以使用同一候选再重排一次。
+这些顺序属于兼容协议，修改阶段 helper 时必须同步通过事件序列和 diagnostics 覆盖顺序测试。
+
 ## 文件放置判断
 
 增加文件前按下面顺序判断：

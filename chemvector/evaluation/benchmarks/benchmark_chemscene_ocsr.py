@@ -29,10 +29,10 @@ from chemvector.benchmark_mr_tadf import (
 from chemvector.benchmark_public_ocsr import sdf_graph_match, summarize_records
 from chemvector.benchmark_object_decomposition import evaluate_benchmark_directory
 from chemvector.image_io import image_tensor, prepare_input_image
+from chemvector.hybrid_checkpoint_loader import load_compatible_fallback_ctc_ocr
 from chemvector.infer_chemscene_hybrid import (
     ChemSceneHybridPipeline,
     compile_scene_with_aromatic_fallback,
-    load_compatible_fallback_ctc_ocr,
 )
 
 
