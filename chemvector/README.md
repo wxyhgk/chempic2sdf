@@ -385,6 +385,13 @@ python -m chemvector.evaluate --help
 python -m pytest tests -q
 ```
 
+已知测试状态：`tests/chemvector/test_audit_g3_p1b_final.py`、`test_audit_g3_p1d_final.py`、
+`test_audit_g3_p1e_final.py` 与 `test_train_g3_p1e_aligned_stroke_feature_sufficiency.py` 自
+G3 campaign commit `ec2b846` 起在干净 checkout 上即为红——预注册的 `EXPECTED_*_SHA256`
+pin 与同 commit 提交的源文件（`g3_presence_ranker.py`、`g3_boundary_band_loss.py` 等）
+实际 hash 不符，测试在源文件 hash 守卫处失败。是否 re-pin 属 owner 决定（pin 若为有效
+科学承诺则应回退源文件而非改 pin），见上条"检查随代码冻结的 SHA256"纪律。
+
 ## 正式训练与版本
 
 源码整理不产生模型版本。只有正式训练生成候选 checkpoint 时才：
