@@ -162,6 +162,12 @@ Joint 入口（`chemvector.infer_joint_object_structure`）的冻结组件与 At
 两个推理入口共享的占位画布、图像准备与碳占位化学回退位于 `chemvector.placeholder_scene`，
 入口只兼容重导出，入口之间不得互相导入。
 
+遗留入口 `infer_parallel_v6`、`infer_detected_v5`、`infer_shadow_v0928` 本身就是零实现形态：
+`main` 只编排已外部化的 `chemvector.*` 组件（生成、修复、SDF/图像 IO），不含 `torch.load`，
+也不保存可复用算法；`infer_shadow_v0928` 额外持有自己的 profile 校验与命令构造
+（profile 冻结 checkpoint 清单，由子进程方式调用 `infer_chemscene_hybrid`）。边界测试
+`test_legacy_entries_keep_zero_implementation_form` 守卫这一形态，不得向这些入口内联实现。
+
 单图命令行参数由 `chemvector.hybrid_cli.build_hybrid_parser` 唯一定义。入口模块只解析该协议，不得再次
 内嵌第二份参数表；这样前端、benchmark 和命令行可以针对同一套默认值与 choices 做兼容测试。
 

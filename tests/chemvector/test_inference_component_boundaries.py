@@ -187,6 +187,51 @@ def test_joint_entrypoint_no_longer_defines_component_algorithms() -> None:
     assert "chemvector.infer_joint_object_structure" not in direct_imports
 
 
+LEGACY_ENTRY_SOURCES = {
+    "infer_parallel_v6": (
+        PROJECT_ROOT / "chemvector/inference/infer_parallel_v6.py"
+    ),
+    "infer_detected_v5": (
+        PROJECT_ROOT / "chemvector/inference/infer_detected_v5.py"
+    ),
+    "infer_shadow_v0928": (
+        PROJECT_ROOT / "chemvector/inference/infer_shadow_v0928.py"
+    ),
+}
+# Legacy entries orchestrate externalized chemvector components only; the
+# shadow profile entry owns its own profile validation helpers.
+LEGACY_ENTRY_TOP_LEVEL = {
+    "infer_parallel_v6": {"main"},
+    "infer_detected_v5": {"main"},
+    "infer_shadow_v0928": {
+        "load_profile",
+        "file_sha256",
+        "validate_profile",
+        "inference_command",
+        "main",
+    },
+}
+
+
+def test_legacy_entries_keep_zero_implementation_form() -> None:
+    for name, path in LEGACY_ENTRY_SOURCES.items():
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        definitions = {
+            node.name
+            for node in tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }
+        assert definitions == LEGACY_ENTRY_TOP_LEVEL[name], (name, definitions)
+        assert not any(
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and isinstance(node.func.value, ast.Name)
+            and node.func.value.id == "torch"
+            and node.func.attr == "load"
+            for node in ast.walk(tree)
+        ), name
+
+
 def test_extracted_components_do_not_depend_on_entrypoint_layers() -> None:
     forbidden_prefixes = (
         "chemvector.inference",
