@@ -145,8 +145,15 @@ chemvector/
 
 Hybrid 推理所需的 selector、BondObject、OCR、graph corrector 和 junction-aware checkpoint 统一由
 `chemvector.hybrid_checkpoint_loader` 装配。`ChemSceneHybridPipeline.__init__` 只保存运行参数并绑定显式的
-`HybridRuntimeComponents`，不得直接调用 `torch.load`。可选专家必须以完整组合出现，组合约束在读取任何
+`HybridRuntimeComponents`，不得直接调用 `torch.load`；入口模块中也不得出现任何 `torch.load` 调用。
+invalid-only OCR fallback（`load_compatible_fallback_ctc_ocr`）同样由 `chemvector.hybrid_checkpoint_loader`
+提供，入口只重导出以保持历史调用兼容。可选专家必须以完整组合出现，组合约束在读取任何
 checkpoint 前统一校验。
+
+Direct AtomPair Bond 入口（`chemvector.infer_direct_atom_pair_bond`）的 checkpoint 装载与
+OCR 回填、structural-twin 抑制、场景张量转换算法位于 `chemvector.direct_scene_inference`；
+入口只做编排与兼容重导出，不得再保存实现，也不得出现 `torch.load` 调用。该入口的模块名
+被预注册审计的子进程命令固定，不得改名或移动。
 
 单图命令行参数由 `chemvector.hybrid_cli.build_hybrid_parser` 唯一定义。入口模块只解析该协议，不得再次
 内嵌第二份参数表；这样前端、benchmark 和命令行可以针对同一套默认值与 choices 做兼容测试。

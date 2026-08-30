@@ -12,7 +12,7 @@ import torch
 
 from chemvector.atom_bond_scene import AtomBondSceneConfig
 from chemvector.direct_atom_pair_chemistry import promote_complete_aromatic_rings
-from chemvector.infer_direct_atom_pair_bond import load_direct_model
+from chemvector.direct_scene_inference import load_direct_model
 from chemvector.predicted_incidence import PredictedProposalConfig
 from chemvector.train_atom_bond_scene import AtomBondSceneCollator
 from chemvector.train_bond_presence_calibration import load_components

@@ -16,7 +16,7 @@ from chemvector.duplicate_atom_affinity import (
     DuplicateAtomAffinity,
     DuplicateAtomAffinityConfig,
 )
-from chemvector.infer_direct_atom_pair_bond import load_direct_model
+from chemvector.direct_scene_inference import load_direct_model
 from chemvector.predicted_incidence import PredictedProposalConfig
 from chemvector.train_atom_bond_scene import AtomBondSceneCollator
 from chemvector.train_bond_presence_calibration import load_components

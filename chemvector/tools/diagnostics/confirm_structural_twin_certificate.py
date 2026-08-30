@@ -35,7 +35,7 @@ from chemvector.audit_structural_twin_certificate import (
     evaluate_structural_twin_samples,
 )
 from chemvector.data import ChemVectorIterableDataset
-from chemvector.infer_direct_atom_pair_bond import load_direct_model
+from chemvector.direct_scene_inference import load_direct_model
 from chemvector.predicted_incidence import PredictedProposalConfig
 from chemvector.safe_atom_action_model import SafeAtomActionConfig, SafeAtomActionModel
 from chemvector.structural_twin_certificate import StructuralTwinCertificateConfig

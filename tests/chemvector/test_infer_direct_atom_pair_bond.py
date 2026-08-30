@@ -1,7 +1,7 @@
 from torch import nn
 import torch
 
-from chemvector.infer_direct_atom_pair_bond import (
+from chemvector.direct_scene_inference import (
     apply_atom_ocr,
     apply_structural_twin_suppression,
     direct_scene_tensors,

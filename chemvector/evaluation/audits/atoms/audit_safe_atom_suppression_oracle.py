@@ -22,7 +22,7 @@ from Data.sdf.chemsvg_sequence_v4 import (
 from chemvector.atom_bond_scene import AtomBondSceneConfig
 from chemvector.data import ChemVectorIterableDataset
 from chemvector.direct_atom_pair_bond import enumerate_unordered_atom_pairs
-from chemvector.infer_direct_atom_pair_bond import load_direct_model
+from chemvector.direct_scene_inference import load_direct_model
 from chemvector.predicted_incidence import PredictedProposalConfig
 from chemvector.safe_atom_suppression import (
     apply_oracle_single_delete,

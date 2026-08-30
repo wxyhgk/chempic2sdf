@@ -20,7 +20,7 @@ from chemvector.audit_safe_atom_suppression_oracle import (
     collect_samples,
     verify_data_gate,
 )
-from chemvector.infer_direct_atom_pair_bond import load_direct_model
+from chemvector.direct_scene_inference import load_direct_model
 from chemvector.predicted_incidence import PredictedProposalConfig
 from chemvector.safe_atom_action_model import (
     SafeAtomActionConfig,

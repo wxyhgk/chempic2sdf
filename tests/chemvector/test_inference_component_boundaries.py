@@ -7,8 +7,10 @@ from types import SimpleNamespace
 import torch
 
 import chemvector.chemscene_assembly as assembly
+import chemvector.direct_scene_inference as direct_scene
 import chemvector.graph_prediction_correction as correction
 import chemvector.infer_chemscene_hybrid as hybrid
+import chemvector.infer_direct_atom_pair_bond as direct_entry
 import chemvector.hybrid_atom_decoding as atom_decoding
 import chemvector.hybrid_bond_routing as bond_routing
 import chemvector.hybrid_checkpoint_loader as checkpoint_loader
@@ -20,11 +22,13 @@ import chemvector.text_interior_bond_veto as veto
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 HYBRID_SOURCE = PROJECT_ROOT / "chemvector/inference/infer_chemscene_hybrid.py"
+DIRECT_SOURCE = PROJECT_ROOT / "chemvector/inference/infer_direct_atom_pair_bond.py"
 COMPONENT_SOURCES = (
     PROJECT_ROOT / "chemvector/components/graph/joint/chemscene_assembly.py",
     PROJECT_ROOT / "chemvector/components/graph/joint/junction_text_attachment.py",
     PROJECT_ROOT / "chemvector/components/graph/correction/graph_prediction_correction.py",
     PROJECT_ROOT / "chemvector/components/bonds/selection/text_interior_bond_veto.py",
+    PROJECT_ROOT / "chemvector/direct_scene_inference.py",
 )
 
 
@@ -79,6 +83,46 @@ def test_hybrid_entrypoint_no_longer_defines_component_algorithms() -> None:
             "repair_impossible_explicit_h",
             "suppress_text_interior_bond_objects",
             "load_compatible_fallback_ctc_ocr",
+        }
+    )
+    assert not any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and isinstance(node.func.value, ast.Name)
+        and node.func.value.id == "torch"
+        and node.func.attr == "load"
+        for node in ast.walk(tree)
+    )
+
+
+def test_direct_entry_exports_are_the_component_functions() -> None:
+    assert direct_entry.load_direct_model is direct_scene.load_direct_model
+    assert (
+        direct_entry.load_action_ranking_model is direct_scene.load_action_ranking_model
+    )
+    assert direct_entry.apply_atom_ocr is direct_scene.apply_atom_ocr
+    assert (
+        direct_entry.apply_structural_twin_suppression
+        is direct_scene.apply_structural_twin_suppression
+    )
+    assert direct_entry.direct_scene_tensors is direct_scene.direct_scene_tensors
+
+
+def test_direct_entrypoint_no_longer_defines_component_algorithms() -> None:
+    tree = ast.parse(DIRECT_SOURCE.read_text(encoding="utf-8"))
+    definitions = {
+        node.name
+        for node in tree.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    assert definitions.isdisjoint(
+        {
+            "_q",
+            "apply_atom_ocr",
+            "apply_structural_twin_suppression",
+            "direct_scene_tensors",
+            "load_action_ranking_model",
+            "load_direct_model",
         }
     )
     assert not any(
