@@ -27,7 +27,7 @@ from chemvector.direct_scene_inference import (
     load_direct_model,
 )
 from chemvector.evaluate_direct_atom_ocr import crop_tensor, load_bbox, load_ctc, load_role
-from chemvector.infer_joint_object_structure import (
+from chemvector.placeholder_scene import (
     compile_carbon_placeholder,
     placeholder_scene,
     prepare_image,

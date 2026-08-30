@@ -1,6 +1,6 @@
 import unittest
 
-from chemvector.infer_joint_object_structure import (
+from chemvector.placeholder_scene import (
     compile_carbon_placeholder,
     placeholder_scene,
 )

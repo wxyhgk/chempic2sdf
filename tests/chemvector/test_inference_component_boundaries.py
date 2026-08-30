@@ -11,24 +11,32 @@ import chemvector.direct_scene_inference as direct_scene
 import chemvector.graph_prediction_correction as correction
 import chemvector.infer_chemscene_hybrid as hybrid
 import chemvector.infer_direct_atom_pair_bond as direct_entry
+import chemvector.infer_joint_object_structure as joint_entry
+import chemvector.joint_atom_pair_refinement as joint_refinement
 import chemvector.hybrid_atom_decoding as atom_decoding
 import chemvector.hybrid_bond_routing as bond_routing
 import chemvector.hybrid_checkpoint_loader as checkpoint_loader
 import chemvector.hybrid_junction_selection as junction_selection
 import chemvector.hybrid_ocr_inference as ocr_inference
 import chemvector.junction_text_attachment as attachment
+import chemvector.placeholder_scene as placeholder_scene
 import chemvector.text_interior_bond_veto as veto
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 HYBRID_SOURCE = PROJECT_ROOT / "chemvector/inference/infer_chemscene_hybrid.py"
 DIRECT_SOURCE = PROJECT_ROOT / "chemvector/inference/infer_direct_atom_pair_bond.py"
+JOINT_SOURCE = (
+    PROJECT_ROOT / "chemvector/inference/infer_joint_object_structure.py"
+)
 COMPONENT_SOURCES = (
     PROJECT_ROOT / "chemvector/components/graph/joint/chemscene_assembly.py",
     PROJECT_ROOT / "chemvector/components/graph/joint/junction_text_attachment.py",
     PROJECT_ROOT / "chemvector/components/graph/correction/graph_prediction_correction.py",
     PROJECT_ROOT / "chemvector/components/bonds/selection/text_interior_bond_veto.py",
     PROJECT_ROOT / "chemvector/direct_scene_inference.py",
+    PROJECT_ROOT / "chemvector/joint_atom_pair_refinement.py",
+    PROJECT_ROOT / "chemvector/placeholder_scene.py",
 )
 
 
@@ -133,6 +141,50 @@ def test_direct_entrypoint_no_longer_defines_component_algorithms() -> None:
         and node.func.attr == "load"
         for node in ast.walk(tree)
     )
+
+
+def test_joint_entry_exports_are_the_component_functions() -> None:
+    assert joint_entry.placeholder_scene is placeholder_scene.placeholder_scene
+    assert joint_entry.prepare_image is placeholder_scene.prepare_image
+    assert (
+        joint_entry.compile_carbon_placeholder
+        is placeholder_scene.compile_carbon_placeholder
+    )
+    assert (
+        direct_entry.placeholder_scene is placeholder_scene.placeholder_scene
+    )
+    assert (
+        direct_entry.compile_carbon_placeholder
+        is placeholder_scene.compile_carbon_placeholder
+    )
+
+
+def test_joint_entrypoint_no_longer_defines_component_algorithms() -> None:
+    tree = ast.parse(JOINT_SOURCE.read_text(encoding="utf-8"))
+    definitions = {
+        node.name
+        for node in tree.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    assert definitions.isdisjoint(
+        {
+            "placeholder_scene",
+            "prepare_image",
+            "compile_carbon_placeholder",
+        }
+    )
+    assert not any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and isinstance(node.func.value, ast.Name)
+        and node.func.value.id == "torch"
+        and node.func.attr == "load"
+        for node in ast.walk(tree)
+    )
+    joint_imports = _imports(JOINT_SOURCE)
+    assert "chemvector.infer_direct_atom_pair_bond" not in joint_imports
+    direct_imports = _imports(DIRECT_SOURCE)
+    assert "chemvector.infer_joint_object_structure" not in direct_imports
 
 
 def test_extracted_components_do_not_depend_on_entrypoint_layers() -> None:

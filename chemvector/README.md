@@ -155,6 +155,13 @@ OCR 回填、structural-twin 抑制、场景张量转换算法位于 `chemvector
 入口只做编排与兼容重导出，不得再保存实现，也不得出现 `torch.load` 调用。该入口的模块名
 被预注册审计的子进程命令固定，不得改名或移动。
 
+Joint 入口（`chemvector.infer_joint_object_structure`）的冻结组件与 AtomPair 专家级联
+（group / graph-context / one-move / retype-verifier / line）由
+`chemvector.joint_component_loader.load_joint_components` 统一装配并执行跨 checkpoint
+协议校验；AtomPair 精炼与 decode attempt 构建位于 `chemvector.joint_atom_pair_refinement`。
+两个推理入口共享的占位画布、图像准备与碳占位化学回退位于 `chemvector.placeholder_scene`，
+入口只兼容重导出，入口之间不得互相导入。
+
 单图命令行参数由 `chemvector.hybrid_cli.build_hybrid_parser` 唯一定义。入口模块只解析该协议，不得再次
 内嵌第二份参数表；这样前端、benchmark 和命令行可以针对同一套默认值与 choices 做兼容测试。
 
