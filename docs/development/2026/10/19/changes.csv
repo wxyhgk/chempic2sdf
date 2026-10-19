@@ -1,0 +1,5 @@
+id,module,summary,commit,record
+C-20261019-01,engineering,发布项目快照到公开GitHub仓库,089ecf5,README.md
+C-20261019-02,docs,精简首页并修正测试入口,8916b69,README.md
+C-20261019-03,docs,补充路线对比与设计强项,d8715d9,README.md
+C-20261019-04,docs,建立每日开发记录与模板,,../../../decisions/D-20261019-01-daily-records.md

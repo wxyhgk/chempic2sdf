@@ -1,5 +1,12 @@
 # 项目文档索引
 
+## 开发进度
+
+- [按天开发记录与维护约定](development/README.md)
+- [当前状态](development/STATUS.md)
+- [近期推进计划](development/ROADMAP.md)
+- [技术决策](development/decisions/README.md)
+
 ## 模型
 
 - [ChemVector 源码目录与文件放置规则](../chemvector/README.md)

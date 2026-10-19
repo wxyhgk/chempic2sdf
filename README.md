@@ -155,6 +155,7 @@ python -m pytest -q \
 
 ## 进一步阅读
 
+- [开发记录与当前进度](docs/development/README.md)
 - [完整文档索引](docs/README.md)
 - [模型架构与历史结果](docs/model/CHEMVECTOR.md)
 - [训练与实验档案](docs/model/training/README.md)

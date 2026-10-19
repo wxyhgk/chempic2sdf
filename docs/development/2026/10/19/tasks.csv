@@ -1,0 +1,5 @@
+id,module,priority,status,summary,record
+T-20261019-01,engineering,P1,done,创建并公开GitHub仓库,README.md
+T-20261019-02,docs,P1,done,整理首页与路线说明,README.md
+T-20261019-03,docs,P1,done,建立按天开发记录,../../../decisions/D-20261019-01-daily-records.md
+T-20261019-04,integration,P1,planned,核实最近研究进度,../../../ROADMAP.md
