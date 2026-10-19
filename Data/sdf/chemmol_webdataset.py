@@ -30,6 +30,12 @@ try:
         serialize_chemsvg_v4,
         validate_chemsvg_v4_roundtrip,
     )
+    from .chemscene_v0_1 import build_chemscene_v0_1
+    from .chemtraverse_v0_1 import (
+        SCHEMA_VERSION as TRAVERSE_SCHEMA_VERSION,
+        serialize_chemtraverse_v0_1,
+        validate_chemtraverse_v0_1_roundtrip,
+    )
 except ImportError:
     from chemmol_sequence import (
         SCHEMA_VERSION as V2_SCHEMA_VERSION,
@@ -47,6 +53,12 @@ except ImportError:
         serialize_chemsvg_v4,
         validate_chemsvg_v4_roundtrip,
     )
+    from chemscene_v0_1 import build_chemscene_v0_1
+    from chemtraverse_v0_1 import (
+        SCHEMA_VERSION as TRAVERSE_SCHEMA_VERSION,
+        serialize_chemtraverse_v0_1,
+        validate_chemtraverse_v0_1_roundtrip,
+    )
 
 
 class ChemMolWebDataset:
@@ -61,6 +73,8 @@ class ChemMolWebDataset:
         sample_shuffle_seed: int | None = None,
         sequence_version: str = "0.2",
         reject_keys: set[str] | None = None,
+        include_keys: set[str] | None = None,
+        target_molecule_id: str | None = None,
         serialize_target: bool = True,
         load_raster_layers: bool = True,
     ) -> None:
@@ -70,10 +84,14 @@ class ChemMolWebDataset:
         self.shardshuffle = shardshuffle
         self.sample_shuffle_buffer = sample_shuffle_buffer
         self.sample_shuffle_seed = sample_shuffle_seed
-        if sequence_version not in {"0.2", "0.3", "0.4"}:
+        if sequence_version not in {"0.2", "0.3", "0.4", "traverse-0.1"}:
             raise ValueError(f"Unsupported ChemMolSeq version: {sequence_version}")
         self.sequence_version = sequence_version
         self.reject_keys = reject_keys or set()
+        self.include_keys = include_keys
+        if target_molecule_id == "":
+            raise ValueError("target_molecule_id must be non-empty when provided")
+        self.target_molecule_id = target_molecule_id
         self.serialize_target = serialize_target
         self.load_raster_layers = load_raster_layers
         if self.validate_target_roundtrip and not self.serialize_target:
@@ -84,6 +102,7 @@ class ChemMolWebDataset:
             self.shards,
             shardshuffle=self.shardshuffle,
             empty_check=False,
+            seed=self.sample_shuffle_seed,
         )
         if self.sample_shuffle_buffer:
             dataset = dataset.shuffle(
@@ -97,9 +116,16 @@ class ChemMolWebDataset:
         for sample in dataset:
             if sample["__key__"] in self.reject_keys:
                 continue
+            if self.include_keys is not None and sample["__key__"] not in self.include_keys:
+                continue
             chemmol = json.loads(sample["chemmol.json"])
             render = json.loads(sample["render.json"])
             meta = json.loads(sample["meta.json"])
+            layers = (
+                json.loads(sample["layers.json"])
+                if "layers.json" in sample
+                else None
+            )
             molecule_ids = {
                 chemmol["molecule_id"],
                 render["molecule_id"],
@@ -115,6 +141,16 @@ class ChemMolWebDataset:
             if not self.serialize_target:
                 sequence = None
                 schema_version = None
+            elif self.sequence_version == "traverse-0.1":
+                if layers is None:
+                    raise ValueError(
+                        f"ChemTraverse target requires layers.json in {sample['__key__']}"
+                    )
+                scene = build_chemscene_v0_1(chemmol, render, layers)
+                if self.target_molecule_id is not None:
+                    scene = {**scene, "molecule_id": self.target_molecule_id}
+                sequence = serialize_chemtraverse_v0_1(scene)
+                schema_version = TRAVERSE_SCHEMA_VERSION
             elif self.sequence_version == "0.4":
                 try:
                     sequence = serialize_chemsvg_v4(chemmol, render)
@@ -128,13 +164,20 @@ class ChemMolWebDataset:
                 sequence = serialize_chemmolseq(chemmol, render)
                 schema_version = V2_SCHEMA_VERSION
             if self.validate_target_roundtrip:
-                validators = {
-                    "0.2": validate_chemmolseq_roundtrip,
-                    "0.3": validate_chemmolseq_v3_roundtrip,
-                    "0.4": validate_chemsvg_v4_roundtrip,
-                }
-                validator = validators[self.sequence_version]
-                validator(sequence, chemmol["canonical_isomeric_smiles"], chemmol["inchikey"])
+                if self.sequence_version == "traverse-0.1":
+                    validate_chemtraverse_v0_1_roundtrip(scene)
+                else:
+                    validators = {
+                        "0.2": validate_chemmolseq_roundtrip,
+                        "0.3": validate_chemmolseq_v3_roundtrip,
+                        "0.4": validate_chemsvg_v4_roundtrip,
+                    }
+                    validator = validators[self.sequence_version]
+                    validator(
+                        sequence,
+                        chemmol["canonical_isomeric_smiles"],
+                        chemmol["inchikey"],
+                    )
             image = Image.open(io.BytesIO(sample["png"])).convert("RGB")
             image.load()
             record = {
@@ -146,8 +189,8 @@ class ChemMolWebDataset:
                 "render": render,
                 "meta": meta,
             }
-            if "layers.json" in sample:
-                record["layers"] = json.loads(sample["layers.json"])
+            if layers is not None:
+                record["layers"] = layers
             for member, key, mode in (
                 ("text.png", "text_layer", "L"),
                 ("bond.png", "bond_layer", "L"),
@@ -168,7 +211,7 @@ def main() -> None:
     parser.add_argument("--validate-target-roundtrip", action="store_true")
     parser.add_argument(
         "--sequence-version",
-        choices=("0.2", "0.3", "0.4"),
+        choices=("0.2", "0.3", "0.4", "traverse-0.1"),
         default="0.2",
     )
     args = parser.parse_args()

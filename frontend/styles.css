@@ -110,9 +110,9 @@ h1 {
 }
 
 .header-actions {
-  min-width: min(720px, 65vw);
+  min-width: min(820px, 70vw);
   display: grid;
-  grid-template-columns: minmax(180px, 1fr) minmax(280px, 1.4fr) auto;
+  grid-template-columns: minmax(180px, 1fr) minmax(260px, 1.3fr) auto auto;
   align-items: center;
   gap: 12px;
 }
@@ -148,6 +148,16 @@ h1 {
 
 .primary-command {
   padding: 0 14px;
+  white-space: nowrap;
+}
+
+.audit-link {
+  min-height: 38px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
   white-space: nowrap;
 }
 

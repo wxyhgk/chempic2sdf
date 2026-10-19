@@ -1,0 +1,101 @@
+{
+  "schema_version": "heatmap-readout-training-authorization-0.1",
+  "user_statement": "开始按照顺序推进",
+  "authorized_on": "2026-09-20",
+  "authorization_context": "User accepts the ordered plan: phase1 CPU <=120 seconds, then conditional phase2 single GPU <=600 seconds or 400 steps, from initial, same admitted58, only 129 heatmap readout parameters. Phase1 passed its preregistered gate. This is one new invocation, not reuse of a spent selector authorization.",
+  "data_use_extension": "same58_local_heatmap_readout_trial_only",
+  "data_use_review": {
+    "source_use": "local_selector_retention_fit_only",
+    "new_use": "same58_local_heatmap_readout_trial_only",
+    "fitting_images": 58,
+    "new_images": 0,
+    "changed_splits": 0,
+    "original_release_unchanged": true,
+    "private_identity_queries": 0,
+    "full_dataset_training_authorized": false,
+    "development_images_read": 0
+  },
+  "protocol": {
+    "wall_seconds": 600,
+    "maximum_steps": 400,
+    "gpu_devices": [
+      "0"
+    ],
+    "seed": 20260920,
+    "local_checks": [
+      0,
+      100,
+      200,
+      400
+    ],
+    "batch_size": 1,
+    "optimizer": "SGD",
+    "learning_rate": 0.001,
+    "momentum": 0,
+    "weight_decay": 0,
+    "clip_norm": 1,
+    "automatic_retries": 0,
+    "parameter_scope": "atom.heatmap.weight and atom.heatmap.bias only",
+    "parameter_count": 129,
+    "loss": "existing focal_heatmap_loss, all atoms, radius_cells=1",
+    "training_cycle": [
+      "old_full_molecule",
+      "old_full_molecule",
+      "witness"
+    ],
+    "candidate_and_downstream_recomputed": true,
+    "model_mode": "eval",
+    "tf32": false,
+    "amp": false,
+    "minimum_raw_recovery": 3,
+    "early_stop_no_recovery_step": 200,
+    "validation_images": 0,
+    "deployment_authorized": false
+  },
+  "maximum_invocations": 1,
+  "manifest_sha256": "f5e3a7163eef5c49118ad78dcf05778f4ad889dc9b6389097ef20896b79e2111",
+  "admission_sha256": "77c4b42da2f675e61924ee7904032deb05d30b8de7767f92bfd9888aed1e85f9",
+  "initial_sha256": "09d1661198bde9b80dc2a4398a9a6d7d856098a2af1cc4e05425fe5e3c88dbe1",
+  "direction_report_sha256": "37938026f1227bf7a537a8c8eefa336a0bfbb3706b407d3040174391bdd67528",
+  "output": "outputs/experiments/chemvector-heatmap-readout-trial-20260920",
+  "training_authorized": true,
+  "deployment_authorized": false,
+  "development_read_authorized": false,
+  "full_regression_authorized": false,
+  "optimizer_rationale": "One fixed SGD 1e-3, zero momentum/decay, gradient norm clip 1. Positive scaling preserves the current per-batch descent direction; no search, no promise of matching the fixed7 mean direction or recovering candidates.",
+  "stops": [
+    "Any baseline raw/selected target identity or reachable bond lost under original or radius-reference metric",
+    "Any baseline strictly correct SDF or correct predicted typed bond lost",
+    "No actual recovery of the fixed10 raw gaps at step200",
+    "400 steps or 600 wall seconds, whichever first"
+  ],
+  "implementation_sha256": {
+    "chemvector/training/curriculum/heatmap_readout_trial.py": "3b6acc623c471c477db2a5529e2c0743733c6d251b4e4b307904201040f07eee",
+    "chemvector/training/curriculum/heatmap_readout_stage.py": "f5b086ab03b759f908065088fbb706884ac9b8a3d67e49871f13026a85f6af31",
+    "chemvector/training/curriculum/selector_retention_release.py": "290a514bd148f2cdf81f704a626894ae18df0d74edb5c1a54778e01a4953e250",
+    "chemvector/training/curriculum/selector_retention_trial.py": "2f89762de3ea33a7582eaa65813d98192b18701c7ba3b46ea1804b21e44f82b9",
+    "chemvector/training/curriculum/selector_retention_stage.py": "9a8af3280304f8102690008920a0a2d810fa47fcd1d17cc9bedaa60761518527",
+    "chemvector/training/curriculum/evaluation.py": "dfcfc4e1b93c0e5e50381b479105dd247829f924d6e956f24225a5d8c12f9a6b",
+    "chemvector/training/curriculum/bundle.py": "47c45aab403d160cddeb81c27e58bf2e1f6e9fc13e5b3141cde081115346bb68",
+    "chemvector/training/curriculum/continuation.py": "8df3a021b022b67c201964b6157fc02cc4d1a90c3509ca94227a0c921ca7eb94",
+    "chemvector/training/curriculum/data.py": "081cc7fa4b0c014cfca5554bc403e1a43f96c8e2070996a2a48f13cadd8c789d",
+    "chemvector/training/curriculum/pixels.py": "6eabc5f57b8bfdaa86b5bf7e58488746a8eb13a205d871f4675c770c56ddd533",
+    "chemvector/training/curriculum/runtime.py": "f1840d41a0535ed279e86e5e2ca6e70094e392bcbfd02e443819f5db80746a36",
+    "chemvector/training/curriculum/validation_truth.py": "e88494b969658ee69085895fd691a03652d8a193489815409c01955ab5d560ba",
+    "chemvector/training/curriculum/upstream_diagnostic.py": "e25fc87bd4100ec2c3fe0ef9fccae05dcd240a37fca2b0f235de09e85dbd9988",
+    "chemvector/components/atoms/objects/spatial_atom_object.py": "b90078cb014daa82443fbb51e1fc318bcd4f4f9ae8e2f7f804e75445a0034269",
+    "chemvector/components/graph/joint/predicted_incidence.py": "c726bb0c0b365b639a79c856f28a6b42735400d7af1aae577f42fda75fabb95d",
+    "chemvector/components/vision/vertex.py": "4aff37bd8ceeb71fb37a414a88c3dca0da94c5e88806c73b4f7505e6bb3ed268",
+    "tools/selector_radius_reference.py": "f895a1ea1b9db533ae61ef9706839a3f34b70c943e028abdc1db7a0d1994702f",
+    "tools/audit_curriculum_v02_selector_matching.py": "8542cba8ef6ba2b15e319cda854a7f7aefadad8b033aaf942dbbb2ef56b42b1a",
+    "tests/chemvector/test_heatmap_readout_trial.py": "51a58f0507c17b5fe735c2b787191b8132d312e04096469f933d98ab635e8fc0"
+  },
+  "protected_inputs_sha256": {
+    "frontend/inference_profiles.json": "6017181ceba8ae631e684a57bc5378365aba232746d14ef71f714bc89a9026b2",
+    "outputs/datasets/chemvector-selector-retention-fit-20260919/manifest.json": "f5e3a7163eef5c49118ad78dcf05778f4ad889dc9b6389097ef20896b79e2111",
+    "outputs/datasets/chemvector-selector-retention-fit-20260919/admission.json": "77c4b42da2f675e61924ee7904032deb05d30b8de7767f92bfd9888aed1e85f9",
+    "outputs/experiments/chemvector-selected-matching-trial-20260915/initial.pt": "09d1661198bde9b80dc2a4398a9a6d7d856098a2af1cc4e05425fe5e3c88dbe1",
+    "outputs/audits/chemvector-heatmap-readout-direction7-20260920/report.json": "37938026f1227bf7a537a8c8eefa336a0bfbb3706b407d3040174391bdd67528",
+    "outputs/audits/chemvector-selector-anchor-contract7-20260920/report.json": "7029a3fafc813f36343155da12641cdaba8dd5e7fae049538f4b975a33ce174f"
+  }
+}

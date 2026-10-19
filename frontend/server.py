@@ -15,6 +15,7 @@ from pathlib import Path
 import re
 import secrets
 import subprocess
+from threading import Lock
 import time
 from urllib.parse import unquote, urlparse
 
@@ -27,10 +28,11 @@ from rdkit.Chem.Draw import rdMolDraw2D
 FRONTEND_ROOT = Path(__file__).resolve().parent
 PROJECT_ROOT = FRONTEND_ROOT.parent
 UPLOAD_ROOT = PROJECT_ROOT / "outputs" / "uploads"
+DEFAULT_AUDIT_ROOT = PROJECT_ROOT / "outputs" / "audits" / "mr-tadf-v01021-causal-300"
 PROFILE_REGISTRY_PATH = FRONTEND_ROOT / "inference_profiles.json"
 MAX_UPLOAD_BYTES = 20 * 1024 * 1024
 SHADOW_V0928_PROFILE = json.loads(
-    (PROJECT_ROOT / "chemvector" / "shadow_v0928.json").read_text(encoding="utf-8")
+    (PROJECT_ROOT / "chemvector/configs/shadow_v0928.json").read_text(encoding="utf-8")
 )
 INFERENCE_PROFILES = {
     "shadow-v0928": SHADOW_V0928_PROFILE,
@@ -485,6 +487,106 @@ def render_sdf(sdf_path: Path, output_path: Path) -> None:
     temporary.replace(output_path)
 
 
+AUDIT_CAUSES = {
+    "text_stroke_as_structure",
+    "bond_as_text",
+    "implicit_carbon_missing",
+    "implicit_carbon_duplicate",
+    "semantic_bond_extra",
+    "semantic_bond_missing",
+    "semantic_bond_order",
+    "topology_given_counts",
+    "ocr_transcription",
+    "atom_property_or_stereo",
+    "compiler_or_valence",
+    "ground_truth_or_nonstandard",
+    "unresolved",
+}
+AUDIT_TAGS = {
+    "decorated_text",
+    "decorated_bond",
+    "bond_crossing",
+    "large_font",
+    "long_bond",
+    "thick_bond",
+    "thin_bond",
+    "long_functional_group",
+    "dense_layout",
+    "colored_atom",
+    "blurry",
+}
+
+
+class AuditRepository:
+    def __init__(self, root: Path) -> None:
+        self.root = root.resolve()
+        self.lock = Lock()
+
+    @property
+    def audit_path(self) -> Path:
+        return self.root / "audit.json"
+
+    @property
+    def annotations_path(self) -> Path:
+        return self.root / "annotations.json"
+
+    def payload(self) -> dict:
+        audit = load_json(self.audit_path)
+        annotations = load_json(self.annotations_path)
+        return {**audit, "annotations": annotations.get("annotations", {})}
+
+    def _records(self) -> dict[str, dict]:
+        return {
+            row["molecule_id"]: row
+            for row in load_json(self.audit_path).get("records", [])
+        }
+
+    def artifact_path(self, molecule_id: str, artifact: str) -> Path:
+        record = self._records().get(molecule_id)
+        if record is None:
+            raise FileNotFoundError(molecule_id)
+        relative = record.get("artifacts", {}).get(artifact)
+        if not relative:
+            raise FileNotFoundError(artifact)
+        path = (self.root / relative).resolve()
+        if not path.is_relative_to(self.root) or not path.is_file():
+            raise FileNotFoundError(path)
+        return path
+
+    def save_annotation(self, molecule_id: str, payload: dict) -> dict:
+        if molecule_id not in self._records():
+            raise FileNotFoundError(molecule_id)
+        cause = payload.get("primary_cause")
+        confidence = payload.get("confidence")
+        tags = payload.get("visual_tags", [])
+        note = payload.get("note", "")
+        if cause not in AUDIT_CAUSES:
+            raise ValueError("未知的首因标签")
+        if confidence not in {"high", "medium", "low"}:
+            raise ValueError("置信度必须为 high、medium 或 low")
+        if not isinstance(tags, list) or any(tag not in AUDIT_TAGS for tag in tags):
+            raise ValueError("包含未知的视觉标签")
+        if not isinstance(note, str) or len(note) > 2000:
+            raise ValueError("备注不得超过 2000 个字符")
+        annotation = {
+            "primary_cause": cause,
+            "confidence": confidence,
+            "visual_tags": sorted(set(tags)),
+            "note": note.strip(),
+            "reviewed_at": datetime.now().astimezone().isoformat(),
+        }
+        with self.lock:
+            data = load_json(self.annotations_path)
+            data.setdefault("annotations", {})[molecule_id] = annotation
+            temporary = self.annotations_path.with_suffix(".json.tmp")
+            temporary.write_text(
+                json.dumps(data, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            temporary.replace(self.annotations_path)
+        return annotation
+
+
 class BenchmarkRepository:
     def __init__(self, evaluations_root: Path) -> None:
         self.evaluations_root = evaluations_root.resolve()
@@ -928,6 +1030,12 @@ class BenchmarkHandler(SimpleHTTPRequestHandler):
             if parts == ["api", "inference", "profiles"]:
                 self.send_json({"profiles": public_inference_profiles()})
                 return
+            if parts == ["api", "audit"]:
+                self.send_json(self.audit.payload())
+                return
+            if len(parts) == 5 and parts[:2] == ["api", "audit"] and parts[2] == "artifacts":
+                self.send_file(self.audit.artifact_path(parts[3], parts[4]))
+                return
             if len(parts) == 3 and parts[:2] == ["api", "runs"]:
                 self.send_json(self.repository.run_payload(parts[2]))
                 return
@@ -956,6 +1064,14 @@ class BenchmarkHandler(SimpleHTTPRequestHandler):
         parsed = urlparse(self.path)
         parts = [unquote(part) for part in parsed.path.strip("/").split("/") if part]
         try:
+            if len(parts) == 4 and parts[:3] == ["api", "audit", "annotations"]:
+                length = int(self.headers.get("Content-Length", "0"))
+                if length < 1 or length > 65536:
+                    raise ValueError("审计标签请求大小无效")
+                payload = json.loads(self.rfile.read(length).decode("utf-8"))
+                annotation = self.audit.save_annotation(parts[3], payload)
+                self.send_json({"annotation": annotation})
+                return
             if len(parts) == 3 and parts[:2] == ["api", "infer"]:
                 length = int(self.headers.get("Content-Length", "0"))
                 if length < 1 or length > MAX_UPLOAD_BYTES:
@@ -1016,6 +1132,7 @@ def main() -> None:
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--evaluations-root", default="outputs/evaluations")
     parser.add_argument("--uploads-root", default="outputs/uploads")
+    parser.add_argument("--audit-root", default=str(DEFAULT_AUDIT_ROOT.relative_to(PROJECT_ROOT)))
     parser.add_argument("--inference-device", choices=("cpu", "cuda"), default="cuda")
     args = parser.parse_args()
     RDLogger.DisableLog("rdApp.*")
@@ -1025,6 +1142,7 @@ def main() -> None:
     BenchmarkHandler.uploads = UploadRepository(
         resolve_project_path(args.uploads_root), device=args.inference_device
     )
+    BenchmarkHandler.audit = AuditRepository(resolve_project_path(args.audit_root))
     server = ThreadingHTTPServer((args.host, args.port), BenchmarkHandler)
     print(f"ChemVector benchmark browser: http://{args.host}:{args.port}")
     server.serve_forever()

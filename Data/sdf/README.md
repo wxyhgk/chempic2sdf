@@ -1,9 +1,17 @@
 # SDF 原始数据
 
 当前保留 ChemMolSeq v0.2、空间顺序 ChemMolSeq v0.3、坐标图元 ChemSVG v0.4、
-对象场景协议 ChemScene v0.1/v0.2，以及 v0.9 使用的可见物理图元协议 Visual SVG v0.1/v0.2。
+对象场景协议 ChemScene v0.1/v0.2、[ChemTraverse v0.1](CHEMTRAVERSE_V0_1.md)，
+以及 v0.9 使用的可见物理图元协议 Visual SVG v0.1/v0.2。
 训练加载器可直接从现有 JSON 动态生成旧序列标签；Visual SVG 容量集使用独立的
 确定性构建器生成，不需要重建 75GB WebDataset。
+
+## ChemTraverse v0.1
+
+ChemTraverse 将原子与键交替输出，树边使用 `down/up`，闭环使用对已出现原子的 `link`。
+双键和三键各自始终是一条 bond 事件。遍历由图片坐标唯一确定，四面体手性使用相对于
+邻居坐标排序的 `TCW/TCCW`，不会因原子遍历重排而翻转。协议解析不要求 RDKit sanitize，
+因此无效模型预测也可以完整保存和复现。
 
 ## ChemVector Safe Suppression v0.1
 

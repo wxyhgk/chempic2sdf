@@ -1,0 +1,42 @@
+{
+  "schema_version": "chemvector-source-use-review-0.1",
+  "reviewed_on": "2026-09-15",
+  "reviewer": "Codex, local engineering review; not a third-party legal attestation",
+  "use": "local_research_only",
+  "redistribution_authorized": false,
+  "remaining_candidates_sha256": "642a283943fea9b0289a3a9608d395b5a6e2ee7dc8607dd95fd405a2aff26aa9",
+  "sources": {
+    "hand_authored": {
+      "basis": "Project-authored atoms/bonds and functional-group catalogs; independently rendered locally, with no copied benchmark images.",
+      "attribution": "ChemVector curriculum catalogs: Data/sdf/chemvector_curriculum_v0_1/atoms_bonds.py and functional_groups.py"
+    },
+    "chembl": {
+      "basis": "Official ChEMBL FAQ identifies the database as Creative Commons Attribution-Share Alike 3.0 Unported. Existing local ChEMBL 37 train identities are re-rendered; original source IDs are retained.",
+      "attribution": "ChEMBL database, EMBL-EBI, ChEMBL 37; https://www.ebi.ac.uk/chembl/",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "evidence_url": "https://chembl.gitbook.io/chembl-interface-documentation/frequently-asked-questions/general-questions",
+      "obligations": "Retain source attribution and notices. Any future adaptation redistribution needs compatible share-alike handling and separate review; this run authorizes no redistribution."
+    },
+    "coconut": {
+      "basis": "Official COCONUT documentation labels repository data CC BY 4.0. Live data-service terms say COCONUT places no additional restrictions beyond those of original data owners. These are distinct statements; this review does not assert CC0 or unlimited downstream rights.",
+      "attribution": "COCONUT: COlleCtion of Open Natural prodUcTs, Steinbeck Lab and contributing data owners; local coconut_sdf_2d_lite-07-2026 identities and source IDs retained.",
+      "license": "CC BY 4.0 in official data documentation; original-owner terms remain applicable",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "evidence_url": "https://steinbeck-lab.github.io/coconut/license.html",
+      "service_terms_url": "https://coconut.naturalproducts.net/terms-of-service",
+      "obligations": "Preserve COCONUT and original-source provenance. No new redistribution, ownership claim or blanket statement about every original contributor's rights."
+    },
+    "dejavu": {
+      "basis": "Installed DejaVu Sans/Serif font license explicitly permits use/copy; DejaVu changes are public domain and Bitstream Vera notices/conditions remain. Font software is neither modified nor redistributed here.",
+      "attribution": "DejaVu fonts; Bitstream Vera copyright (c) 2003 Bitstream, Inc.; DejaVu contributors",
+      "evidence_path": "/usr/share/doc/fonts-dejavu-core/copyright"
+    }
+  },
+  "scope_limits": [
+    "This is a bounded local research-use assessment of already-local data, not legal advice or an external authorization service.",
+    "Keep original molecule IDs and full source_provenance in publication evidence; images/SVG/SDF are not chemically relabeled.",
+    "Fresh-dev original PNG/SDF are used only for development validation under their existing commitment; no sealed-test access is authorized.",
+    "Dataset, model or commercial-service redistribution/deployment is outside this review and requires a separate assessment."
+  ]
+}

@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ChemVector 错误审计</title>
+    <link rel="stylesheet" href="/audit.css">
+  </head>
+  <body>
+    <header class="audit-topbar">
+      <div class="audit-brand">
+        <div class="audit-mark">CV</div>
+        <div>
+          <h1>MR-TADF 因果错误审计</h1>
+          <p id="auditMeta">正在读取固定审计集</p>
+        </div>
+      </div>
+      <div class="audit-actions">
+        <div class="audit-progress"><strong id="reviewProgress">0 / 300</strong><span>已复核</span></div>
+        <button id="exportAnnotations" type="button">导出标签</button>
+        <a href="/">返回 Benchmark</a>
+      </div>
+    </header>
+
+    <main>
+      <section class="audit-metrics" id="auditMetrics"></section>
+      <section class="audit-workspace">
+        <aside class="audit-browser">
+          <div class="audit-filters">
+            <input id="auditSearch" type="search" placeholder="搜索分子 ID 或错误类型">
+            <div class="audit-filter-grid">
+              <select id="cohortFilter" aria-label="样本分组">
+                <option value="all">错误与对照</option>
+                <option value="error">错误样本</option>
+                <option value="control">正确对照</option>
+              </select>
+              <select id="reviewFilter" aria-label="复核状态">
+                <option value="all">全部状态</option>
+                <option value="pending">待复核</option>
+                <option value="reviewed">已复核</option>
+              </select>
+              <select id="bucketFilter" aria-label="自动错误桶"></select>
+              <select id="auditDifficulty" aria-label="键长难度">
+                <option value="all">全部键长</option>
+                <option value="standard_bond_length">标准键长</option>
+                <option value="long_bond">长键</option>
+                <option value="extreme_long_bond">极端长键</option>
+              </select>
+            </div>
+            <span id="auditCount">0 个样本</span>
+          </div>
+          <div id="auditList" class="audit-list"></div>
+        </aside>
+        <section id="auditDetail" class="audit-detail">
+          <div class="audit-empty"><strong>选择一个样本</strong><span>查看原图、对象叠加和 SDF 对照</span></div>
+        </section>
+      </section>
+    </main>
+    <script src="/audit.js" defer></script>
+  </body>
+</html>

@@ -1,0 +1,71 @@
+{
+  "data_root": "/home/zhenghe/GK/Project/chempic2sdf/outputs/datasets/full-molecule-12k-20260915-recovered/dataset",
+  "inputs": {
+    "inventory": {
+      "path": "/home/zhenghe/GK/Project/chempic2sdf/outputs/audits/chemvector-full-12k-inventory-20260915/inventory/report.json",
+      "sha256": "1b868cb4767483dd24f5c2852137953e2cc6d322d82d32f6ba6fedb09bc0c8be"
+    },
+    "inventory_candidates": {
+      "path": "/home/zhenghe/GK/Project/chempic2sdf/outputs/audits/chemvector-full-12k-inventory-20260915/inventory/unique-candidates.json",
+      "sha256": "f039ff7bdba1cea489b03834551db755f88aaa4af0ec2c6be6319729bbb72950"
+    },
+    "previous_admission": {
+      "path": "/home/zhenghe/GK/Project/chempic2sdf/outputs/datasets/chemvector-mixed-release-20260915/admission.json",
+      "sha256": "28d4a9343a87a4d33cb5ae02819d05c9b20031348cb2ee02849d844c17b8afc4"
+    },
+    "previous_manifest": {
+      "path": "/home/zhenghe/GK/Project/chempic2sdf/outputs/datasets/chemvector-mixed-release-20260915/manifest.json",
+      "sha256": "47e5ed3958aa20d89b871513afb7a90c6b8c0b82dfd365b5801967788afe3b9a"
+    },
+    "private_receipt": {
+      "path": "/home/zhenghe/GK/Project/chempic2sdf/outputs/audits/chemvector-full-12k-private-identity-20260915/receipt.json",
+      "sha256": "ac41b0c58bd0223a04a2b6e36994a7e56f09d1e142fe6f148ebf0026c94c0a4e"
+    },
+    "public_report": {
+      "path": "/home/zhenghe/GK/Project/chempic2sdf/outputs/audits/chemvector-full-12k-public-20260915/review/report.json",
+      "sha256": "7b53952121158867fd1c43f9c78a180c4bae1b5452d654ac44f6ec1d5917f949"
+    },
+    "remaining": {
+      "path": "/home/zhenghe/GK/Project/chempic2sdf/outputs/audits/chemvector-full-12k-public-20260915/review/remaining-candidates.json",
+      "sha256": "67672a0d414d73768274a9d52973ff868bc6b771482105fe66c4024b29f98c85"
+    },
+    "request": {
+      "path": "/home/zhenghe/GK/Project/chempic2sdf/outputs/audits/chemvector-full-12k-review-request-20260915/request.json",
+      "sha256": "4eb4ec527147672bb6eaa3a770d4bf5394a99927032fc9d5a0d65771724eb1c7"
+    },
+    "request_candidates": {
+      "path": "/home/zhenghe/GK/Project/chempic2sdf/outputs/audits/chemvector-full-12k-review-request-20260915/candidate-identities.json",
+      "sha256": "c0412d15c4d0651a0d316510b03030d5da7a603129db1990ef84b5f57dc6b1fe"
+    },
+    "source_rights": {
+      "path": "/home/zhenghe/GK/Project/chempic2sdf/docs/model/training/releases/20260915-expanded-source-use.json",
+      "sha256": "6148bbff9dcbf12c4ae990332c9e4066aa372e159fa8f0d91c7849a7e71258ec"
+    },
+    "target_samples": {
+      "path": "/home/zhenghe/GK/Project/chempic2sdf/outputs/audits/chemvector-full-12k-cpu-20260915/preflight/samples.json",
+      "sha256": "ceec330534cda481734c80dbc3a4de0418054412ae71b97168ee5a336ab56cc6"
+    },
+    "targets": {
+      "path": "/home/zhenghe/GK/Project/chempic2sdf/outputs/audits/chemvector-full-12k-cpu-20260915/preflight/report.json",
+      "sha256": "4cc375ad9646b80cbac282c1186897510fbc0eb2334ece1c8bc74c3483a652bc"
+    }
+  },
+  "minimum_unique_train_images": 10000,
+  "new_source": "full_molecule_expansion",
+  "schema_version": "chemvector-expanded-release-spec-0.1",
+  "seed": 20260915,
+  "training_protocol": {
+    "automatic_resume": false,
+    "batch_size": 1,
+    "max_gpus": 1,
+    "max_steps": 1200,
+    "patience": 2,
+    "schema_version": "chemvector-fixed-continuation-protocol-0.2",
+    "selection_domains": [
+      "full_molecule"
+    ],
+    "update_recipe": "freeze-role-v1",
+    "validate_every": 400,
+    "wall_seconds": 1800
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "schema_version": "chemvector-source-use-review-0.1",
+  "reviewed_on": "2026-09-15",
+  "reviewer": "Codex local engineering source-use assessment; not legal advice, third-party certification or training-launch authorization",
+  "use": "local_research_only",
+  "redistribution_authorized": false,
+  "remaining_candidates_sha256": "67672a0d414d73768274a9d52973ff868bc6b771482105fe66c4024b29f98c85",
+  "inherited_release_admission_sha256": "28d4a9343a87a4d33cb5ae02819d05c9b20031348cb2ee02849d844c17b8afc4",
+  "reviewed_new_candidates": {"chembl_molecules": 991, "coconut_molecules": 971, "unique_compatible_images": 11124},
+  "sources": {
+    "hand_authored": {
+      "basis": "Unchanged curriculum rows inherited from the already reviewed local release; project-authored catalogs, no newly imported external images.",
+      "attribution": "ChemVector atoms/bonds and functional-group catalogs; original 657 curriculum training images and 144 curriculum validation images retained"
+    },
+    "chembl": {
+      "basis": "Official ChEMBL licensing FAQ rechecked with HTTP 200 on 2026-09-15: the database is CC BY-SA 3.0 and allows use, redistribution and adaptation subject to attribution and share-alike. This expansion uses existing local molecule identities, not commercial property calculations, and retains original IDs/provenance.",
+      "attribution": "ChEMBL database, EMBL-EBI, ChEMBL 37; https://www.ebi.ac.uk/chembl/",
+      "license": "CC BY-SA 3.0",
+      "evidence_url": "https://chembl.gitbook.io/chembl-interface-documentation/frequently-asked-questions/general-questions",
+      "retrieved_response_sha256": "beea4f3e1d6ad0977e451eeb423799ed62080f802fa9600ef3458deb8e14855f",
+      "obligations": "Preserve attribution and notices. No redistribution or deployment in this review; any future distribution requires separate share-alike assessment."
+    },
+    "coconut": {
+      "basis": "Official documentation rechecked with HTTP 200 on 2026-09-15 identifies repository data as CC BY 4.0. The service terms also returned HTTP 200 and state that original data-owner restrictions remain applicable. Review is bounded to local research on the existing local identities, with provenance retained; it does not certify every contributor's rights or assert CC0.",
+      "attribution": "COCONUT: COlleCtion of Open Natural prodUcTs, Steinbeck Lab and contributing original data owners; local coconut_sdf_2d_lite-07-2026",
+      "license": "CC BY 4.0 for repository data; original-owner terms retained",
+      "evidence_url": "https://steinbeck-lab.github.io/coconut/license.html",
+      "retrieved_response_sha256": "23826371c2a8ae0a2edb75c18e5350f0d3ddcf9636c5c6293adfb245d1bf6423",
+      "service_terms_url": "https://coconut.naturalproducts.net/terms-of-service",
+      "service_terms_response_sha256": "f01f55568e75a7724b9a55cf589637404bbb3ec02b9d2695948bea8d64292cb5",
+      "obligations": "Retain molecule/source IDs and contributor provenance. No redistribution, ownership claim or blanket downstream commercial authorization."
+    },
+    "dejavu": {
+      "basis": "Installed font copyright file reread in full. Bitstream Vera conditions permit font use and require notices; DejaVu changes are public domain. No font software modification or redistribution here.",
+      "attribution": "DejaVu contributors; Bitstream Vera copyright (c) 2003 Bitstream, Inc.",
+      "evidence_path": "/usr/share/doc/fonts-dejavu-core/copyright",
+      "evidence_sha256": "63d3ba759d12804c5b31a9d5940d855c1820d1f5999e6b0872eb1c7ff045fbc9"
+    }
+  },
+  "scope_limits": [
+    "This is a new exact-candidate local assessment, not automatic extension of the old 287-candidate private review.",
+    "No external data/model distribution, commercial deployment, new private query or changed evaluation split is authorized.",
+    "Old train and validation sources remain immutable. Any final promotion must bind this review, all new evidence and the exact incremental plan.",
+    "Formal data admission and actual GPU-run authorization are distinct; this document does not start a training job."
+  ]
+}

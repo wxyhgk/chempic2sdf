@@ -58,6 +58,31 @@ Data/benchmarks/public_ocsr_v1/*/*
 *.sdf
 *.sdf.gz
 Data/images/test1.png
+Data/images/test2.png
+
+# Local/generated research datasets and renderer workspaces
+Data/ocr/
+Data/sdf/chemtraverse_v0_1_ab_50k/
+Data/sdf/chemtraverse_v0_1_capacity/
+Data/sdf/chemtraverse_v0_1_fresh_dev/
+Data/sdf/chemvector_curriculum_v0_1/
+Data/sdf/chemvector_curriculum_v0_2/
+Data/sdf/chemvector_joint_v1/fresh_eval_12k/
+Data/sdf/chemvector_joint_v1/style_train_100k/
+Data/sdf/chemvector_joint_v1/work/
+Data/sdf/chemvector_safe_suppression_v0_1/fonts/
+Data/sdf/chemvector_safe_suppression_v0_1/route_select/
+Data/sdf/chemvector_safe_suppression_v0_1/*.csv
+Data/sdf/structure_expansion_v1/
+Data/sdf/text_source_coverage/
+Data/sdf/text_source_layout/
+Data/sdf/text_source_renderer/
+Data/sdf/visual_svg_layers_c_v0_1/
+Data/sdf/visual_svg_v0_1/
+Data/sdf/visual_svg_v0_2/
+chemvector/evaluation/audits/ocr/set_rejected_text/
+formal/**/result/
+formal/**/witnesses/
 
 # Papers and upstream reference source
 paper/

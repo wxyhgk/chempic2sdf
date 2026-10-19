@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://chempic2sdf.local/schemas/safe-suppression-style-0.1.schema.json",
+  "title": "ChemVector Safe Suppression Style 0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "font_family_id",
+    "font_family_group",
+    "font_bucket",
+    "font_size",
+    "line_width_bucket",
+    "bond_line_width",
+    "rotation_bucket",
+    "rotation_degrees",
+    "multiple_bond_offset_bucket",
+    "multiple_bond_offset",
+    "color_mode"
+  ],
+  "properties": {
+    "font_family_id": {"type": "string", "minLength": 1},
+    "font_family_group": {"const": "heldout"},
+    "font_bucket": {"enum": ["small", "normal", "large", "extreme"]},
+    "font_size": {"type": "integer", "minimum": 8, "maximum": 36},
+    "line_width_bucket": {"enum": ["thin", "normal", "thick"]},
+    "bond_line_width": {"type": "number", "minimum": 1.4, "maximum": 2.6},
+    "rotation_bucket": {"enum": ["negative", "near_zero", "positive"]},
+    "rotation_degrees": {"type": "number", "minimum": -12, "maximum": 12},
+    "multiple_bond_offset_bucket": {"enum": ["tight", "normal", "wide", "extra_wide"]},
+    "multiple_bond_offset": {"type": "number", "minimum": 0.1, "maximum": 0.22},
+    "color_mode": {"enum": ["black_white", "limited_color", "grayscale"]}
+  }
+}

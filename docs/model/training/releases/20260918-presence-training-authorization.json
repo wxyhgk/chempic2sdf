@@ -1,0 +1,39 @@
+{
+  "schema_version": "chemvector-presence-training-authorization-0.1",
+  "user_statement": "开始",
+  "context": "Records the user's approval of one presence-readout trial after data publication and execution checks, CPU <=5 minutes and <=200 optimizer steps. The subsequent 继续推进 continues this same unconsumed approval, not a second trial. Local authorization transcription by Codex, not a new user signature. Artifact names retain the 20260918 preparation identifier; execution continues on 2026-09-19 Asia/Shanghai.",
+  "protocol": {
+    "device": "cpu",
+    "wall_seconds": 300,
+    "maximum_steps": 200,
+    "optimizer": "Adam",
+    "learning_rate": 0.01,
+    "weight_decay": 0.0,
+    "gradient_clip": 1.0,
+    "batch": "all_known_pairs_from_fixed_24_training_images",
+    "seed": 20260918,
+    "threshold_search": false,
+    "automatic_retries": 0,
+    "selection": "last_step_for_diagnosis_only_initial_remains_default"
+  },
+  "manifest_sha256": "0d30e80c64ec9276f441af0dfe6145b88d17f55546f1f5793b16c639123876aa",
+  "admission_sha256": "bf009c0d42db306304173b0f4a3f600346ec9b0571257c17319bcfc0a80085ed",
+  "initial_sha256": "09d1661198bde9b80dc2a4398a9a6d7d856098a2af1cc4e05425fe5e3c88dbe1",
+  "maximum_invocations": 1,
+  "output": "outputs/experiments/chemvector-presence-readout-probe-20260918",
+  "training_authorized": true,
+  "deployment_authorized": false,
+  "implementation_sha256": {
+    "/home/zhenghe/GK/Project/chempic2sdf/chemvector/training/curriculum/presence_release.py": "f61af47d9c7ca0d644f9db0121ae9a3e781c9024ce5fa6c3efe82ec6841118e9",
+    "/home/zhenghe/GK/Project/chempic2sdf/chemvector/training/curriculum/presence_probe.py": "8501599b15885c4c6c28a6b00f7220e22b9530eb0722c73ff54e16c97e4ee6c8",
+    "/home/zhenghe/GK/Project/chempic2sdf/chemvector/training/curriculum/presence_trial.py": "6601abf5c62bb09df519e46695dfaba2decab7cd1475ac4a9f8cde87444d8785",
+    "/home/zhenghe/GK/Project/chempic2sdf/chemvector/training/curriculum/pair_presence_stage.py": "2ea091e2df8a768c22bba9951af13d940632400a527b30ae82d571aa471edcaa"
+  },
+  "scope": [
+    "Use only the exact admitted 24 training images and 16 unchanged validation controls; no additional candidates or private identity queries.",
+    "Update only the existing pair.presence linear weight and bias on cached frozen image-derived features; retain every confirmed non-edge, exclude unknown pairs from fitting.",
+    "Keep vision, atom/set selectors, shared pair features, raw chemical logits, role, bbox and OCR frozen; keep original thresholds.",
+    "One invocation, no automatic retry or resume, GPU prohibited, initial remains the default and no deployment.",
+    "Report training fit separately from old clean validation regression; do not claim a full 800-image evaluation."
+  ]
+}

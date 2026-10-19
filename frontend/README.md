@@ -3,6 +3,21 @@
 该前端直接读取 `outputs/evaluations/` 下的评测记录，左右对照真值 SDF 和模型
 预测 SDF。所有结构图都从对应 SDF 渲染，不使用 SMILES 重建预测结果。
 
+## MR-TADF 因果错误审计
+
+固定 300 张 v0.10.21 因果审计页面：
+
+```text
+http://0.0.0.0:8765/audit.html
+```
+
+页面支持自动错误桶筛选、四图对照、人工首因/置信度/MOSAIC 风格标签保存和 JSON 导出。
+服务端标签写入 `outputs/audits/mr-tadf-v01021-causal-300/annotations.json`。构建命令：
+
+```bash
+.venv-train/bin/python -m chemvector.build_mr_tadf_causal_audit
+```
+
 启动：
 
 ```bash

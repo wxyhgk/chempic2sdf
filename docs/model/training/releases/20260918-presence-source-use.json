@@ -1,0 +1,32 @@
+{
+  "schema_version": "chemvector-presence-source-use-0.1",
+  "reviewer": "Codex local engineering source-use review; not a third-party legal attestation",
+  "use": "local_research_only",
+  "redistribution_authorized": false,
+  "remaining_candidates_sha256": "86e48cc4da3ff1ff62e25a461d7761d745e98e217dc247c21b12cb982314f01b",
+  "sources": {
+    "hand_authored": {
+      "basis": "Exactly 17 surviving project-authored neutral structures from the fixed pair-gap catalog, independently rendered locally; no benchmark images copied and the one public overlap remains excluded.",
+      "attribution": "ChemVector pair_gap_data.py fixed catalog and existing curriculum renderer; original IDs and generation evidence retained."
+    },
+    "inherited_curriculum_controls": {
+      "basis": "Exactly seven admitted curriculum train/reference controls are inherited from the unchanged 20260915 release. Sixteen existing curriculum validation/reference images remain validation-only. Source use inherits the existing hand-authored curriculum review, not ChEMBL/COCONUT data access.",
+      "attribution": "ChemVector curriculum atoms/bonds and functional-group catalogs; 20260915-source-use.json and existing release provenance."
+    },
+    "dejavu": {
+      "basis": "Installed font copyright notice permits font use/copy under Bitstream Vera conditions; DejaVu changes are public domain. Only existing local rendered images are copied; no font binary is modified or redistributed.",
+      "attribution": "DejaVu contributors; Bitstream Vera copyright (c) 2003 Bitstream, Inc.; /usr/share/doc/fonts-dejavu-core/copyright."
+    }
+  },
+  "input_sha256": {
+    "/usr/share/doc/fonts-dejavu-core/copyright": "63d3ba759d12804c5b31a9d5940d855c1820d1f5999e6b0872eb1c7ff045fbc9",
+    "docs/model/training/releases/20260915-source-use.json": "1734a06304c672aaf7e58976bbbdd273c297cee36384dfd404243bcbaaa23e3b",
+    "chemvector/training/curriculum/pair_gap_data.py": "9fbc836db0844db5fd5ccfc40bcdcbad4b10fa716233c05b275c5b6f5d00c1e1"
+  },
+  "limitations": [
+    "Local readout-fitting experiment only; no dataset/model redistribution, commercial deployment or ownership claim.",
+    "Private receipt is inherited, not rerun. No private images, SDF, tars or evaluation split changes are permitted.",
+    "The 13 global unresolved public identities and existing evaluation-internal group issues are not repaired; prior evidence clears only this exact candidate subset.",
+    "Original quarantine data and old release are immutable; publication uses independent copies."
+  ]
+}

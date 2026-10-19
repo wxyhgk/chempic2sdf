@@ -1,0 +1,25 @@
+{
+  "schema_version": "chemvector-promotion-review-0.1",
+  "decision": "approve_local_research",
+  "reviewed_on": "2026-09-15",
+  "reviewer": "Codex, local engineering review under the user's request to continue the self-developed training route; not a third-party or signed custodian attestation",
+  "approved_plan_sha256": "0f14a90c82cc57b2745ccf384f9f9d6bc3358d886a6d1a4b52a0195f5899fe42",
+  "source_use_review_sha256": "1734a06304c672aaf7e58976bbbdd273c297cee36384dfd404243bcbaaa23e3b",
+  "release_checks": {
+    "source_rights": "checked",
+    "public_benchmark_identity": "checked",
+    "fresh_eval_identity": "checked",
+    "group_split": "checked",
+    "model_targets": "checked"
+  },
+  "rationale": [
+    "Source use is limited to local research with explicit ChEMBL/COCONUT/DejaVu attributions and limitations recorded in the separately hash-bound source-use review; no distribution or deployment is authorized.",
+    "The 282 candidates are an exact subset of the prior fixed 287-candidate request. Public review retained 282 after five conservative exclusions and zero remaining ambiguous candidate pairs; no claim that all global public identities were repaired.",
+    "The existing checked_conservative private receipt covers every original candidate against all 3000 committed evaluation molecules. No new private query was made; the known fresh/sealed cross-group limitations remain documented.",
+    "Global identity/connectivity/core union revealed CN versus C[NH3+] and CS versus C[S-] split conflicts. All variants of both related structures are held out; 18 images move from the old candidate-train proposal to validation, and no old validation enters training.",
+    "The resulting release has 657 curriculum and 1668 full-molecule training images; validation has 144 curriculum and the unchanged 800 committed full-molecule original images. Old-train replay is never labeled unseen validation.",
+    "Existing zero-failure target reports are bound to the exact source manifests; publisher additionally verifies every copied artifact, original SDF identity and target collation before writing final admission.",
+    "The fixed recipe is full_molecule/full_molecule/curriculum, batch 1, max 6000 steps, validate every 600 steps, patience 3, one GPU maximum and 43200 seconds maximum. Only full-molecule validation scores select checkpoints. Nine original checkpoints and inference thresholds are pinned.",
+    "Approval takes effect only for the independently copied release whose final manifest is hash-bound after all preflight checks pass. Original quarantine data and historical artifacts are not modified."
+  ]
+}

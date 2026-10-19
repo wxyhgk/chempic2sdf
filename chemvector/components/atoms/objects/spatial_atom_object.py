@@ -99,7 +99,18 @@ def spatial_atom_object_loss(
     targets: dict[str, torch.Tensor],
     *,
     heatmap_radius_cells: int = 1,
+    text_center_consistency_weight: float = 0.0,
 ) -> dict[str, torch.Tensor]:
+    """Compute the spatial atom-object objective.
+
+    ``text_center_consistency_weight`` is intentionally opt-in.  The chemical
+    attachment anchor remains the sole heatmap/ownership target; when enabled,
+    visible text contributes only a weak translation-invariant geometry term.
+    This prevents a text glyph center from becoming an atom candidate while
+    still teaching the head how the glyph is displaced from its anchor.
+    """
+    if text_center_consistency_weight < 0.0:
+        raise ValueError("text_center_consistency_weight must be nonnegative")
     anchors = targets["atom_anchors"]
     mask = targets["atom_mask"]
     height, width = output["heatmap_logits"].shape[-2:]
@@ -136,6 +147,9 @@ def spatial_atom_object_loss(
     predicted_centers = output["text_centers"].permute(0, 2, 3, 1)[
         batch, index_y, index_x
     ]
+    predicted_anchors = output["anchors"].permute(0, 2, 3, 1)[
+        batch, index_y, index_x
+    ]
     predicted_extents = output["text_extents"].permute(0, 2, 3, 1)[
         batch, index_y, index_x
     ]
@@ -160,6 +174,15 @@ def spatial_atom_object_loss(
         if bool(text.any())
         else zero
     )
+    text_center_consistency_loss = (
+        F.smooth_l1_loss(
+            predicted_centers[text] - predicted_anchors[text],
+            expected_centers[text] - anchors[text],
+            beta=4.0 / 768.0,
+        )
+        if bool(text.any())
+        else zero
+    )
     count_targets = mask.sum(dim=1).long()
     count_loss = F.cross_entropy(output["count_logits"], count_targets)
     loss = (
@@ -168,6 +191,7 @@ def spatial_atom_object_loss(
         + role_loss
         + 8.0 * text_center_loss
         + 8.0 * text_extent_loss
+        + text_center_consistency_weight * text_center_consistency_loss
         + 0.1 * count_loss
     )
     return {
@@ -176,9 +200,44 @@ def spatial_atom_object_loss(
         "anchor_offset_loss": anchor_offset_loss,
         "role_loss": role_loss,
         "text_center_loss": text_center_loss,
+        "text_center_consistency_loss": text_center_consistency_loss,
         "text_extent_loss": text_extent_loss,
         "count_loss": count_loss,
     }
+
+
+def atom_local_peak_margin_loss(
+    heatmap_logits: torch.Tensor,
+    positive_cells: torch.Tensor,
+    *,
+    margin: float = 0.75,
+    kernel_size: int = 3,
+) -> torch.Tensor:
+    """Make each target cell beat nearby non-target peaks by a fixed margin.
+
+    ``positive_cells`` is a dense boolean mask with shape ``[B, 1, H, W]``.
+    All target cells are excluded from the local negative maximum, so nearby
+    atoms do not become each other's negatives.  This is intentionally a
+    separate objective from the historical focal heatmap loss.
+    """
+    if heatmap_logits.ndim != 4 or heatmap_logits.size(1) != 1:
+        raise ValueError("Heatmap logits must have shape [B, 1, H, W]")
+    if positive_cells.shape != heatmap_logits.shape or positive_cells.dtype is not torch.bool:
+        raise ValueError("Positive-cell mask must match logits and be boolean")
+    if margin < 0.0 or kernel_size < 3 or kernel_size % 2 == 0:
+        raise ValueError("Margin must be nonnegative and kernel size must be odd >= 3")
+    if not bool(positive_cells.any()):
+        return heatmap_logits.sum() * 0.0
+    radius = kernel_size // 2
+    patches = F.unfold(heatmap_logits, kernel_size=kernel_size, padding=radius)
+    masks = F.unfold(positive_cells.float(), kernel_size=kernel_size, padding=radius).bool()
+    negative_max = patches.masked_fill(masks, float("-inf")).amax(dim=1)
+    positives = heatmap_logits[:, 0][positive_cells[:, 0]]
+    local_negative = negative_max.view_as(heatmap_logits[:, 0])[positive_cells[:, 0]]
+    finite = torch.isfinite(local_negative)
+    if not bool(finite.any()):
+        return heatmap_logits.sum() * 0.0
+    return F.softplus(margin + local_negative[finite] - positives[finite]).mean()
 
 
 def decode_spatial_atom_objects(

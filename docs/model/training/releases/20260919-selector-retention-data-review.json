@@ -1,0 +1,18 @@
+{
+  "schema_version": "chemvector-selector-retention-data-review-0.1",
+  "decision": "approve_fixed_subset_local_data_publication_only",
+  "reviewer": "Codex local engineering review under the user's request to continue preparation; not an independent legal attestation",
+  "rationale": "Saved identity/target evidence is exact-byte verified. Old validation components remain excluded. Ten diagnostic pictures have identical admitted training aliases and matching target tensors. Publish only the remaining sixteen quarantine witnesses as independent copies and retain the pre-fixed thirty-two admitted whole-molecule replay records.",
+  "approved_preparation_report_sha256": "39e66a3a4b0ba17651a5834fe3ac65fa8661fef247df98f58195f9e6fe496310",
+  "approved_trial_proposal_sha256": "4111f716f2833c444a356550ad5332929c7b5bcbd74333fa349d201965b5afcf",
+  "approved_source_use_assessment_sha256": "571302ab4b49efb6169a83f5460bf45e51262bff9560d21fd14e321d2e787238",
+  "copied_new_training_images": 16,
+  "inherited_training_images": 42,
+  "validation_only_references": 64,
+  "use": "local_selector_retention_fit_only",
+  "redistribution_authorized": false,
+  "training_run_authorized": false,
+  "full_curriculum_publication_authorized": false,
+  "source_mutation_authorized": false,
+  "private_identity_queries_authorized": 0
+}

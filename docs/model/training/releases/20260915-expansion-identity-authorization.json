@@ -1,0 +1,23 @@
+{
+  "schema_version": "chemvector-fixed-identity-authorization-record-0.1",
+  "authorization_source": "User message in this conversation on 2026-09-15",
+  "user_statement": "授权本批一次固定候选核验",
+  "scope": "One isolated data-side identity-only review of this exact fixed candidate request",
+  "request_directory": "outputs/audits/chemvector-full-12k-review-request-20260915",
+  "request_sha256": "4eb4ec527147672bb6eaa3a770d4bf5394a99927032fc9d5a0d65771724eb1c7",
+  "candidate_identities_sha256": "c0412d15c4d0651a0d316510b03030d5da7a603129db1990ef84b5f57dc6b1fe",
+  "candidate_molecules": 1963,
+  "candidate_images": 11130,
+  "evaluation_commitment_sha256": "13a456afb2c475a73fc4dca82df5fe62d4a31277d6b584637d9cd92736024512",
+  "runner_sha256": "af0d6bd2808a6d595289abd28ac28b6b0510bf40ec72529899f9bb7d87b034d0",
+  "worker_sha256": "779b01bdf3dd9bd024a6678b540575ae42adaf7c60ce3f82fd24c36e412d360e",
+  "maximum_real_private_invocations": 1,
+  "automatic_retries": 0,
+  "model_side_private_sample_access_authorized": false,
+  "images_sdf_or_tar_access_authorized": false,
+  "source_permission_changes_authorized": false,
+  "evaluation_split_changes_authorized": false,
+  "training_authorized": false,
+  "output_directory": "outputs/audits/chemvector-full-12k-private-identity-20260915",
+  "trust_boundary": "Local record of explicit user authorization, not a signed credential or training admission"
+}

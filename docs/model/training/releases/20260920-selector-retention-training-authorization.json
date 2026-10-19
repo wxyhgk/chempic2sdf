@@ -1,0 +1,100 @@
+{
+  "schema_version": "chemvector-selector-retention-training-authorization-0.1",
+  "user_statement": "继续推进",
+  "authorization_context": "User continues the explicitly proposed single GPU <=10 minute/400 step selector-retention trial, followed only after local acceptance by <=40 minute CPU old944 regression.",
+  "authorized_on": "2026-09-20",
+  "protocol": {
+    "wall_seconds": 600,
+    "maximum_steps": 400,
+    "gpu_devices": [
+      "0"
+    ],
+    "seed": 20260920,
+    "local_checks": [
+      0,
+      100,
+      200,
+      400
+    ],
+    "batch_size": 1,
+    "learning_rate": 0.000005,
+    "eps": 1e-8,
+    "betas": [
+      0.9,
+      0.999
+    ],
+    "weight_decay": 0,
+    "clip_norm": 1,
+    "retention_weight": 1,
+    "training_cycle": [
+      "old_full_molecule",
+      "old_full_molecule",
+      "witness"
+    ],
+    "parameter_scope": "set_head only",
+    "model_mode": "eval",
+    "automatic_retries": 0,
+    "conditional_regression_cpu_seconds": 2400,
+    "conditional_regression_gpu_count": 0,
+    "tf32": false,
+    "cudnn_benchmark": false
+  },
+  "manifest_sha256": "f5e3a7163eef5c49118ad78dcf05778f4ad889dc9b6389097ef20896b79e2111",
+  "admission_sha256": "77c4b42da2f675e61924ee7904032deb05d30b8de7767f92bfd9888aed1e85f9",
+  "proposal_sha256": "4111f716f2833c444a356550ad5332929c7b5bcbd74333fa349d201965b5afcf",
+  "initial_sha256": "09d1661198bde9b80dc2a4398a9a6d7d856098a2af1cc4e05425fe5e3c88dbe1",
+  "maximum_invocations": 1,
+  "output": "outputs/experiments/chemvector-selector-retention-trial-20260920",
+  "training_authorized": true,
+  "conditional_full_regression_authorized": true,
+  "deployment_authorized": false,
+  "new_private_identity_queries_authorized": false,
+  "new_dataset_publication_authorized": false,
+  "numerical_settings": {
+    "cudnn_deterministic": true,
+    "amp": false,
+    "optimizer_foreach": false
+  },
+  "scope": "58 admitted fitting/replay rows; 64 development-only rows; new64 never passed to optimizer",
+  "implementation_sha256": {
+    "chemvector/training/curriculum/selector_retention_trial.py": "2f89762de3ea33a7582eaa65813d98192b18701c7ba3b46ea1804b21e44f82b9",
+    "chemvector/training/curriculum/selector_retention_worker.py": "2daa06bf1e19d611ccff6db2bcdc234d60d62a29d39d4df2ad521c98d41f9e41",
+    "chemvector/training/curriculum/selector_retention_stage.py": "9a8af3280304f8102690008920a0a2d810fa47fcd1d17cc9bedaa60761518527",
+    "chemvector/training/curriculum/selector_retention_release.py": "290a514bd148f2cdf81f704a626894ae18df0d74edb5c1a54778e01a4953e250",
+    "chemvector/training/curriculum/runtime.py": "f1840d41a0535ed279e86e5e2ca6e70094e392bcbfd02e443819f5db80746a36",
+    "chemvector/training/curriculum/bundle.py": "47c45aab403d160cddeb81c27e58bf2e1f6e9fc13e5b3141cde081115346bb68",
+    "chemvector/training/curriculum/evaluation.py": "dfcfc4e1b93c0e5e50381b479105dd247829f924d6e956f24225a5d8c12f9a6b",
+    "chemvector/training/curriculum/continuation.py": "8df3a021b022b67c201964b6157fc02cc4d1a90c3509ca94227a0c921ca7eb94",
+    "chemvector/training/curriculum/data.py": "081cc7fa4b0c014cfca5554bc403e1a43f96c8e2070996a2a48f13cadd8c789d",
+    "chemvector/training/curriculum/pixels.py": "6eabc5f57b8bfdaa86b5bf7e58488746a8eb13a205d871f4675c770c56ddd533",
+    "chemvector/training/curriculum/validation_truth.py": "e88494b969658ee69085895fd691a03652d8a193489815409c01955ab5d560ba",
+    "chemvector/training/curriculum/checkpoints.py": "4bef4aae3edccf1c674403a5edaed12c6631c089fef8f619647f60d8bc5f0c29",
+    "chemvector/training/curriculum/admission.py": "71c84c68773e6ba649dbb815ec2d1470950ecdb1be4559fdef309748f7bc550c",
+    "chemvector/training/curriculum/gradient_preflight.py": "f2bcb095d1bfd2ca2ec02dc0e331635cb4222ff69ac8e8fdb737fa122a5618b2",
+    "chemvector/training/curriculum/interface_diagnostic.py": "0cd2819312c9552c3891f551bba8499bd1da8569e32bef2598870bdef5622c9b",
+    "chemvector/training/curriculum/presence_regression_metrics.py": "02e0a055b99b238e1a085f2a8b6b00699e0f2ced6054737575632f15a437e2af",
+    "chemvector/training/curriculum/upstream_diagnostic.py": "e25fc87bd4100ec2c3fe0ef9fccae05dcd240a37fca2b0f235de09e85dbd9988",
+    "chemvector/components/graph/proposals/proposal_object_set.py": "dd2ace08595c1ada927015518553fa5b5046f4c89ed1cf23e02d4b4f9961b8b0",
+    "chemvector/components/graph/joint/predicted_incidence.py": "c726bb0c0b365b639a79c856f28a6b42735400d7af1aae577f42fda75fabb95d",
+    "chemvector/training/graph/relations/train_direct_atom_pair_bond.py": "93dbb1857fa6068595a9e059c4ea093df79f961ecb20551149d8d8328aa6b6c9",
+    "tools/selector_retention_prototype.py": "dfdeaa172f7523fd09af13d987ecec1b2ab48cc95cabd91c26b5df55a7e4b044",
+    "tests/chemvector/test_selector_retention_trial.py": "4f92348890c7324d1d6a4868acca51bf76548c84fe9b843753b28a98487fc246"
+  },
+  "protected_inputs_sha256": {
+    "frontend/inference_profiles.json": "6017181ceba8ae631e684a57bc5378365aba232746d14ef71f714bc89a9026b2",
+    "outputs/experiments/chemvector-selected-matching-trial-20260915/run.json": "647965045e24232a18ca72169da9872f533673ef757b8536011c66fdfa956b27",
+    "outputs/datasets/chemvector-expanded-release-20260915/manifest.json": "67ccb1307f7af3ca19f16ee6fd900d1a2e8c3c62dd0b9c0ec28704ddd93aa05e",
+    "outputs/datasets/chemvector-expanded-release-20260915/admission.json": "da6d4f2639c5294768a9d186edc060d104998a261eecd45471c12ed7b9a2e076",
+    "outputs/experiments/chemvector-selected-matching-trial-20260915/validation-000000.json": "be9a12c66c96ee8ecac925c707cea6159fc16fec0864f94fc5395631d1cedb89",
+    "/home/zhenghe/GK/Project/chempic2sdf/outputs/checkpoints/chemvector-v0103-direct-atom-pair-style10k/selected.pt": "e0d769b457fdbcac2d405fa234ccd108c80640db63cb35a1d8ed36446eea0614",
+    "/home/zhenghe/GK/Project/chempic2sdf/outputs/checkpoints/chemvector-v0105-direct-atom-role-style10k/selected.pt": "f7f8fe2e7df510ee9dfea36712cb90bdc4a386dd5d3db6973bc5079cd23c5f1b",
+    "/home/zhenghe/GK/Project/chempic2sdf/outputs/checkpoints/chemvector-v0108-direct-atom-text-bbox-style10k/selected.pt": "2370263a2a59b26d31939108ea9ebf0744fb73bc27f21dc0638719ad6033aece",
+    "/home/zhenghe/GK/Project/chempic2sdf/outputs/checkpoints/chemvector-v0109-correct-label-ocr-style10k/selected.pt": "dff869139c8e63451794ce8083932c06344d407774f652dc3baa18729abc8540",
+    "/home/zhenghe/GK/Project/chempic2sdf/outputs/checkpoints/chemvector-v0101-set-first-style10k/selected.pt": "e982057d57dd4c03864eae890df12e1d8710fce60dfc452b94511d86a5f967ac",
+    "/home/zhenghe/GK/Project/chempic2sdf/outputs/checkpoints/chemvector-v0729-whole-set-stable-distance-overfit100/last.pt": "1eede2e814efc0c440c26eba88bc8e9ed86e0911d7727b770a992c1ea2671c6a",
+    "/home/zhenghe/GK/Project/chempic2sdf/outputs/checkpoints/chemvector-v0726-dense-query-fusion-9k-45k/best.pt": "12a5e5f485c73282ffa4e46ed528bfed614d9b6e5303ee6aecdd203b1590e477",
+    "/home/zhenghe/GK/Project/chempic2sdf/outputs/checkpoints/chemvector-v0724-shared-dense-snap/best.pt": "9fbc50c9db002558fd4dcc464c80d2f789ddde23cdff06076020afef4e8f48cd",
+    "/home/zhenghe/GK/Project/chempic2sdf/outputs/checkpoints/chemvector-v079-relation-all-pairs-9k/last.pt": "553fbb80a823ce08b338d1c2b2263a5084ce1b42d714eb4deca7e4728e2427c9"
+  },
+  "failure_policy": "No retry, resume, threshold/hyperparameter/sample changes, budget extension, or deployment. Full944 only after completed trial with local and new64 acceptance."
+}

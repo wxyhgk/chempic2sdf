@@ -1,0 +1,52 @@
+{
+  "schema_version": "chemvector-expanded-promotion-review-0.1",
+  "decision": "approve_local_research_data_release",
+  "reviewed_on": "2026-09-15",
+  "reviewer": "Codex local engineering review of exact artifacts; not external certification or user GPU-run approval",
+  "approved_plan_sha256": "9984e670e165688989b7fea5c4482df01a1e38633621a561a6a398edd81a9e9d",
+  "source_use_review_sha256": "6148bbff9dcbf12c4ae990332c9e4066aa372e159fa8f0d91c7849a7e71258ec",
+  "rationale": "Release only the 10,826 unique compatible additions selected by the completed exact plan. Preserve every original release row and source binding, including all 944 fixed validation images. Inherit the already consumed one-time private receipt without another query; all public exception comparisons have exclusion witnesses. Dataset admission is not permission to launch a GPU job.",
+  "release_checks": {
+    "source_rights": "checked",
+    "public_benchmark_identity": "checked",
+    "fresh_eval_identity": "checked",
+    "group_split": "checked",
+    "model_targets": "checked"
+  },
+  "evidence_summary": {
+    "private_receipt_status": "checked_conservative",
+    "private_excluded_molecules": 1,
+    "new_private_query_performed": false,
+    "public_source_molfiles_hash_checked": 30000,
+    "public_global_unresolved_identities_retained": 13,
+    "public_candidate_exception_pairs_with_witnesses": 25519,
+    "public_remaining_ambiguous_pairs": 0,
+    "cleared_unique_compatible_images": 11124,
+    "new_images_identical_to_old_train_excluded": 298,
+    "new_molecules_matching_old_validation_pixels": 0,
+    "added_train_images": 10826,
+    "added_molecules_with_at_least_one_new_image": 1907,
+    "merged_train_rows": 13151,
+    "merged_unique_train_images": 12985,
+    "old_train_rows_preserved": 2325,
+    "old_within_train_pixel_duplicates_preserved": 166,
+    "validation_rows_preserved_exactly": 944,
+    "frozen_role_and_existing_training_tests": {"passed": 44, "seconds": 7.93},
+    "incremental_publication_and_existing_release_tests": {"passed": 43, "seconds": 21.21},
+    "real_checkpoint_cpu_gradient_report": "outputs/audits/chemvector-freeze-role-gradient-20260915/report.json",
+    "real_checkpoint_cpu_gradient_report_sha256": "ed0f96f127098aa5bead5f9e20a0939a4cc238711ea7b3ef56f3e2e873b4199d",
+    "real_checkpoint_cpu_gradient_samples": 4,
+    "real_checkpoint_cpu_trainable_groups_with_finite_nonzero_gradients": 6,
+    "real_checkpoint_cpu_optimizer_steps": 0,
+    "real_checkpoint_cpu_model_state_unchanged": true
+  },
+  "training_launch_authorized": false,
+  "limits": [
+    "Local research data preparation only. No GPU training, deployment, redistribution or change to frontend/checkpoints is approved by this review.",
+    "Publish into a new independent directory; original quarantine and previous admitted sources remain immutable.",
+    "Publisher must rebuild the exact plan, verify all copied artifacts and inherited records, and write admission only after complete checks.",
+    "The 1,200-step frozen-role recipe is a proposed bounded regression experiment, not a full data pass or verified accuracy improvement.",
+    "Synthetic tests and four CPU forward/backward checks demonstrate implementation mechanics, not generalization or freeze-role efficacy.",
+    "Development validation retains historical grouping limitations; no independent sealed-test claim is made."
+  ]
+}

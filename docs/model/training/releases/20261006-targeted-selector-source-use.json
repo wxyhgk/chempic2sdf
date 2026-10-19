@@ -1,0 +1,24 @@
+{
+  "schema_version": "chemvector-targeted-selector-source-use-review-0.1",
+  "reviewed_on": "2026-10-06",
+  "reviewer": "Codex local engineering source-use assessment; not legal advice or training-run authorization",
+  "use": "local_research_only",
+  "redistribution_authorized": false,
+  "source": {
+    "kind": "deterministic_hand_defined_chemical_templates",
+    "basis": "The fixed 130-image slice is copied from the already rendered local structure-expansion batch; no external images or model outputs are imported.",
+    "attribution": "ChemVector project-authored molecular templates and locally installed DejaVu Serif font; original molecule/source IDs and renderer provenance are retained.",
+    "original_root_is_immutable": true
+  },
+  "font": {
+    "family": "DejaVu Serif",
+    "copyright_evidence_path": "/usr/share/doc/fonts-dejavu-core/copyright",
+    "notice_required": true
+  },
+  "scope_limits": [
+    "This review covers only the fixed r5 train/holdout slice and does not promote the remaining quarantine batch.",
+    "No external data, model, benchmark, sealed identity or private evaluation payload is copied.",
+    "The release is for local research and data admission only; a separate run-authorization receipt is required before GPU execution.",
+    "No redistribution or deployment is authorized."
+  ]
+}

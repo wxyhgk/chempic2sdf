@@ -1,0 +1,15 @@
+{
+  "schema_version": "chemvector-presence-promotion-review-0.1",
+  "decision": "approve_local_presence_probe",
+  "approved_plan_sha256": "a44a9424861979527971b95f2e7a6e06522fa05e0b08a4c119974f470bfbd32e",
+  "reviewer": "Codex local engineering review; not a new human signature, private custodian clearance or third-party legal attestation",
+  "rationale": "The user approved one CPU-only <=300-second, <=200-step presence-readout probe after checks. The exact plan checks 24 fixed training images (17 surviving new candidates plus seven admitted train controls) and preserves all 16 existing clean validation images as validation-only. Target/SDF compatibility, train-versus-entire-existing-validation identity/core/group disjointness, immutable source bindings and local source-use evidence passed. Prior public/private identity receipts are inherited without any new identity query or sealed-content access. Relevant synthetic and adjacent regression tests passed (752 tests); this is software verification, not model accuracy. Approve only an independent local readout-fit release; do not authorize general mixed training, candidate expansion, retries, redistribution or deployment.",
+  "release_checks": {
+    "source_rights": "checked",
+    "public_benchmark_identity": "checked",
+    "fresh_eval_identity": "checked",
+    "group_split": "checked",
+    "model_targets": "checked"
+  },
+  "source_use_review_sha256": "ac14797a9ea58c623485fa03325057aeb0a9ab0080792530ca732513f181f81a"
+}

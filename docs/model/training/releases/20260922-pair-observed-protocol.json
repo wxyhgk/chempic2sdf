@@ -1,0 +1,121 @@
+{
+  "schema_version": "pair-observed-protocol-0.1",
+  "original_recipe": {
+    "update_recipe": "pair-only-matched-eval-v1",
+    "pair_supervision": "matched-only-v1",
+    "trainable": [
+      "pair"
+    ],
+    "frozen": [
+      "vision",
+      "atom",
+      "bond",
+      "set_head",
+      "role",
+      "bbox",
+      "ocr"
+    ],
+    "mode": "all_eval_with_pair_autograd",
+    "dtype": "float32",
+    "autocast": false,
+    "tf32": false,
+    "image_size": 768,
+    "maximum_atoms": 128,
+    "atom_match_radius_px": 6,
+    "atom_threshold": -0.25,
+    "bond_threshold": -0.5,
+    "pair_threshold": 0.85,
+    "role_threshold": 0.85,
+    "negative_ratio": 6,
+    "minimum_negatives": 48,
+    "optimizer": "AdamW",
+    "learning_rate": 2e-05,
+    "betas": [
+      0.9,
+      0.999
+    ],
+    "epsilon": 1e-08,
+    "weight_decay": 0.0,
+    "gradient_clip": 1.0,
+    "batch_size": 1,
+    "seed": 20260921,
+    "gpu_devices": [
+      "0"
+    ],
+    "wall_seconds": 600,
+    "maximum_steps": 200,
+    "maximum_batch_attempts": 232,
+    "order": "original_manifest_order_repeated_at_most_four_times",
+    "checkpoints": [
+      0,
+      50,
+      100,
+      200
+    ],
+    "no_improvement_stop_step": 100,
+    "maximum_invocations": 1,
+    "automatic_retries": 0,
+    "resume_supported": false,
+    "empty_branch": "skip_without_optimizer_step; retain_image_and_target_denominators",
+    "zero_positive_branch": "known_negatives_allowed; skip_only_if_no_known_pairs"
+  },
+  "initial_sha256": "09d1661198bde9b80dc2a4398a9a6d7d856098a2af1cc4e05425fe5e3c88dbe1",
+  "manifest_sha256": "f5e3a7163eef5c49118ad78dcf05778f4ad889dc9b6389097ef20896b79e2111",
+  "probes": [
+    {
+      "key": "full_molecule_expansion:curr_4ef506af64e8f0b8__bond_short",
+      "target_pair": [
+        31,
+        34
+      ]
+    },
+    {
+      "key": "full_molecule:curr_08d02946e879406f__font_large",
+      "target_pair": [
+        7,
+        14
+      ]
+    }
+  ],
+  "limits": {
+    "maximum_steps": 50,
+    "maximum_batch_attempts": 58,
+    "wall_seconds": 600,
+    "gpu_devices": [
+      "0"
+    ],
+    "maximum_invocations": 1,
+    "automatic_retries": 0,
+    "upstream_forwards": 58,
+    "full_cohort_evaluations": 2,
+    "snapshot_events": 4,
+    "snapshot_tensor_bytes": 1073741824,
+    "local_event_analyses": 1,
+    "analysis_pair_forwards": 2
+  },
+  "order": "original_fixed58_manifest_order_once",
+  "thresholds_unchanged": true,
+  "snapshot_selection": "each_probe_own_update_and_largest_positive_logit_change; earliest_tie",
+  "parity": {
+    "atol": 0.0001,
+    "rtol": 1e-05,
+    "comparison": "single_probe_vs_full_pair_same_state_at_baseline_and_final"
+  },
+  "runtime": "one_supervised_worker_including_load_cache_eval_updates_analysis_and_writes",
+  "diagnostic_not_fix": true,
+  "deployment_authorized": false,
+  "resume_supported": false,
+  "early_exit": "actual_final_step_metrics_or_explicit_failure; never_baseline_as_final",
+  "missing_or_unknown_probe": "abort_before_optimizer",
+  "crossing": "record_only; preserve_sequence_through_own_updates_within_50_step_cap",
+  "protections": "unchanged_pair_trial_contract; evaluate_all58; no_promotion_even_if_passed",
+  "forbidden": [
+    "new_data",
+    "private_identity_queries",
+    "validation_sample_artifacts",
+    "sealed_test",
+    "automatic_followup",
+    "threshold_changes",
+    "optimizer_counterfactual_steps"
+  ]
+}
